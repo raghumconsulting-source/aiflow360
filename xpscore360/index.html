@@ -1,0 +1,486 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="XPscore360 — AI-driven customer feedback, sentiment recovery, and Google review automation via NFC. By AITECHNIC.">
+<meta name="theme-color" content="#000000">
+<title>XPscore360 — AI Feedback & Review Engine · AIFlow360</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700;800&family=IBM+Plex+Mono:wght@300;400;500;600&family=Inter+Tight:wght@300;400;500;600&family=Manrope:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg-5:#0D1017;--bg-6:#11141D;--bg-7:#F8F9FA;--bg-13:#1A1F2E;
+  --purple:#8D59FF;--purple-dim:rgba(141,89,255,0.4);--purple-bg:rgba(141,89,255,0.08);
+  --xp:#00C2A8;--xp-dim:rgba(0,194,168,0.4);--xp-bg:rgba(0,194,168,0.08);
+  --xp-dark:rgba(0,194,168,0.15);
+  --stroke-light:rgba(255,255,255,0.11);--stroke-med:rgba(255,255,255,0.18);
+  --green:#22C55E;--red:#ef4444;
+  --font-sora:'Sora',sans-serif;--font-mono:'IBM Plex Mono',monospace;
+  --font-tight:'Inter Tight',sans-serif;--font-man:'Manrope',sans-serif;
+}
+html{scroll-behavior:smooth}
+body{background:var(--bg-6);color:rgba(248,249,250,0.9);font-family:var(--font-tight);font-weight:300;overflow-x:hidden;line-height:1.6}
+body::before{content:'';position:fixed;inset:0;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.025'/%3E%3C/svg%3E");background-size:160px;pointer-events:none;z-index:1000;opacity:.5}
+
+/* NAV */
+.nav{position:fixed;top:24px;left:50%;transform:translateX(-50%);z-index:200;background:rgba(13,16,23,0.88);backdrop-filter:blur(20px);border:1px solid var(--stroke-light);border-radius:9999px;width:calc(100% - 48px);max-width:818px;height:56px;display:flex;align-items:center;justify-content:space-between;padding:0 8px 0 12px}
+.nav-logo{display:flex;align-items:center;gap:10px;text-decoration:none}
+.nav-logo-img{width:36px;height:36px;border-radius:50%;background:var(--purple-bg);border:1px solid var(--purple-dim);display:flex;align-items:center;justify-content:center;font-family:var(--font-sora);font-weight:800;font-size:12px;color:var(--purple);letter-spacing:-.5px}
+.nav-brand-text{font-family:var(--font-sora);font-size:15px;font-weight:700;color:rgba(248,249,250,0.9);letter-spacing:-.5px}
+.nav-brand-text span{color:var(--purple)}
+.nav-links{display:flex;align-items:center;gap:4px;list-style:none}
+.nav-link{font-family:var(--font-mono);font-size:11px;color:rgba(255,255,255,0.5);text-decoration:none;padding:6px 14px;border-radius:9999px;transition:color .3s,background .3s;letter-spacing:.04em}
+.nav-link:hover{color:rgba(255,255,255,0.9)}
+.nav-cta{background:var(--xp);color:#0D1017;font-family:var(--font-mono);font-size:11px;font-weight:600;letter-spacing:.04em;padding:9px 20px;border-radius:9999px;border:none;cursor:pointer;text-decoration:none;display:inline-flex;align-items:center;gap:6px;transition:opacity .2s;white-space:nowrap}
+.nav-cta:hover{opacity:.85}
+@media(max-width:640px){.nav-links{display:none}.nav{width:calc(100% - 32px)}}
+
+/* HERO */
+.hero{padding:160px 24px 100px;text-align:center;position:relative;overflow:hidden}
+.hero-glow{position:absolute;top:5%;left:50%;transform:translateX(-50%);width:800px;height:500px;background:radial-gradient(ellipse,rgba(0,194,168,0.12) 0%,transparent 70%);pointer-events:none;filter:blur(50px)}
+.hero-eyebrow{display:inline-flex;align-items:center;gap:8px;margin-bottom:12px}
+.hero-parent{font-family:var(--font-mono);font-size:11px;color:rgba(255,255,255,0.3);letter-spacing:.18em;text-transform:uppercase}
+.hero-parent a{color:var(--purple);text-decoration:none}
+.hero-parent a:hover{color:rgba(141,89,255,0.8)}
+.hero-badge{display:inline-flex;align-items:center;gap:8px;background:var(--xp-bg);border:1px solid var(--xp-dim);border-radius:9999px;padding:6px 16px;margin-bottom:32px;font-family:var(--font-mono);font-size:11px;color:var(--xp);letter-spacing:.12em;text-transform:uppercase;opacity:0;animation:fadeUp .8s .2s ease forwards}
+.hero-badge-dot{width:6px;height:6px;border-radius:50%;background:var(--xp);animation:pulseDot 2s ease infinite}
+@keyframes pulseDot{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.3;transform:scale(1.4)}}
+.hero-title{font-family:var(--font-sora);font-size:clamp(44px,7vw,96px);font-weight:400;line-height:1.0;letter-spacing:-3px;margin-bottom:24px;opacity:0;animation:fadeUp 1s .4s ease forwards}
+.hero-title .light{color:rgba(248,249,250,0.9)}
+.hero-title .xp{color:var(--xp)}
+.hero-title .dim{color:rgba(248,249,250,0.2)}
+.hero-sub{font-size:16px;font-weight:300;color:rgba(255,255,255,0.5);max-width:520px;margin:0 auto 48px;line-height:1.8;opacity:0;animation:fadeUp .8s .6s ease forwards}
+.hero-actions{display:flex;align-items:center;justify-content:center;gap:16px;flex-wrap:wrap;opacity:0;animation:fadeUp .8s .8s ease forwards}
+.btn-xp{background:var(--xp);color:#0D1017;font-family:var(--font-mono);font-size:12px;font-weight:600;letter-spacing:.08em;padding:14px 32px;border-radius:9999px;border:none;cursor:pointer;text-decoration:none;display:inline-flex;align-items:center;gap:8px;transition:opacity .2s;box-shadow:0 4px 32px rgba(0,194,168,0.3)}
+.btn-xp:hover{opacity:.88}
+.btn-outline{background:transparent;color:rgba(255,255,255,0.6);font-family:var(--font-mono);font-size:12px;letter-spacing:.08em;padding:13px 24px;border-radius:9999px;border:1px solid var(--stroke-light);cursor:pointer;text-decoration:none;display:inline-flex;align-items:center;gap:8px;transition:border-color .2s,color .2s}
+.btn-outline:hover{border-color:var(--stroke-med);color:rgba(255,255,255,0.9)}
+
+/* NFC VISUAL */
+.nfc-visual{position:relative;max-width:360px;margin:64px auto 0;opacity:0;animation:fadeIn 1s 1s ease forwards}
+.nfc-phone{background:var(--bg-5);border:1px solid var(--stroke-light);border-radius:28px;overflow:hidden;box-shadow:0 24px 80px rgba(0,0,0,.6)}
+.nfc-screen{background:#0a0a0a;padding:0}
+.nfc-topbar{padding:10px 16px 8px;border-bottom:0.5px solid rgba(255,255,255,.07);display:flex;align-items:center;gap:10px}
+.nfc-logo-sm{width:26px;height:26px;border-radius:8px;background:#151510;border:0.5px solid rgba(0,194,168,.4);display:flex;align-items:center;justify-content:center;font-size:8px;font-weight:500;color:var(--xp);font-family:var(--font-sora)}
+.nfc-venue{font-size:11px;font-weight:500;color:rgba(240,237,232,0.9);flex:1}
+.nfc-timer{font-size:9px;color:#666}
+.nfc-prog{display:flex;gap:3px;padding:5px 14px 4px}
+.nfc-seg{flex:1;height:2px;border-radius:2px;background:#272727}
+.nfc-seg.done{background:var(--xp)}.nfc-seg.active{background:#3a3a3a}
+.nfc-chat{padding:12px 14px 8px;display:flex;flex-direction:column;gap:8px;min-height:160px}
+.nfc-bub{padding:9px 12px;border-radius:14px;font-size:12px;line-height:1.5;max-width:85%}
+.nfc-bub.ai{background:#1c1c1c;border:0.5px solid #333;color:rgba(240,237,232,0.9);align-self:flex-start;border-bottom-left-radius:3px}
+.nfc-bub.user{background:var(--xp);color:#0a0a0a;font-weight:500;align-self:flex-end;border-bottom-right-radius:3px}
+.nfc-chips{display:flex;gap:6px;padding:6px 14px 10px;flex-wrap:wrap}
+.nfc-chip{padding:6px 12px;border:0.5px solid #333;border-radius:20px;font-size:11px;color:rgba(240,237,232,0.9);background:#141414;white-space:nowrap}
+.nfc-chip.pos{border-color:rgba(45,158,107,.5);color:#2d9e6b;background:rgba(45,158,107,.08)}
+.nfc-chip.neg{border-color:rgba(201,76,76,.5);color:#c94c4c;background:rgba(201,76,76,.08)}
+.nfc-glow{position:absolute;bottom:-40px;left:50%;transform:translateX(-50%);width:280px;height:120px;background:radial-gradient(ellipse,rgba(0,194,168,0.2) 0%,transparent 70%);filter:blur(20px);pointer-events:none}
+
+/* STATS STRIP */
+.stats-strip{background:var(--bg-5);border-top:1px solid var(--stroke-light);border-bottom:1px solid var(--stroke-light);padding:48px 24px}
+.stats-inner{max-width:1000px;margin:0 auto;display:grid;grid-template-columns:repeat(4,1fr);gap:24px;text-align:center}
+@media(max-width:700px){.stats-inner{grid-template-columns:1fr 1fr}}
+.stat-num{font-family:var(--font-sora);font-size:40px;font-weight:400;color:var(--xp);letter-spacing:-1.5px;line-height:1;margin-bottom:6px}
+.stat-label{font-size:12px;color:rgba(255,255,255,0.4);letter-spacing:.06em}
+
+/* SECTIONS */
+.section{padding:96px 24px}
+.main-container{max-width:1200px;margin:0 auto}
+.section-label{font-family:var(--font-mono);font-size:11px;letter-spacing:.22em;text-transform:uppercase;color:rgba(255,255,255,0.3);margin-bottom:14px}
+.section-title{font-family:var(--font-sora);font-size:clamp(30px,4vw,52px);font-weight:400;line-height:1.08;letter-spacing:-1.5px;margin-bottom:56px}
+.section-title .light{color:rgba(248,249,250,0.9)}.section-title .dim{color:rgba(248,249,250,0.25)}.section-title .xp{color:var(--xp)}
+.text-center{text-align:center}
+
+/* HOW IT WORKS FLOW */
+.flow-steps{display:flex;flex-direction:column;gap:2px;margin-top:56px}
+.flow-step{display:grid;grid-template-columns:80px 1fr;gap:32px;align-items:start;background:var(--bg-5);border:1px solid var(--stroke-light);padding:36px 40px;transition:background .3s,border-color .3s}
+.flow-step:hover{background:var(--bg-13);border-color:var(--stroke-med)}
+.flow-step-num{font-family:var(--font-sora);font-size:52px;font-weight:400;color:rgba(0,194,168,0.15);line-height:1;letter-spacing:-2px;flex-shrink:0}
+.flow-step-content{}
+.flow-step-title{font-family:var(--font-sora);font-size:20px;font-weight:500;color:rgba(248,249,250,0.9);margin-bottom:10px;letter-spacing:-.3px}
+.flow-step-body{font-size:13px;color:rgba(255,255,255,0.45);line-height:1.8;max-width:560px}
+.flow-step-tag{display:inline-flex;align-items:center;gap:6px;margin-top:14px;background:var(--xp-bg);border:1px solid var(--xp-dim);border-radius:9999px;padding:4px 12px;font-family:var(--font-mono);font-size:10px;color:var(--xp);letter-spacing:.1em}
+@media(max-width:600px){.flow-step{grid-template-columns:1fr;padding:24px 20px}.flow-step-num{font-size:32px}}
+
+/* FEATURES GRID */
+.features-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-top:56px}
+@media(max-width:900px){.features-grid{grid-template-columns:1fr 1fr}}
+@media(max-width:560px){.features-grid{grid-template-columns:1fr}}
+.feat-card{background:var(--bg-5);border:1px solid var(--stroke-light);border-radius:12px;padding:32px 26px;position:relative;overflow:hidden;transition:border-color .3s}
+.feat-card:hover{border-color:rgba(0,194,168,0.2)}
+.feat-card::before{content:'';position:absolute;top:-50%;left:-20%;width:180px;height:180px;background:radial-gradient(circle,rgba(0,194,168,0.08) 0%,transparent 70%);pointer-events:none}
+.feat-icon{width:42px;height:42px;border-radius:8px;background:var(--xp-bg);border:1px solid var(--xp-dim);display:flex;align-items:center;justify-content:center;font-size:18px;margin-bottom:18px}
+.feat-title{font-family:var(--font-sora);font-size:16px;font-weight:500;color:rgba(248,249,250,0.9);margin-bottom:8px;letter-spacing:-.2px}
+.feat-body{font-size:12px;color:rgba(255,255,255,0.4);line-height:1.8}
+
+/* SENTIMENT PATHS */
+.paths-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:2px;margin-top:56px}
+@media(max-width:800px){.paths-grid{grid-template-columns:1fr}}
+.path-card{padding:40px 32px;position:relative;border:1px solid var(--stroke-light)}
+.path-card.pos{background:rgba(34,197,94,0.03)}
+.path-card.neu{background:rgba(255,255,255,0.02)}
+.path-card.neg{background:rgba(239,68,68,0.03)}
+.path-emoji{font-size:32px;margin-bottom:18px}
+.path-title{font-family:var(--font-sora);font-size:18px;font-weight:500;margin-bottom:10px;letter-spacing:-.2px}
+.path-card.pos .path-title{color:var(--green)}
+.path-card.neg .path-title{color:#ef4444}
+.path-card.neu .path-title{color:var(--xp)}
+.path-body{font-size:12px;color:rgba(255,255,255,0.4);line-height:1.8;margin-bottom:20px}
+.path-steps{list-style:none;display:flex;flex-direction:column;gap:8px}
+.path-step{font-size:12px;color:rgba(255,255,255,0.5);display:flex;align-items:flex-start;gap:10px;letter-spacing:.02em}
+.path-step::before{content:'→';font-size:10px;flex-shrink:0;margin-top:2px}
+.path-card.pos .path-step::before{color:var(--green)}
+.path-card.neg .path-step::before{color:#ef4444}
+.path-card.neu .path-step::before{color:var(--xp)}
+
+/* PRICING */
+.pricing-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:2px;margin-top:56px}
+@media(max-width:800px){.pricing-grid{grid-template-columns:1fr}}
+.pricing-card{background:var(--bg-5);border:1px solid var(--stroke-light);padding:40px 32px;position:relative;transition:border-color .3s}
+.pricing-card:hover{border-color:rgba(0,194,168,0.2)}
+.pricing-card.featured{background:var(--xp-dark);border-color:var(--xp-dim)}
+.pricing-card::after{content:'';position:absolute;bottom:0;left:0;width:100%;height:2px;background:var(--xp);transform:scaleX(0);transform-origin:left;transition:transform .4s ease}
+.pricing-card:hover::after,.pricing-card.featured::after{transform:scaleX(1)}
+.pricing-tier{font-family:var(--font-mono);font-size:10px;letter-spacing:.22em;text-transform:uppercase;color:rgba(255,255,255,0.3);margin-bottom:16px}
+.pricing-card.featured .pricing-tier{color:var(--xp)}
+.pricing-price{font-family:var(--font-sora);font-size:48px;font-weight:400;color:rgba(248,249,250,0.9);letter-spacing:-2px;line-height:1;margin-bottom:4px}
+.pricing-period{font-size:12px;color:rgba(255,255,255,0.3);letter-spacing:.06em;margin-bottom:28px}
+.pricing-features{list-style:none;display:flex;flex-direction:column;gap:10px;margin-bottom:32px}
+.pricing-feature{font-size:12px;color:rgba(255,255,255,0.5);display:flex;align-items:flex-start;gap:10px}
+.pricing-feature::before{content:'✓';color:var(--xp);flex-shrink:0;font-weight:600}
+.pricing-cta{display:block;width:100%;padding:13px;font-family:var(--font-mono);font-size:11px;font-weight:500;letter-spacing:.1em;text-align:center;border-radius:9999px;text-decoration:none;transition:all .2s;cursor:pointer;border:1px solid var(--stroke-light);color:rgba(255,255,255,0.7);background:transparent}
+.pricing-cta:hover{border-color:var(--stroke-med);color:rgba(255,255,255,0.9)}
+.pricing-card.featured .pricing-cta{background:var(--xp);color:#0D1017;border-color:var(--xp);font-weight:600}
+.pricing-card.featured .pricing-cta:hover{opacity:.88}
+.pricing-badge{position:absolute;top:20px;right:20px;background:var(--xp);color:#0D1017;font-family:var(--font-mono);font-size:9px;font-weight:600;letter-spacing:.15em;text-transform:uppercase;padding:4px 10px;border-radius:9999px}
+
+/* CTA */
+.cta-section{padding:120px 24px;text-align:center;position:relative;overflow:hidden}
+.cta-glow{position:absolute;top:20%;left:50%;transform:translateX(-50%);width:600px;height:300px;background:radial-gradient(ellipse,rgba(0,194,168,0.12) 0%,transparent 70%);pointer-events:none;filter:blur(40px)}
+.cta-title{font-family:var(--font-sora);font-size:clamp(36px,5vw,72px);font-weight:400;letter-spacing:-2px;margin-bottom:20px}
+.cta-sub{font-size:15px;color:rgba(255,255,255,0.45);max-width:480px;margin:0 auto 48px;line-height:1.8}
+
+/* FOOTER */
+footer{background:var(--bg-5);border-top:1px solid var(--stroke-light);padding:60px 24px 32px}
+.footer-inner{max-width:1200px;margin:0 auto}
+.footer-top{display:flex;justify-content:space-between;align-items:flex-start;gap:40px;flex-wrap:wrap;padding-bottom:48px;border-bottom:1px solid var(--stroke-light);margin-bottom:40px}
+.footer-logo{font-family:var(--font-sora);font-size:20px;font-weight:700;color:var(--xp);letter-spacing:-.5px;margin-bottom:8px}
+.footer-desc{font-size:12px;color:rgba(255,255,255,0.35);max-width:240px;line-height:1.8}
+.footer-links-col h4{font-family:var(--font-sora);font-size:12px;font-weight:600;color:rgba(248,249,250,0.9);margin-bottom:16px}
+.footer-links-col a{display:block;font-size:12px;color:rgba(255,255,255,0.4);text-decoration:none;padding:5px 0;letter-spacing:.03em;transition:color .2s}
+.footer-links-col a:hover{color:rgba(255,255,255,0.9)}
+.footer-bottom{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap}
+.footer-copy{font-size:11px;color:rgba(255,255,255,0.3);letter-spacing:.04em}
+.footer-wordmark{font-family:var(--font-sora);font-size:clamp(36px,7vw,96px);font-weight:800;letter-spacing:.12em;color:var(--xp);text-align:center;padding:48px 0;opacity:.1;user-select:none;overflow:hidden;white-space:nowrap}
+
+/* ANIMATIONS */
+@keyframes fadeUp{from{opacity:0;transform:translateY(24px)}to{opacity:1;transform:none}}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+.reveal{opacity:0;transform:translateY(28px);transition:opacity .7s ease,transform .7s ease}
+.reveal.visible{opacity:1;transform:none}
+</style>
+</head>
+<body>
+
+<nav class="nav">
+  <a href="https://aiflow360.com" class="nav-logo">
+    <div class="nav-logo-img">AF</div>
+    <span class="nav-brand-text">AI<span>Flow</span>360</span>
+  </a>
+  <ul class="nav-links">
+    <li><a href="https://aiflow360.com#products" class="nav-link">Products</a></li>
+    <li><a href="https://aitechnic.com.au" target="_blank" class="nav-link">AITECHNIC</a></li>
+  </ul>
+  <a href="https://calendly.com/contact-info-aitechnic/30min" target="_blank" class="nav-cta">Book a demo →</a>
+</nav>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="hero-glow"></div>
+  <p style="font-family:var(--font-mono);font-size:11px;color:rgba(255,255,255,0.3);letter-spacing:.18em;text-transform:uppercase;margin-bottom:12px;opacity:0;animation:fadeUp .6s .1s ease forwards">
+    <a href="https://aiflow360.com" style="color:var(--purple);text-decoration:none">AIFlow360</a> / XPscore360
+  </p>
+  <div class="hero-badge"><div class="hero-badge-dot"></div>Live now · Hospitality · Australia</div>
+  <h1 class="hero-title">
+    <span class="light">Turn every tap</span><br>
+    <span class="xp">into a review</span>
+  </h1>
+  <p class="hero-sub">XPscore360 is an NFC-triggered AI feedback engine for hospitality venues. Customers tap, the AI converses, bad experiences get recovered privately, good ones go straight to Google.</p>
+  <div class="hero-actions">
+    <a href="https://calendly.com/contact-info-aitechnic/30min" target="_blank" class="btn-xp">Book a free demo →</a>
+    <a href="#how" class="btn-outline">See how it works ↓</a>
+  </div>
+
+  <!-- Phone mockup -->
+  <div class="nfc-visual">
+    <div class="nfc-phone">
+      <div class="nfc-screen">
+        <div class="nfc-topbar">
+          <div class="nfc-logo-sm">XP</div>
+          <div class="nfc-venue">Ember &amp; Oak · Table 4</div>
+          <div class="nfc-timer">● 0:18</div>
+        </div>
+        <div class="nfc-prog">
+          <div class="nfc-seg done"></div>
+          <div class="nfc-seg done"></div>
+          <div class="nfc-seg active"></div>
+          <div class="nfc-seg"></div>
+        </div>
+        <div class="nfc-chat">
+          <div class="nfc-bub ai">Our wagyu is the dish guests talk about most — did you get to try it tonight?</div>
+          <div class="nfc-bub user">Yes, it was amazing</div>
+          <div class="nfc-bub ai">So glad! What else made your visit stand out?</div>
+        </div>
+        <div class="nfc-chips">
+          <div class="nfc-chip pos">The service</div>
+          <div class="nfc-chip pos">Atmosphere</div>
+          <div class="nfc-chip">Wine pairings</div>
+          <div class="nfc-chip neg">A bit noisy</div>
+        </div>
+      </div>
+    </div>
+    <div class="nfc-glow"></div>
+  </div>
+</section>
+
+<!-- STATS -->
+<div class="stats-strip">
+  <div class="stats-inner reveal">
+    <div><div class="stat-num">30s</div><div class="stat-label">Average completion time</div></div>
+    <div><div class="stat-num">3–5×</div><div class="stat-label">More Google reviews vs forms</div></div>
+    <div><div class="stat-num">80%</div><div class="stat-label">Negative review recovery rate</div></div>
+    <div><div class="stat-num">0</div><div class="stat-label">App downloads needed</div></div>
+  </div>
+</div>
+
+<!-- HOW IT WORKS -->
+<section class="section" id="how">
+  <div class="main-container">
+    <div class="text-center">
+      <p class="section-label reveal">How it works</p>
+      <h2 class="section-title reveal"><span class="light">NFC tap to</span><br><span class="xp">Google review</span><br><span class="dim">in 30 seconds.</span></h2>
+    </div>
+    <div class="flow-steps">
+      <div class="flow-step reveal">
+        <div class="flow-step-num">01</div>
+        <div class="flow-step-content">
+          <div class="flow-step-title">Customer taps the NFC sticker</div>
+          <div class="flow-step-body">An NTAG213 sticker on the table, counter, or receipt instantly opens the XPscore360 webapp in the customer's browser. No app download. No sign-up. The venue logo and table number appear automatically from the URL — the customer knows it's legitimate.</div>
+          <div class="flow-step-tag">⟡ NFC stickers included with every plan</div>
+        </div>
+      </div>
+      <div class="flow-step reveal">
+        <div class="flow-step-num">02</div>
+        <div class="flow-step-content">
+          <div class="flow-step-title">AI opens the conversation with a specific question</div>
+          <div class="flow-step-body">Instead of a blank form, the AI opens with something specific — a signature dish, the coffee, the seating. The customer just reacts. Bottom chip tags let them add any topic at any time without typing. The AI adapts every question based on what they've already said — no two conversations are the same.</div>
+          <div class="flow-step-tag">✦ Powered by Claude AI</div>
+        </div>
+      </div>
+      <div class="flow-step reveal">
+        <div class="flow-step-num">03</div>
+        <div class="flow-step-content">
+          <div class="flow-step-title">Sentiment is detected — paths diverge</div>
+          <div class="flow-step-body">Positive customers are guided toward a pre-drafted Google review — editable, one-tap post from their own account. Negative customers are handled privately: the AI empathises, offers a remedy, and alerts the manager in real time. Bad experiences never reach Google unprompted.</div>
+          <div class="flow-step-tag">◈ Sentiment routed, never leaked</div>
+        </div>
+      </div>
+      <div class="flow-step reveal">
+        <div class="flow-step-num">04</div>
+        <div class="flow-step-content">
+          <div class="flow-step-title">Owner gets the full picture in the dashboard</div>
+          <div class="flow-step-body">Every session is summarised and sent to the owner dashboard — sentiment score, topics mentioned, highlights, conversation transcript, and Google review status. Manager alerts fire instantly for any negative rating. Track trends by time of day, staff, table, and topic.</div>
+          <div class="flow-step-tag">⬡ Real-time alerts via SMS + email</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- FEATURES -->
+<section class="section" style="background:var(--bg-5)">
+  <div class="main-container">
+    <div class="text-center">
+      <p class="section-label reveal">Features</p>
+      <h2 class="section-title reveal"><span class="light">Everything a venue</span><br><span class="dim">needs to own its</span><br><span class="xp">reputation.</span></h2>
+    </div>
+    <div class="features-grid">
+      <div class="feat-card reveal"><div class="feat-icon">⟡</div><div class="feat-title">NFC tap trigger</div><div class="feat-body">NTAG213 stickers encode your venue ID and table number. One tap opens the feedback flow — no scanning, no typing a URL.</div></div>
+      <div class="feat-card reveal"><div class="feat-icon">💬</div><div class="feat-title">AI conversation engine</div><div class="feat-body">Claude AI drives a natural conversation. Rotating openers, turn-aware questions, sentiment detection. Feels like chatting, not filling out a form.</div></div>
+      <div class="feat-card reveal"><div class="feat-icon">🏷️</div><div class="feat-title">Bottom chip tags</div><div class="feat-body">23 topic tags (food, service, noise, parking, music...) scroll horizontally at the bottom. Customers add any topic without typing. Gold-ticked when covered.</div></div>
+      <div class="feat-card reveal"><div class="feat-icon">⭐</div><div class="feat-title">Google review automation</div><div class="feat-body">Positive sessions generate a personalised review draft from the conversation. One tap opens Google Maps write-review screen with text pre-copied.</div></div>
+      <div class="feat-card reveal"><div class="feat-icon">🛡️</div><div class="feat-title">Negative review recovery</div><div class="feat-body">Unhappy customers are never routed to Google. The AI empathises privately, captures the complaint, offers a remedy, and escalates to the manager.</div></div>
+      <div class="feat-card reveal"><div class="feat-icon">⚡</div><div class="feat-title">Real-time manager alerts</div><div class="feat-body">Any negative feedback or keyword trigger fires an SMS and email alert instantly — while the customer is still on premise. Recover before they leave.</div></div>
+      <div class="feat-card reveal"><div class="feat-icon">📊</div><div class="feat-title">Sentiment dashboard</div><div class="feat-body">Track sentiment trends, topic scores, peak complaint hours, Google review velocity, and staff performance — all in one real-time dashboard.</div></div>
+      <div class="feat-card reveal"><div class="feat-icon">⚡</div><div class="feat-title">Quick review mode</div><div class="feat-body">For customers who prefer tapping emoji over chatting — a 30-second emoji-based form rates 6 key areas and flows into the same summary and Google prompt.</div></div>
+      <div class="feat-card reveal"><div class="feat-icon">🏭</div><div class="feat-title">Multi-industry forms</div><div class="feat-body">Different question sets for cafés, restaurants, clinics, retail, trades. Configure once per venue type — the right questions load automatically.</div></div>
+    </div>
+  </div>
+</section>
+
+<!-- SENTIMENT PATHS -->
+<section class="section">
+  <div class="main-container">
+    <div class="text-center">
+      <p class="section-label reveal">Smart routing</p>
+      <h2 class="section-title reveal"><span class="light">Three paths.</span><br><span class="dim">Each one handled</span><br><span class="xp">exactly right.</span></h2>
+    </div>
+    <div class="paths-grid reveal">
+      <div class="path-card pos">
+        <div class="path-emoji">😊</div>
+        <div class="path-title">Positive (4–5★)</div>
+        <div class="path-body">Happy customers are guided straight to Google with a personalised review draft. Friction is near-zero — text pre-copied, one tap to post.</div>
+        <ul class="path-steps">
+          <li class="path-step">AI generates first-person review draft</li>
+          <li class="path-step">Customer edits (optional) in-app</li>
+          <li class="path-step">One tap opens Google Maps review</li>
+          <li class="path-step">Review posted from customer's account</li>
+          <li class="path-step">Dashboard logs session + review status</li>
+        </ul>
+      </div>
+      <div class="path-card neu">
+        <div class="path-emoji">😐</div>
+        <div class="path-title">Neutral (3★)</div>
+        <div class="path-body">Mixed experiences are explored gently. The AI digs in, offers a manager contact, and closes with a save offer — no Google prompt unless sentiment shifts.</div>
+        <ul class="path-steps">
+          <li class="path-step">AI asks what would have improved it</li>
+          <li class="path-step">Specific topic identified and logged</li>
+          <li class="path-step">Manager contact offered</li>
+          <li class="path-step">Feedback saved privately</li>
+          <li class="path-step">Owner notified within 5 minutes</li>
+        </ul>
+      </div>
+      <div class="path-card neg">
+        <div class="path-emoji">😞</div>
+        <div class="path-title">Negative (1–2★)</div>
+        <div class="path-body">Unhappy customers are handled with care. The AI empathises, captures the root cause, and offers a remedy — owner is alerted instantly, never after a bad review appears online.</div>
+        <ul class="path-steps">
+          <li class="path-step">AI empathises, never deflects</li>
+          <li class="path-step">Root cause captured specifically</li>
+          <li class="path-step">Remedy or manager contact offered</li>
+          <li class="path-step">Instant SMS + email alert to owner</li>
+          <li class="path-step">Full transcript in dashboard</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- PRICING -->
+<section class="section" style="background:var(--bg-5)" id="pricing">
+  <div class="main-container">
+    <div class="text-center">
+      <p class="section-label reveal">Pricing</p>
+      <h2 class="section-title reveal"><span class="light">Simple pricing.</span><br><span class="dim">NFC stickers</span><br><span class="xp">always included.</span></h2>
+    </div>
+    <div class="pricing-grid">
+      <div class="pricing-card reveal">
+        <div class="pricing-tier">Starter</div>
+        <div class="pricing-price">$49</div>
+        <div class="pricing-period">per venue / month</div>
+        <ul class="pricing-features">
+          <li class="pricing-feature">1 venue, unlimited taps</li>
+          <li class="pricing-feature">AI chat + quick review mode</li>
+          <li class="pricing-feature">Email manager alerts</li>
+          <li class="pricing-feature">Basic sentiment dashboard</li>
+          <li class="pricing-feature">10 NFC stickers included</li>
+          <li class="pricing-feature">Google review deep link</li>
+        </ul>
+        <a href="https://calendly.com/contact-info-aitechnic/30min" target="_blank" class="pricing-cta">Get started →</a>
+      </div>
+      <div class="pricing-card featured reveal">
+        <div class="pricing-badge">Most popular</div>
+        <div class="pricing-tier">Growth</div>
+        <div class="pricing-price">$99</div>
+        <div class="pricing-period">per venue / month</div>
+        <ul class="pricing-features">
+          <li class="pricing-feature">Up to 3 venues</li>
+          <li class="pricing-feature">All industries (café, clinic, retail...)</li>
+          <li class="pricing-feature">SMS + email manager alerts</li>
+          <li class="pricing-feature">Full analytics dashboard</li>
+          <li class="pricing-feature">25 NFC stickers included</li>
+          <li class="pricing-feature">Staff performance tracking</li>
+          <li class="pricing-feature">Topic trend reports</li>
+          <li class="pricing-feature">90-day free pilot</li>
+        </ul>
+        <a href="https://calendly.com/contact-info-aitechnic/30min" target="_blank" class="pricing-cta">Start free pilot →</a>
+      </div>
+      <div class="pricing-card reveal">
+        <div class="pricing-tier">Pro</div>
+        <div class="pricing-price">$199</div>
+        <div class="pricing-period">per venue / month</div>
+        <ul class="pricing-features">
+          <li class="pricing-feature">Unlimited venues</li>
+          <li class="pricing-feature">White-label (your branding)</li>
+          <li class="pricing-feature">API access + webhooks</li>
+          <li class="pricing-feature">Custom question sets</li>
+          <li class="pricing-feature">50 NFC stickers included</li>
+          <li class="pricing-feature">Slack + POS integrations</li>
+          <li class="pricing-feature">Dedicated account manager</li>
+          <li class="pricing-feature">SLA + priority support</li>
+        </ul>
+        <a href="https://calendly.com/contact-info-aitechnic/30min" target="_blank" class="pricing-cta">Talk to sales →</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- CTA -->
+<section class="cta-section">
+  <div class="cta-glow"></div>
+  <p class="section-label" style="opacity:.5;margin-bottom:18px">Get started</p>
+  <h2 class="cta-title reveal">
+    <span style="color:rgba(248,249,250,0.9)">Free 90-day pilot.</span><br>
+    <span style="color:rgba(248,249,250,0.25)">NFC stickers shipped</span><br>
+    <span style="color:var(--xp)">to your door.</span>
+  </h2>
+  <p class="cta-sub reveal">Set up in under an hour. No tech team required. Start collecting real feedback and recovering unhappy customers from day one.</p>
+  <div style="display:flex;align-items:center;justify-content:center;gap:16px;flex-wrap:wrap" class="reveal">
+    <a href="https://calendly.com/contact-info-aitechnic/30min" target="_blank" class="btn-xp">Book a free demo →</a>
+    <a href="https://aiflow360.com#products" class="btn-outline">← Back to AIFlow360</a>
+  </div>
+</section>
+
+<footer>
+  <div class="footer-inner">
+    <div class="footer-top">
+      <div>
+        <div class="footer-logo">XPscore360</div>
+        <div class="footer-desc">AI-driven customer feedback and review engine. A product by AITECHNIC on the AIFlow360 platform.</div>
+      </div>
+      <div class="footer-links-col">
+        <h4>Product</h4>
+        <a href="#how">How it works</a>
+        <a href="#pricing">Pricing</a>
+        <a href="https://calendly.com/contact-info-aitechnic/30min" target="_blank">Book a demo</a>
+      </div>
+      <div class="footer-links-col">
+        <h4>AIFlow360</h4>
+        <a href="https://aiflow360.com">Marketplace</a>
+        <a href="https://tapee360.vercel.app" target="_blank">Tapee360</a>
+        <a href="https://aitechnic.com.au" target="_blank">AITECHNIC</a>
+      </div>
+      <div class="footer-links-col">
+        <h4>Contact</h4>
+        <a href="https://calendly.com/contact-info-aitechnic/30min" target="_blank">Book a call</a>
+        <a href="mailto:contact.info@aitechnic.com.au">contact.info@aitechnic.com.au</a>
+        <a href="https://aitechnic.com.au/contact" target="_blank">Contact page</a>
+      </div>
+    </div>
+    <div class="footer-wordmark">XPSCORE360</div>
+    <div class="footer-bottom">
+      <div class="footer-copy">© 2025 AITECHNIC Technology Solutions Pvt Ltd. All rights reserved.</div>
+      <div class="footer-copy">aiflow360.com/xpscore360 · Sydney, NSW, Australia</div>
+    </div>
+  </div>
+</footer>
+
+<script>
+const obs=new IntersectionObserver((entries)=>{entries.forEach((e,i)=>{if(e.isIntersecting){setTimeout(()=>e.target.classList.add('visible'),i*80);obs.unobserve(e.target)}})},{threshold:0.1});
+document.querySelectorAll('.reveal').forEach(el=>obs.observe(el));
+</script>
+</body>
+</html>
