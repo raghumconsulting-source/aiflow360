@@ -6,807 +6,173 @@
 <meta name="description" content="AIFlow360 — The AI app marketplace by AITECHNIC. Purpose-built AI products for Australian businesses.">
 <meta name="theme-color" content="#000000">
 <title>AIFlow360 — AI App Marketplace by AITECHNIC</title>
-
-<!-- EXACT same fonts as aitechnic.com.au -->
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700;800&family=IBM+Plex+Mono:wght@300;400;500;600&family=Inter+Tight:wght@300;400;500;600&family=Manrope:wght@300;400;500;600&display=swap" rel="stylesheet">
-
 <style>
-/* ─────────────────────────────────────────
-   EXACT AITECHNIC DESIGN TOKENS
-   Extracted from aitechnic.com.au source
-──────────────────────────────────────────*/
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-:root {
-  /* Backgrounds — exact from source */
-  --bg-5:  #0D1017;
-  --bg-6:  #11141D;
-  --bg-7:  #F8F9FA;
-  --bg-8:  #CED7DE;
-  --bg-11: #E8EDF0;
-  --bg-13: #1A1F2E;
-  --bg-14: rgba(17,20,29,0.95);
+:root{
+  --bg-5:#0D1017;--bg-6:#11141D;--bg-7:#F8F9FA;--bg-8:#CED7DE;--bg-11:#E8EDF0;
+  --bg-13:#1A1F2E;--bg-14:rgba(17,20,29,0.95);
+  --purple:#8D59FF;--purple-dim:rgba(141,89,255,0.4);--purple-bg:rgba(141,89,255,0.08);
+  --blue:#227EFF;--yellow:#FFF049;--green:#22C55E;--teal:#1DB87A;
+  --stroke-light:rgba(255,255,255,0.11);--stroke-med:rgba(255,255,255,0.18);
+  --gold:#D4A843;--gold-bg:rgba(212,168,67,0.08);
+  --xp:#00C2A8;--xp-dim:rgba(0,194,168,0.4);--xp-bg:rgba(0,194,168,0.08);
+  --font-sora:'Sora',sans-serif;--font-mono:'IBM Plex Mono',monospace;
+  --font-tight:'Inter Tight',sans-serif;--font-man:'Manrope',sans-serif;
+}
+html{scroll-behavior:smooth}
+body{background:var(--bg-6);color:rgba(248,249,250,0.9);font-family:var(--font-tight);font-weight:300;overflow-x:hidden;line-height:1.6}
+body::before{content:'';position:fixed;inset:0;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.025'/%3E%3C/svg%3E");background-size:160px;pointer-events:none;z-index:1000;opacity:.5}
 
-  /* Brand purple — exact */
-  --purple: #8D59FF;
-  --purple-dim: rgba(141,89,255,0.4);
-  --purple-bg: rgba(141,89,255,0.08);
+/* NAV */
+.nav{position:fixed;top:24px;left:50%;transform:translateX(-50%);z-index:200;background:rgba(13,16,23,0.88);backdrop-filter:blur(20px);border:1px solid var(--stroke-light);border-radius:9999px;width:calc(100% - 48px);max-width:818px;height:56px;display:flex;align-items:center;justify-content:space-between;padding:0 8px 0 12px}
+.nav-logo{display:flex;align-items:center;gap:10px;text-decoration:none}
+.nav-logo-img{width:36px;height:36px;border-radius:50%;background:var(--purple-bg);border:1px solid var(--purple-dim);display:flex;align-items:center;justify-content:center;font-family:var(--font-sora);font-weight:800;font-size:12px;color:var(--purple);letter-spacing:-.5px}
+.nav-brand-text{font-family:var(--font-sora);font-size:15px;font-weight:700;color:rgba(248,249,250,0.9);letter-spacing:-.5px}
+.nav-brand-text span{color:var(--purple)}
+.nav-links{display:flex;align-items:center;gap:4px;list-style:none}
+.nav-link{font-family:var(--font-mono);font-size:11px;font-weight:400;color:rgba(255,255,255,0.5);text-decoration:none;padding:6px 14px;border-radius:9999px;transition:color .3s,background .3s;letter-spacing:.04em}
+.nav-link:hover{color:rgba(255,255,255,0.9)}
+.nav-link.active{background:rgba(141,89,255,0.12);color:var(--purple)}
+.nav-cta{background:var(--bg-7);color:var(--bg-5);font-family:var(--font-mono);font-size:11px;font-weight:500;letter-spacing:.04em;padding:9px 20px;border-radius:9999px;border:none;cursor:pointer;text-decoration:none;display:inline-flex;align-items:center;gap:6px;transition:opacity .2s;white-space:nowrap}
+.nav-cta:hover{opacity:.85}
+@media(max-width:640px){.nav-links{display:none}.nav{width:calc(100% - 32px)}}
 
-  /* Accent colours */
-  --blue:   #227EFF;
-  --yellow: #FFF049;
-  --green:  #22C55E;
-  --teal:   #1DB87A;
-
-  /* Strokes */
-  --stroke-light: rgba(255,255,255,0.11);
-  --stroke-med:   rgba(255,255,255,0.18);
-
-  /* Gold (Tapee360) */
-  --gold:    #D4A843;
-  --gold-bg: rgba(212,168,67,0.08);
-
-  /* Typography */
-  --font-sora:  'Sora', sans-serif;
-  --font-mono:  'IBM Plex Mono', monospace;
-  --font-tight: 'Inter Tight', sans-serif;
-  --font-man:   'Manrope', sans-serif;
-}
-
-html { scroll-behavior: smooth; }
-body {
-  background: var(--bg-6);
-  color: rgba(248,249,250,0.9);
-  font-family: var(--font-tight);
-  font-weight: 300;
-  overflow-x: hidden;
-  line-height: 1.6;
-}
-
-/* Grain overlay — same as aitechnic */
-body::before {
-  content: '';
-  position: fixed; inset: 0;
-  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.025'/%3E%3C/svg%3E");
-  background-size: 160px;
-  pointer-events: none;
-  z-index: 1000;
-  opacity: 0.5;
-}
-
-/* ─────────────────────────────────────────
-   NAV — Exact AITECHNIC pill nav
-──────────────────────────────────────────*/
-.nav {
-  position: fixed; top: 24px; left: 50%;
-  transform: translateX(-50%);
-  z-index: 200;
-  background: rgba(13,16,23,0.88);
-  backdrop-filter: blur(20px);
-  border: 1px solid var(--stroke-light);
-  border-radius: 9999px;
-  width: calc(100% - 48px);
-  max-width: 818px;
-  height: 56px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0 8px 0 12px;
-}
-.nav-logo {
-  display: flex; align-items: center; gap: 10px;
-  text-decoration: none;
-}
-.nav-logo-img {
-  width: 36px; height: 36px;
-  border-radius: 50%;
-  background: var(--purple-bg);
-  border: 1px solid var(--purple-dim);
-  display: flex; align-items: center; justify-content: center;
-  font-family: var(--font-sora);
-  font-weight: 800;
-  font-size: 12px;
-  color: var(--purple);
-  letter-spacing: -0.5px;
-}
-.nav-brand-text {
-  font-family: var(--font-sora);
-  font-size: 15px;
-  font-weight: 700;
-  color: rgba(248,249,250,0.9);
-  letter-spacing: -0.5px;
-}
-.nav-brand-text span { color: var(--purple); }
-.nav-links {
-  display: flex; align-items: center; gap: 4px;
-  list-style: none;
-}
-.nav-link {
-  font-family: var(--font-mono);
-  font-size: 11px;
-  font-weight: 400;
-  color: rgba(255,255,255,0.5);
-  text-decoration: none;
-  padding: 6px 14px;
-  border-radius: 9999px;
-  transition: color 0.3s, background 0.3s;
-  letter-spacing: 0.04em;
-}
-.nav-link:hover { color: rgba(255,255,255,0.9); }
-.nav-link.active { background: rgba(141,89,255,0.12); color: var(--purple); }
-.nav-cta {
-  background: var(--bg-7);
-  color: var(--bg-5);
-  font-family: var(--font-mono);
-  font-size: 11px;
-  font-weight: 500;
-  letter-spacing: 0.04em;
-  padding: 9px 20px;
-  border-radius: 9999px;
-  border: none;
-  cursor: pointer;
-  text-decoration: none;
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  transition: opacity 0.2s;
-  white-space: nowrap;
-}
-.nav-cta:hover { opacity: 0.85; }
-@media(max-width:640px){
-  .nav-links{display:none}
-  .nav{width:calc(100% - 32px)}
-}
-
-/* ─────────────────────────────────────────
-   HERO
-──────────────────────────────────────────*/
-.hero {
-  padding: 160px 24px 100px;
-  text-align: center;
-  position: relative;
-  overflow: hidden;
-}
-/* Purple radial — exact AITECHNIC hero glow */
-.hero-glow {
-  position: absolute;
-  top: 10%; left: 50%;
-  transform: translateX(-50%);
-  width: 700px; height: 400px;
-  background: radial-gradient(ellipse, rgba(141,89,255,0.18) 0%, transparent 70%);
-  pointer-events: none;
-  filter: blur(40px);
-}
-.hero-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  background: var(--purple-bg);
-  border: 1px solid var(--purple-dim);
-  border-radius: 9999px;
-  padding: 6px 16px;
-  margin-bottom: 32px;
-  font-family: var(--font-mono);
-  font-size: 11px;
-  color: var(--purple);
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  opacity: 0;
-  animation: fadeUp 0.8s 0.2s ease forwards;
-}
-.hero-badge-dot {
-  width: 6px; height: 6px;
-  border-radius: 50%;
-  background: var(--purple);
-  animation: pulseDot 2s ease infinite;
-}
+/* HERO */
+.hero{padding:160px 24px 100px;text-align:center;position:relative;overflow:hidden}
+.hero-glow{position:absolute;top:10%;left:50%;transform:translateX(-50%);width:700px;height:400px;background:radial-gradient(ellipse,rgba(141,89,255,0.18) 0%,transparent 70%);pointer-events:none;filter:blur(40px)}
+.hero-badge{display:inline-flex;align-items:center;gap:8px;background:var(--purple-bg);border:1px solid var(--purple-dim);border-radius:9999px;padding:6px 16px;margin-bottom:32px;font-family:var(--font-mono);font-size:11px;color:var(--purple);letter-spacing:.12em;text-transform:uppercase;opacity:0;animation:fadeUp .8s .2s ease forwards}
+.hero-badge-dot{width:6px;height:6px;border-radius:50%;background:var(--purple);animation:pulseDot 2s ease infinite}
 @keyframes pulseDot{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.3;transform:scale(1.4)}}
+.hero-title{font-family:var(--font-sora);font-size:clamp(40px,6vw,88px);font-weight:400;line-height:1.05;letter-spacing:-2px;margin-bottom:24px;opacity:0;animation:fadeUp 1s .4s ease forwards}
+.hero-title .light{color:rgba(248,249,250,0.9)}.hero-title .dim{color:rgba(248,249,250,0.25)}.hero-title .accent{color:var(--purple)}
+.hero-sub{font-family:var(--font-tight);font-size:15px;font-weight:300;color:rgba(255,255,255,0.5);max-width:480px;margin:0 auto 48px;line-height:1.8;letter-spacing:.02em;opacity:0;animation:fadeUp .8s .6s ease forwards}
+.hero-actions{display:flex;align-items:center;justify-content:center;gap:16px;flex-wrap:wrap;opacity:0;animation:fadeUp .8s .8s ease forwards}
+.btn-white{background:var(--bg-7);color:var(--bg-5);font-family:var(--font-mono);font-size:12px;font-weight:500;letter-spacing:.08em;padding:13px 28px;border-radius:9999px;border:none;cursor:pointer;text-decoration:none;display:inline-flex;align-items:center;gap:8px;transition:opacity .2s;box-shadow:0 4px 24px rgba(141,89,255,0.25)}
+.btn-white:hover{opacity:.85}
+.btn-outline{background:transparent;color:rgba(255,255,255,0.6);font-family:var(--font-mono);font-size:12px;letter-spacing:.08em;padding:12px 24px;border-radius:9999px;border:1px solid var(--stroke-light);cursor:pointer;text-decoration:none;display:inline-flex;align-items:center;gap:8px;transition:border-color .2s,color .2s}
+.btn-outline:hover{border-color:var(--stroke-med);color:rgba(255,255,255,0.9)}
+.hero-stats{display:flex;align-items:center;justify-content:center;gap:48px;margin-top:72px;padding-top:40px;border-top:1px solid var(--stroke-light);flex-wrap:wrap;opacity:0;animation:fadeIn 1s 1.1s ease forwards}
+.hero-stat-num{font-family:var(--font-sora);font-size:36px;font-weight:400;color:rgba(248,249,250,0.9);letter-spacing:-1px;line-height:1;margin-bottom:4px}
+.hero-stat-label{font-family:var(--font-tight);font-size:11px;font-weight:300;color:rgba(255,255,255,0.4);letter-spacing:.08em}
 
-.hero-title {
-  font-family: var(--font-sora);
-  font-size: clamp(40px, 6vw, 88px);
-  font-weight: 400;
-  line-height: 1.05;
-  letter-spacing: -2px;
-  margin-bottom: 24px;
-  opacity: 0;
-  animation: fadeUp 1s 0.4s ease forwards;
-}
-.hero-title .light { color: rgba(248,249,250,0.9); }
-.hero-title .dim   { color: rgba(248,249,250,0.25); }
-.hero-title .accent{ color: var(--purple); }
+/* MARQUEE */
+.marquee-strip{border-top:1px solid var(--stroke-light);border-bottom:1px solid var(--stroke-light);padding:18px 0;overflow:hidden;background:var(--bg-5)}
+.marquee-track{display:flex;width:max-content;animation:marquee 32s linear infinite}
+.marquee-track:hover{animation-play-state:paused}
+@keyframes marquee{from{transform:translateX(0)}to{transform:translateX(-50%)}}
+.marquee-item{display:flex;align-items:center;gap:14px;padding:0 40px;border-right:1px solid rgba(255,255,255,0.06);white-space:nowrap}
+.marquee-dot{width:4px;height:4px;border-radius:50%;background:var(--purple);flex-shrink:0}
+.marquee-dot.xp{background:var(--xp)}
+.marquee-text{font-family:var(--font-mono);font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:rgba(255,255,255,0.35)}
 
-.hero-sub {
-  font-family: var(--font-tight);
-  font-size: 15px;
-  font-weight: 300;
-  color: rgba(255,255,255,0.5);
-  max-width: 480px;
-  margin: 0 auto 48px;
-  line-height: 1.8;
-  letter-spacing: 0.02em;
-  opacity: 0;
-  animation: fadeUp 0.8s 0.6s ease forwards;
-}
+/* SECTIONS */
+.section{padding:100px 24px}
+.main-container{max-width:1200px;margin:0 auto}
+.section-label{font-family:var(--font-mono);font-size:11px;letter-spacing:.22em;text-transform:uppercase;color:rgba(255,255,255,0.3);margin-bottom:16px}
+.section-title{font-family:var(--font-sora);font-size:clamp(32px,4vw,56px);font-weight:400;line-height:1.05;letter-spacing:-1.5px;margin-bottom:60px}
+.section-title .light{color:rgba(248,249,250,0.9)}.section-title .dim{color:rgba(248,249,250,0.25)}.section-title .accent{color:var(--purple)}
+.text-center{text-align:center}
 
-.hero-actions {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 16px;
-  flex-wrap: wrap;
-  opacity: 0;
-  animation: fadeUp 0.8s 0.8s ease forwards;
-}
-.btn-white {
-  background: var(--bg-7);
-  color: var(--bg-5);
-  font-family: var(--font-mono);
-  font-size: 12px;
-  font-weight: 500;
-  letter-spacing: 0.08em;
-  padding: 13px 28px;
-  border-radius: 9999px;
-  border: none;
-  cursor: pointer;
-  text-decoration: none;
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  transition: opacity 0.2s;
-  box-shadow: 0 4px 24px rgba(141,89,255,0.25);
-}
-.btn-white:hover { opacity: 0.85; }
-.btn-outline {
-  background: transparent;
-  color: rgba(255,255,255,0.6);
-  font-family: var(--font-mono);
-  font-size: 12px;
-  letter-spacing: 0.08em;
-  padding: 12px 24px;
-  border-radius: 9999px;
-  border: 1px solid var(--stroke-light);
-  cursor: pointer;
-  text-decoration: none;
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  transition: border-color 0.2s, color 0.2s;
-}
-.btn-outline:hover { border-color: var(--stroke-med); color: rgba(255,255,255,0.9); }
+/* WHAT GRID */
+.what-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;margin-top:60px}
+@media(max-width:900px){.what-grid{grid-template-columns:1fr}}
+@media(min-width:640px) and (max-width:900px){.what-grid{grid-template-columns:1fr 1fr}}
+.what-card{background:var(--bg-5);border:1px solid var(--stroke-light);border-radius:12px;padding:36px 28px;position:relative;overflow:hidden;transition:border-color .3s}
+.what-card:hover{border-color:var(--stroke-med)}
+.what-card::before{content:'';position:absolute;top:-60%;left:-30%;width:200px;height:200px;background:radial-gradient(circle,rgba(141,89,255,0.12) 0%,transparent 70%);pointer-events:none}
+.what-card-icon{width:44px;height:44px;border-radius:8px;background:var(--purple-bg);border:1px solid var(--purple-dim);display:flex;align-items:center;justify-content:center;font-size:18px;margin-bottom:20px}
+.what-card-title{font-family:var(--font-sora);font-size:18px;font-weight:500;color:rgba(248,249,250,0.9);margin-bottom:10px;letter-spacing:-.3px}
+.what-card-body{font-size:13px;color:rgba(255,255,255,0.45);line-height:1.8;letter-spacing:.02em}
 
-/* Hero stat strip */
-.hero-stats {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 48px;
-  margin-top: 72px;
-  padding-top: 40px;
-  border-top: 1px solid var(--stroke-light);
-  flex-wrap: wrap;
-  opacity: 0;
-  animation: fadeIn 1s 1.1s ease forwards;
-}
-.hero-stat-num {
-  font-family: var(--font-sora);
-  font-size: 36px;
-  font-weight: 400;
-  color: rgba(248,249,250,0.9);
-  letter-spacing: -1px;
-  line-height: 1;
-  margin-bottom: 4px;
-}
-.hero-stat-label {
-  font-family: var(--font-tight);
-  font-size: 11px;
-  font-weight: 300;
-  color: rgba(255,255,255,0.4);
-  letter-spacing: 0.08em;
-}
+/* PRODUCTS */
+.products-section{background:var(--bg-5);padding:100px 24px}
+.products-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:2px;margin-top:60px}
+@media(max-width:1100px){.products-grid{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:600px){.products-grid{grid-template-columns:1fr}}
 
-/* ─────────────────────────────────────────
-   MARQUEE — same as AITECHNIC
-──────────────────────────────────────────*/
-.marquee-strip {
-  border-top: 1px solid var(--stroke-light);
-  border-bottom: 1px solid var(--stroke-light);
-  padding: 18px 0;
-  overflow: hidden;
-  background: var(--bg-5);
-}
-.marquee-track {
-  display: flex;
-  width: max-content;
-  animation: marquee 28s linear infinite;
-}
-.marquee-track:hover { animation-play-state: paused; }
-@keyframes marquee {
-  from { transform: translateX(0); }
-  to   { transform: translateX(-50%); }
-}
-.marquee-item {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  padding: 0 40px;
-  border-right: 1px solid rgba(255,255,255,0.06);
-  white-space: nowrap;
-}
-.marquee-dot { width: 4px; height: 4px; border-radius: 50%; background: var(--purple); flex-shrink: 0; }
-.marquee-text {
-  font-family: var(--font-mono);
-  font-size: 11px;
-  letter-spacing: 0.18em;
-  text-transform: uppercase;
-  color: rgba(255,255,255,0.35);
-}
+.product-card{background:var(--bg-6);border:1px solid var(--stroke-light);padding:36px 30px;position:relative;overflow:hidden;cursor:pointer;transition:background .3s,border-color .3s;text-decoration:none;display:block}
+.product-card:hover{background:var(--bg-13);border-color:var(--stroke-med)}
+.product-card::after{content:'';position:absolute;bottom:0;left:0;width:100%;height:2px;background:var(--purple);transform:scaleX(0);transform-origin:left;transition:transform .4s cubic-bezier(0.25,0.46,0.45,0.94)}
+.product-card:hover::after{transform:scaleX(1)}
+.product-card.tapee360::after{background:var(--gold)}
+.product-card.xpscore::after{background:var(--xp)}
 
-/* ─────────────────────────────────────────
-   SECTION COMMONS
-──────────────────────────────────────────*/
-.section { padding: 100px 24px; }
-.main-container { max-width: 1200px; margin: 0 auto; }
-.section-label {
-  font-family: var(--font-mono);
-  font-size: 11px;
-  letter-spacing: 0.22em;
-  text-transform: uppercase;
-  color: rgba(255,255,255,0.3);
-  margin-bottom: 16px;
-}
-.section-title {
-  font-family: var(--font-sora);
-  font-size: clamp(32px, 4vw, 56px);
-  font-weight: 400;
-  line-height: 1.05;
-  letter-spacing: -1.5px;
-  margin-bottom: 60px;
-}
-.section-title .light { color: rgba(248,249,250,0.9); }
-.section-title .dim   { color: rgba(248,249,250,0.25); }
-.section-title .accent{ color: var(--purple); }
-.text-center { text-align: center; }
+.product-tag{display:inline-flex;align-items:center;gap:6px;font-family:var(--font-mono);font-size:9px;letter-spacing:.22em;text-transform:uppercase;padding:4px 10px;border-radius:9999px;margin-bottom:24px}
+.product-tag.live{background:rgba(34,197,94,0.08);border:1px solid rgba(34,197,94,0.25);color:#22C55E}
+.product-tag.live-xp{background:rgba(0,194,168,0.08);border:1px solid rgba(0,194,168,0.3);color:var(--xp)}
+.product-tag.soon{background:rgba(255,255,255,0.04);border:1px solid var(--stroke-light);color:rgba(255,255,255,0.3)}
+.product-tag-dot{width:5px;height:5px;border-radius:50%;background:currentColor}
+.product-tag.live .product-tag-dot,.product-tag.live-xp .product-tag-dot{animation:pulseDot 1.5s ease infinite}
 
-/* ─────────────────────────────────────────
-   WHAT IS AIFLOW360 — glowing cards
-──────────────────────────────────────────*/
-.what-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr 1fr;
-  gap: 16px;
-  margin-top: 60px;
-}
-@media(max-width:900px){ .what-grid{grid-template-columns:1fr} }
-@media(min-width:640px) and (max-width:900px){ .what-grid{grid-template-columns:1fr 1fr} }
+.product-name{font-family:var(--font-sora);font-size:24px;font-weight:400;color:rgba(248,249,250,0.9);letter-spacing:-.6px;margin-bottom:10px;line-height:1.1}
+.product-tagline{font-family:var(--font-tight);font-size:12px;color:rgba(255,255,255,0.4);margin-bottom:24px;letter-spacing:.02em;line-height:1.7}
+.product-features{list-style:none;margin-bottom:28px}
+.product-feature{font-size:11px;color:rgba(255,255,255,0.4);padding:5px 0;border-bottom:1px solid rgba(255,255,255,0.05);display:flex;align-items:center;gap:10px;letter-spacing:.03em}
+.product-feature::before{content:'→';font-size:10px;color:var(--purple);flex-shrink:0}
+.product-card.tapee360 .product-feature::before{color:var(--gold)}
+.product-card.xpscore .product-feature::before{color:var(--xp)}
 
-.what-card {
-  background: var(--bg-5);
-  border: 1px solid var(--stroke-light);
-  border-radius: 12px;
-  padding: 36px 28px;
-  position: relative;
-  overflow: hidden;
-  transition: border-color 0.3s;
-}
-.what-card:hover { border-color: var(--stroke-med); }
-.what-card::before {
-  content: '';
-  position: absolute;
-  top: -60%; left: -30%;
-  width: 200px; height: 200px;
-  background: radial-gradient(circle, rgba(141,89,255,0.12) 0%, transparent 70%);
-  pointer-events: none;
-  transition: opacity 0.4s;
-}
-.what-card-icon {
-  width: 44px; height: 44px;
-  border-radius: 8px;
-  background: var(--purple-bg);
-  border: 1px solid var(--purple-dim);
-  display: flex; align-items: center; justify-content: center;
-  font-size: 18px;
-  margin-bottom: 20px;
-}
-.what-card-title {
-  font-family: var(--font-sora);
-  font-size: 18px;
-  font-weight: 500;
-  color: rgba(248,249,250,0.9);
-  margin-bottom: 10px;
-  letter-spacing: -0.3px;
-}
-.what-card-body {
-  font-size: 13px;
-  color: rgba(255,255,255,0.45);
-  line-height: 1.8;
-  letter-spacing: 0.02em;
-}
+.product-price{font-family:var(--font-sora);font-size:20px;font-weight:400;color:rgba(248,249,250,0.9);letter-spacing:-.5px;margin-bottom:4px}
+.product-price-label{font-size:11px;color:rgba(255,255,255,0.3);letter-spacing:.08em;margin-bottom:18px}
+.product-cta{display:inline-flex;align-items:center;gap:8px;font-family:var(--font-mono);font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:rgba(255,255,255,0.9);text-decoration:none;padding:9px 18px;border-radius:9999px;border:1px solid var(--stroke-light);transition:all .2s}
+.product-cta:hover{border-color:var(--stroke-med)}
+.product-card.tapee360 .product-cta{background:rgba(212,168,67,0.1);border-color:rgba(212,168,67,0.3);color:var(--gold)}
+.product-card.tapee360 .product-cta:hover{background:rgba(212,168,67,0.15)}
+.product-card.xpscore .product-cta{background:rgba(0,194,168,0.08);border-color:rgba(0,194,168,0.3);color:var(--xp)}
+.product-card.xpscore .product-cta:hover{background:rgba(0,194,168,0.14)}
 
-/* ─────────────────────────────────────────
-   PRODUCTS — marketplace grid
-──────────────────────────────────────────*/
-.products-section {
-  background: var(--bg-5);
-  padding: 100px 24px;
-}
-.products-grid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 2px;
-  margin-top: 60px;
-}
-@media(max-width:900px){ .products-grid{grid-template-columns:1fr} }
+.live-ribbon{position:absolute;top:20px;right:20px;background:var(--gold);color:var(--bg-5);font-family:var(--font-mono);font-size:9px;font-weight:600;letter-spacing:.18em;text-transform:uppercase;padding:4px 12px;border-radius:9999px}
+.live-ribbon.xp{background:var(--xp)}
 
-.product-card {
-  background: var(--bg-6);
-  border: 1px solid var(--stroke-light);
-  padding: 40px 36px;
-  position: relative;
-  overflow: hidden;
-  cursor: pointer;
-  transition: background 0.3s, border-color 0.3s;
-  text-decoration: none;
-  display: block;
-}
-.product-card:hover { background: var(--bg-13); border-color: var(--stroke-med); }
-.product-card::after {
-  content: '';
-  position: absolute;
-  bottom: 0; left: 0;
-  width: 100%; height: 2px;
-  background: var(--purple);
-  transform: scaleX(0);
-  transform-origin: left;
-  transition: transform 0.4s cubic-bezier(0.25,0.46,0.45,0.94);
-}
-.product-card:hover::after { transform: scaleX(1); }
-.product-card.tapee360::after { background: var(--gold); }
+/* FLOW */
+.flow-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:2px;margin-top:60px;background:rgba(255,255,255,0.04)}
+@media(max-width:800px){.flow-grid{grid-template-columns:1fr 1fr}}
+@media(max-width:500px){.flow-grid{grid-template-columns:1fr}}
+.flow-card{background:var(--bg-6);padding:36px 28px;position:relative;transition:background .3s}
+.flow-card:hover{background:var(--bg-13)}
+.flow-num{font-family:var(--font-sora);font-size:56px;font-weight:400;color:rgba(141,89,255,0.1);line-height:1;margin-bottom:20px;letter-spacing:-2px}
+.flow-title{font-family:var(--font-sora);font-size:16px;font-weight:500;color:rgba(248,249,250,0.8);margin-bottom:10px;letter-spacing:-.2px}
+.flow-body{font-size:12px;color:rgba(255,255,255,0.4);line-height:1.8;letter-spacing:.03em}
 
-.product-tag {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  font-family: var(--font-mono);
-  font-size: 9px;
-  letter-spacing: 0.22em;
-  text-transform: uppercase;
-  padding: 4px 10px;
-  border-radius: 9999px;
-  margin-bottom: 24px;
-}
-.product-tag.live {
-  background: rgba(34,197,94,0.08);
-  border: 1px solid rgba(34,197,94,0.25);
-  color: #22C55E;
-}
-.product-tag.soon {
-  background: rgba(255,255,255,0.04);
-  border: 1px solid var(--stroke-light);
-  color: rgba(255,255,255,0.3);
-}
-.product-tag-dot {
-  width: 5px; height: 5px;
-  border-radius: 50%;
-  background: currentColor;
-}
-.product-tag.live .product-tag-dot { animation: pulseDot 1.5s ease infinite; }
+/* PARENT */
+.parent-section{background:var(--bg-5);padding:80px 24px;border-top:1px solid var(--stroke-light);border-bottom:1px solid var(--stroke-light)}
+.parent-inner{max-width:1200px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;gap:40px;flex-wrap:wrap}
+.parent-label{font-family:var(--font-mono);font-size:10px;letter-spacing:.25em;text-transform:uppercase;color:rgba(255,255,255,0.25);margin-bottom:10px}
+.parent-title{font-family:var(--font-sora);font-size:clamp(22px,3vw,36px);font-weight:400;letter-spacing:-1px;line-height:1.2}
+.parent-title .light{color:rgba(248,249,250,0.9)}.parent-title .dim{color:rgba(248,249,250,0.25)}
+.parent-sub{font-size:13px;color:rgba(255,255,255,0.4);margin-top:10px;letter-spacing:.03em;max-width:400px;line-height:1.8}
 
-.product-name {
-  font-family: var(--font-sora);
-  font-size: 28px;
-  font-weight: 400;
-  color: rgba(248,249,250,0.9);
-  letter-spacing: -0.8px;
-  margin-bottom: 10px;
-  line-height: 1.1;
-}
-.product-tagline {
-  font-family: var(--font-tight);
-  font-size: 13px;
-  color: rgba(255,255,255,0.4);
-  margin-bottom: 28px;
-  letter-spacing: 0.02em;
-  line-height: 1.7;
-}
-.product-features {
-  list-style: none;
-  margin-bottom: 32px;
-}
-.product-feature {
-  font-size: 12px;
-  color: rgba(255,255,255,0.4);
-  padding: 6px 0;
-  border-bottom: 1px solid rgba(255,255,255,0.05);
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  letter-spacing: 0.03em;
-}
-.product-feature::before {
-  content: '→';
-  font-size: 10px;
-  color: var(--purple);
-  flex-shrink: 0;
-}
-.product-card.tapee360 .product-feature::before { color: var(--gold); }
+/* CTA */
+.cta-section{padding:120px 24px;text-align:center;position:relative;overflow:hidden}
+.cta-glow{position:absolute;top:20%;left:50%;transform:translateX(-50%);width:600px;height:300px;background:radial-gradient(ellipse,rgba(141,89,255,0.15) 0%,transparent 70%);pointer-events:none;filter:blur(40px)}
+.cta-title{font-family:var(--font-sora);font-size:clamp(36px,5vw,72px);font-weight:400;letter-spacing:-2px;margin-bottom:20px}
+.cta-sub{font-size:15px;color:rgba(255,255,255,0.45);max-width:480px;margin:0 auto 48px;line-height:1.8;letter-spacing:.02em}
 
-.product-price {
-  font-family: var(--font-sora);
-  font-size: 22px;
-  font-weight: 400;
-  color: rgba(248,249,250,0.9);
-  letter-spacing: -0.5px;
-  margin-bottom: 4px;
-}
-.product-price-label {
-  font-size: 11px;
-  color: rgba(255,255,255,0.3);
-  letter-spacing: 0.08em;
-  margin-bottom: 20px;
-}
-.product-cta {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  font-family: var(--font-mono);
-  font-size: 11px;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  color: rgba(255,255,255,0.9);
-  text-decoration: none;
-  padding: 10px 20px;
-  border-radius: 9999px;
-  border: 1px solid var(--stroke-light);
-  transition: all 0.2s;
-}
-.product-cta:hover { border-color: var(--stroke-med); }
-.product-card.tapee360 .product-cta {
-  background: rgba(212,168,67,0.1);
-  border-color: rgba(212,168,67,0.3);
-  color: var(--gold);
-}
-.product-card.tapee360 .product-cta:hover { background: rgba(212,168,67,0.15); }
+/* FOOTER */
+footer{background:var(--bg-5);border-top:1px solid var(--stroke-light);padding:60px 24px 32px}
+.footer-inner{max-width:1200px;margin:0 auto}
+.footer-top{display:flex;justify-content:space-between;align-items:flex-start;gap:40px;flex-wrap:wrap;padding-bottom:48px;border-bottom:1px solid var(--stroke-light);margin-bottom:40px}
+.footer-logo{font-family:var(--font-sora);font-size:20px;font-weight:700;color:rgba(248,249,250,0.9);letter-spacing:-.5px;margin-bottom:8px}
+.footer-logo span{color:var(--purple)}
+.footer-desc{font-size:12px;color:rgba(255,255,255,0.35);max-width:240px;line-height:1.8;letter-spacing:.03em}
+.footer-links-col h4{font-family:var(--font-sora);font-size:12px;font-weight:600;color:rgba(248,249,250,0.9);margin-bottom:16px;letter-spacing:.02em}
+.footer-links-col a{display:block;font-size:12px;color:rgba(255,255,255,0.4);text-decoration:none;padding:5px 0;letter-spacing:.03em;transition:color .2s}
+.footer-links-col a:hover{color:rgba(255,255,255,0.9)}
+.footer-bottom{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap}
+.footer-copy{font-family:var(--font-tight);font-size:11px;color:rgba(255,255,255,0.3);letter-spacing:.04em}
+.footer-wordmark{font-family:var(--font-sora);font-size:clamp(40px,8vw,112px);font-weight:800;letter-spacing:.15em;color:var(--purple);text-align:center;padding:48px 0;opacity:.15;user-select:none;overflow:hidden;white-space:nowrap}
 
-/* Featured "LIVE" ribbon */
-.live-ribbon {
-  position: absolute;
-  top: 20px; right: 20px;
-  background: var(--gold);
-  color: var(--bg-5);
-  font-family: var(--font-mono);
-  font-size: 9px;
-  font-weight: 600;
-  letter-spacing: 0.18em;
-  text-transform: uppercase;
-  padding: 4px 12px;
-  border-radius: 9999px;
-}
-
-/* ─────────────────────────────────────────
-   HOW IT WORKS — same flow cards as AITECHNIC
-──────────────────────────────────────────*/
-.flow-grid {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 2px;
-  margin-top: 60px;
-  background: rgba(255,255,255,0.04);
-}
-@media(max-width:800px){ .flow-grid{grid-template-columns:1fr 1fr} }
-@media(max-width:500px){ .flow-grid{grid-template-columns:1fr} }
-
-.flow-card {
-  background: var(--bg-6);
-  padding: 36px 28px;
-  position: relative;
-  transition: background 0.3s;
-}
-.flow-card:hover { background: var(--bg-13); }
-.flow-num {
-  font-family: var(--font-sora);
-  font-size: 56px;
-  font-weight: 400;
-  color: rgba(141,89,255,0.1);
-  line-height: 1;
-  margin-bottom: 20px;
-  letter-spacing: -2px;
-}
-.flow-title {
-  font-family: var(--font-sora);
-  font-size: 16px;
-  font-weight: 500;
-  color: rgba(248,249,250,0.8);
-  margin-bottom: 10px;
-  letter-spacing: -0.2px;
-}
-.flow-body {
-  font-size: 12px;
-  color: rgba(255,255,255,0.4);
-  line-height: 1.8;
-  letter-spacing: 0.03em;
-}
-
-/* ─────────────────────────────────────────
-   AITECHNIC LINK SECTION
-──────────────────────────────────────────*/
-.parent-section {
-  background: var(--bg-5);
-  padding: 80px 24px;
-  border-top: 1px solid var(--stroke-light);
-  border-bottom: 1px solid var(--stroke-light);
-}
-.parent-inner {
-  max-width: 1200px;
-  margin: 0 auto;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 40px;
-  flex-wrap: wrap;
-}
-.parent-text {}
-.parent-label {
-  font-family: var(--font-mono);
-  font-size: 10px;
-  letter-spacing: 0.25em;
-  text-transform: uppercase;
-  color: rgba(255,255,255,0.25);
-  margin-bottom: 10px;
-}
-.parent-title {
-  font-family: var(--font-sora);
-  font-size: clamp(22px, 3vw, 36px);
-  font-weight: 400;
-  letter-spacing: -1px;
-  line-height: 1.2;
-}
-.parent-title .light { color: rgba(248,249,250,0.9); }
-.parent-title .dim   { color: rgba(248,249,250,0.25); }
-.parent-sub {
-  font-size: 13px;
-  color: rgba(255,255,255,0.4);
-  margin-top: 10px;
-  letter-spacing: 0.03em;
-  max-width: 400px;
-  line-height: 1.8;
-}
-
-/* ─────────────────────────────────────────
-   CTA SECTION
-──────────────────────────────────────────*/
-.cta-section {
-  padding: 120px 24px;
-  text-align: center;
-  position: relative;
-  overflow: hidden;
-}
-.cta-glow {
-  position: absolute;
-  top: 20%; left: 50%;
-  transform: translateX(-50%);
-  width: 600px; height: 300px;
-  background: radial-gradient(ellipse, rgba(141,89,255,0.15) 0%, transparent 70%);
-  pointer-events: none;
-  filter: blur(40px);
-}
-.cta-title {
-  font-family: var(--font-sora);
-  font-size: clamp(36px,5vw,72px);
-  font-weight: 400;
-  letter-spacing: -2px;
-  margin-bottom: 20px;
-}
-.cta-sub {
-  font-size: 15px;
-  color: rgba(255,255,255,0.45);
-  max-width: 480px;
-  margin: 0 auto 48px;
-  line-height: 1.8;
-  letter-spacing: 0.02em;
-}
-
-/* ─────────────────────────────────────────
-   FOOTER — exact AITECHNIC pattern
-──────────────────────────────────────────*/
-footer {
-  background: var(--bg-5);
-  border-top: 1px solid var(--stroke-light);
-  padding: 60px 24px 32px;
-}
-.footer-inner {
-  max-width: 1200px;
-  margin: 0 auto;
-}
-.footer-top {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  gap: 40px;
-  flex-wrap: wrap;
-  padding-bottom: 48px;
-  border-bottom: 1px solid var(--stroke-light);
-  margin-bottom: 40px;
-}
-.footer-brand {}
-.footer-logo {
-  font-family: var(--font-sora);
-  font-size: 20px;
-  font-weight: 700;
-  color: rgba(248,249,250,0.9);
-  letter-spacing: -0.5px;
-  margin-bottom: 8px;
-}
-.footer-logo span { color: var(--purple); }
-.footer-desc {
-  font-size: 12px;
-  color: rgba(255,255,255,0.35);
-  max-width: 240px;
-  line-height: 1.8;
-  letter-spacing: 0.03em;
-}
-.footer-links-col h4 {
-  font-family: var(--font-sora);
-  font-size: 12px;
-  font-weight: 600;
-  color: rgba(248,249,250,0.9);
-  margin-bottom: 16px;
-  letter-spacing: 0.02em;
-}
-.footer-links-col a {
-  display: block;
-  font-size: 12px;
-  color: rgba(255,255,255,0.4);
-  text-decoration: none;
-  padding: 5px 0;
-  letter-spacing: 0.03em;
-  transition: color 0.2s;
-}
-.footer-links-col a:hover { color: rgba(255,255,255,0.9); }
-.footer-bottom {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16px;
-  flex-wrap: wrap;
-}
-.footer-copy {
-  font-family: var(--font-tight);
-  font-size: 11px;
-  color: rgba(255,255,255,0.3);
-  letter-spacing: 0.04em;
-}
-/* Large footer wordmark — exact AITECHNIC style */
-.footer-wordmark {
-  font-family: var(--font-sora);
-  font-size: clamp(40px, 8vw, 112px);
-  font-weight: 800;
-  letter-spacing: 0.15em;
-  color: var(--purple);
-  text-align: center;
-  padding: 48px 0;
-  opacity: 0.15;
-  user-select: none;
-  overflow: hidden;
-  white-space: nowrap;
-}
-
-/* ─────────────────────────────────────────
-   ANIMATIONS
-──────────────────────────────────────────*/
-@keyframes fadeUp  { from{opacity:0;transform:translateY(24px)} to{opacity:1;transform:none} }
-@keyframes fadeIn  { from{opacity:0} to{opacity:1} }
-.reveal {
-  opacity: 0;
-  transform: translateY(28px);
-  transition: opacity 0.7s ease, transform 0.7s ease;
-}
-.reveal.visible { opacity: 1; transform: none; }
+/* ANIMATIONS */
+@keyframes fadeUp{from{opacity:0;transform:translateY(24px)}to{opacity:1;transform:none}}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+.reveal{opacity:0;transform:translateY(28px);transition:opacity .7s ease,transform .7s ease}
+.reveal.visible{opacity:1;transform:none}
 </style>
 </head>
 <body>
 
-<!-- NAV -->
 <nav class="nav">
   <a href="/" class="nav-logo">
     <div class="nav-logo-img">AF</div>
@@ -817,136 +183,87 @@ footer {
     <li><a href="#how" class="nav-link">How it works</a></li>
     <li><a href="https://aitechnic.com.au" target="_blank" class="nav-link">AITECHNIC</a></li>
   </ul>
-  <a href="https://tapee360.vercel.app" target="_blank" class="nav-cta">
-    Try Tapee360 →
-  </a>
+  <a href="https://tapee360.vercel.app" target="_blank" class="nav-cta">Try Tapee360 →</a>
 </nav>
 
-<!-- ─── HERO ─── -->
 <section class="hero">
   <div class="hero-glow"></div>
-
-  <div class="hero-badge">
-    <div class="hero-badge-dot"></div>
-    AI App Marketplace · by AITECHNIC
-  </div>
-
+  <div class="hero-badge"><div class="hero-badge-dot"></div>AI App Marketplace · by AITECHNIC</div>
   <h1 class="hero-title">
     <span class="light">AI products</span><br>
     <span class="dim">built for real</span><br>
     <span class="light">business impact</span>
   </h1>
-
-  <p class="hero-sub">
-    AIFlow360 is AITECHNIC's platform for purpose-built AI products. Each app is designed for a specific Australian industry — ready to deploy, not just a concept.
-  </p>
-
+  <p class="hero-sub">AIFlow360 is AITECHNIC's platform for purpose-built AI products. Each app is designed for a specific Australian industry — ready to deploy, not just a concept.</p>
   <div class="hero-actions">
-    <a href="#products" class="btn-white">
-      Browse products
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17L17 7"/><path d="M7 7h10v10"/></svg>
-    </a>
-    <a href="https://aitechnic.com.au" target="_blank" class="btn-outline">
-      Visit AITECHNIC ↗
-    </a>
+    <a href="#products" class="btn-white">Browse products <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17L17 7"/><path d="M7 7h10v10"/></svg></a>
+    <a href="https://aitechnic.com.au" target="_blank" class="btn-outline">Visit AITECHNIC ↗</a>
   </div>
-
   <div class="hero-stats">
-    <div>
-      <div class="hero-stat-num">1</div>
-      <div class="hero-stat-label">Product live now</div>
-    </div>
-    <div>
-      <div class="hero-stat-num">AU</div>
-      <div class="hero-stat-label">Built for Australia</div>
-    </div>
-    <div>
-      <div class="hero-stat-num">3M+</div>
-      <div class="hero-stat-label">Hours saved by AITECHNIC</div>
-    </div>
-    <div>
-      <div class="hero-stat-num">99%</div>
-      <div class="hero-stat-label">Client satisfaction</div>
-    </div>
+    <div><div class="hero-stat-num">2</div><div class="hero-stat-label">Products live now</div></div>
+    <div><div class="hero-stat-num">AU</div><div class="hero-stat-label">Built for Australia</div></div>
+    <div><div class="hero-stat-num">3M+</div><div class="hero-stat-label">Hours saved by AITECHNIC</div></div>
+    <div><div class="hero-stat-num">99%</div><div class="hero-stat-label">Client satisfaction</div></div>
   </div>
 </section>
 
-<!-- MARQUEE -->
 <div class="marquee-strip">
   <div class="marquee-track">
     <div class="marquee-item"><div class="marquee-dot"></div><div class="marquee-text">Tapee360 — Live now</div></div>
-    <div class="marquee-item"><div class="marquee-dot"></div><div class="marquee-text">NFC ordering</div></div>
+    <div class="marquee-item"><div class="marquee-dot xp"></div><div class="marquee-text">XPscore360 — Live now</div></div>
+    <div class="marquee-item"><div class="marquee-dot"></div><div class="marquee-text">NFC tap ordering</div></div>
+    <div class="marquee-item"><div class="marquee-dot xp"></div><div class="marquee-text">AI-driven customer feedback</div></div>
     <div class="marquee-item"><div class="marquee-dot"></div><div class="marquee-text">AI customer memory</div></div>
+    <div class="marquee-item"><div class="marquee-dot xp"></div><div class="marquee-text">Google review automation</div></div>
     <div class="marquee-item"><div class="marquee-dot"></div><div class="marquee-text">Square POS integration</div></div>
-    <div class="marquee-item"><div class="marquee-dot"></div><div class="marquee-text">Lightspeed integration</div></div>
-    <div class="marquee-item"><div class="marquee-dot"></div><div class="marquee-text">Loyalty & rewards</div></div>
-    <div class="marquee-item"><div class="marquee-dot"></div><div class="marquee-text">AI review engine</div></div>
+    <div class="marquee-item"><div class="marquee-dot xp"></div><div class="marquee-text">Real-time manager alerts</div></div>
     <div class="marquee-item"><div class="marquee-dot"></div><div class="marquee-text">Sydney hosted · Supabase</div></div>
     <div class="marquee-item"><div class="marquee-dot"></div><div class="marquee-text">More products coming</div></div>
-    <!-- duplicate for loop -->
+    <!-- duplicate -->
     <div class="marquee-item"><div class="marquee-dot"></div><div class="marquee-text">Tapee360 — Live now</div></div>
-    <div class="marquee-item"><div class="marquee-dot"></div><div class="marquee-text">NFC ordering</div></div>
+    <div class="marquee-item"><div class="marquee-dot xp"></div><div class="marquee-text">XPscore360 — Live now</div></div>
+    <div class="marquee-item"><div class="marquee-dot"></div><div class="marquee-text">NFC tap ordering</div></div>
+    <div class="marquee-item"><div class="marquee-dot xp"></div><div class="marquee-text">AI-driven customer feedback</div></div>
     <div class="marquee-item"><div class="marquee-dot"></div><div class="marquee-text">AI customer memory</div></div>
+    <div class="marquee-item"><div class="marquee-dot xp"></div><div class="marquee-text">Google review automation</div></div>
     <div class="marquee-item"><div class="marquee-dot"></div><div class="marquee-text">Square POS integration</div></div>
-    <div class="marquee-item"><div class="marquee-dot"></div><div class="marquee-text">Lightspeed integration</div></div>
-    <div class="marquee-item"><div class="marquee-dot"></div><div class="marquee-text">Loyalty & rewards</div></div>
-    <div class="marquee-item"><div class="marquee-dot"></div><div class="marquee-text">AI review engine</div></div>
+    <div class="marquee-item"><div class="marquee-dot xp"></div><div class="marquee-text">Real-time manager alerts</div></div>
     <div class="marquee-item"><div class="marquee-dot"></div><div class="marquee-text">Sydney hosted · Supabase</div></div>
     <div class="marquee-item"><div class="marquee-dot"></div><div class="marquee-text">More products coming</div></div>
   </div>
 </div>
 
-<!-- ─── WHAT IS AIFLOW360 ─── -->
 <section class="section">
   <div class="main-container">
     <div class="text-center">
       <p class="section-label reveal">What is AIFlow360</p>
-      <h2 class="section-title reveal">
-        <span class="light">One platform.</span><br>
-        <span class="dim">Many AI products.</span>
-      </h2>
+      <h2 class="section-title reveal"><span class="light">One platform.</span><br><span class="dim">Many AI products.</span></h2>
     </div>
     <div class="what-grid">
-      <div class="what-card reveal">
-        <div class="what-card-icon">⬡</div>
-        <div class="what-card-title">Purpose-built apps</div>
-        <div class="what-card-body">Every product on AIFlow360 is built for a specific Australian industry. Not generic AI tools — real solutions for real business problems.</div>
-      </div>
-      <div class="what-card reveal">
-        <div class="what-card-icon">◈</div>
-        <div class="what-card-title">Powered by AITECHNIC</div>
-        <div class="what-card-body">Each app is built and maintained by AITECHNIC Technology Solutions — the same team trusted by financial services, healthcare, and hospitality businesses across Sydney.</div>
-      </div>
-      <div class="what-card reveal">
-        <div class="what-card-icon">✦</div>
-        <div class="what-card-title">Deploy in days, not months</div>
-        <div class="what-card-body">No custom development required. Each product ships with onboarding, integrations, and support included. From signup to live in under a week.</div>
-      </div>
+      <div class="what-card reveal"><div class="what-card-icon">⬡</div><div class="what-card-title">Purpose-built apps</div><div class="what-card-body">Every product on AIFlow360 is built for a specific Australian industry. Not generic AI tools — real solutions for real business problems.</div></div>
+      <div class="what-card reveal"><div class="what-card-icon">◈</div><div class="what-card-title">Powered by AITECHNIC</div><div class="what-card-body">Each app is built and maintained by AITECHNIC Technology Solutions — the same team trusted by financial services, healthcare, and hospitality businesses across Sydney.</div></div>
+      <div class="what-card reveal"><div class="what-card-icon">✦</div><div class="what-card-title">Deploy in days, not months</div><div class="what-card-body">No custom development required. Each product ships with onboarding, integrations, and support included. From signup to live in under a week.</div></div>
     </div>
   </div>
 </section>
 
-<!-- ─── PRODUCTS ─── -->
+<!-- ═══════════════════════════════
+     PRODUCTS SECTION — 4 cards
+═══════════════════════════════ -->
 <section class="products-section" id="products">
   <div class="main-container">
     <div class="text-center">
       <p class="section-label reveal">Marketplace</p>
-      <h2 class="section-title reveal">
-        <span class="light">Products</span>
-        <span class="dim"> on AIFlow360</span>
-      </h2>
+      <h2 class="section-title reveal"><span class="light">Products</span><span class="dim"> on AIFlow360</span></h2>
     </div>
     <div class="products-grid">
 
-      <!-- TAPEE360 — LIVE -->
+      <!-- TAPEE360 -->
       <a href="https://tapee360.vercel.app" target="_blank" class="product-card tapee360 reveal">
         <div class="live-ribbon">Live</div>
-        <div class="product-tag live">
-          <div class="product-tag-dot"></div>
-          Hospitality · Available now
-        </div>
+        <div class="product-tag live"><div class="product-tag-dot"></div>Hospitality · Now</div>
         <div class="product-name">Tapee360</div>
-        <div class="product-tagline">NFC tap ordering, AI customer memory, loyalty, and reviews for Sydney cafes and restaurants.</div>
+        <div class="product-tagline">NFC tap ordering, AI customer memory, loyalty, and reviews for cafés and restaurants.</div>
         <ul class="product-features">
           <li class="product-feature">NFC ordering — no app needed</li>
           <li class="product-feature">AI customer recognition</li>
@@ -954,17 +271,32 @@ footer {
           <li class="product-feature">Loyalty points + rewards</li>
           <li class="product-feature">AI review engine</li>
         </ul>
-        <div class="product-price">$99 <span style="font-size:16px;color:rgba(255,255,255,0.3)">/ $199 / $299</span></div>
+        <div class="product-price">$99 <span style="font-size:14px;color:rgba(255,255,255,0.3)">/ $199 / $299</span></div>
         <div class="product-price-label">per venue / month · NFC tags included</div>
         <span class="product-cta">Explore Tapee360 ↗</span>
       </a>
 
-      <!-- PRODUCT 2 — COMING SOON -->
+      <!-- XPSCORE360 — NEW -->
+      <a href="/xpscore360" class="product-card xpscore reveal">
+        <div class="live-ribbon xp">Live</div>
+        <div class="product-tag live-xp"><div class="product-tag-dot"></div>Hospitality · Now</div>
+        <div class="product-name">XPscore360</div>
+        <div class="product-tagline">NFC-triggered AI feedback, sentiment recovery, and Google review automation for any venue.</div>
+        <ul class="product-features">
+          <li class="product-feature">NFC tap — instant feedback flow</li>
+          <li class="product-feature">AI conversation engine</li>
+          <li class="product-feature">Real-time manager alerts</li>
+          <li class="product-feature">Negative review recovery</li>
+          <li class="product-feature">Google review deep link</li>
+        </ul>
+        <div class="product-price">$49 <span style="font-size:14px;color:rgba(255,255,255,0.3)">/ $99 / $199</span></div>
+        <div class="product-price-label">per venue / month · NFC stickers included</div>
+        <span class="product-cta">Explore XPscore360 ↗</span>
+      </a>
+
+      <!-- AIADVISOR -->
       <div class="product-card reveal">
-        <div class="product-tag soon">
-          <div class="product-tag-dot"></div>
-          Coming soon
-        </div>
+        <div class="product-tag soon"><div class="product-tag-dot"></div>Coming soon</div>
         <div class="product-name" style="color:rgba(248,249,250,0.3)">AIAdvisor</div>
         <div class="product-tagline" style="color:rgba(255,255,255,0.25)">AI client management and compliance automation for financial advisers and mortgage brokers.</div>
         <ul class="product-features">
@@ -976,17 +308,14 @@ footer {
         </ul>
         <div class="product-price" style="color:rgba(255,255,255,0.25)">TBA</div>
         <div class="product-price-label">Notify me when available</div>
-        <span class="product-cta" style="opacity:0.4;pointer-events:none">Register interest</span>
+        <span class="product-cta" style="opacity:.4;pointer-events:none">Register interest</span>
       </div>
 
-      <!-- PRODUCT 3 — COMING SOON -->
+      <!-- MEDIFLOW -->
       <div class="product-card reveal">
-        <div class="product-tag soon">
-          <div class="product-tag-dot"></div>
-          Coming soon
-        </div>
+        <div class="product-tag soon"><div class="product-tag-dot"></div>Coming soon</div>
         <div class="product-name" style="color:rgba(248,249,250,0.3)">MediFlow</div>
-        <div class="product-tagline" style="color:rgba(255,255,255,0.25)">AI patient communication, appointment automation, and clinical workflow tools for GP clinics and allied health.</div>
+        <div class="product-tagline" style="color:rgba(255,255,255,0.25)">AI patient communication, appointment automation, and clinical workflow tools for GP clinics.</div>
         <ul class="product-features">
           <li class="product-feature" style="color:rgba(255,255,255,0.2)">Automated appointment reminders</li>
           <li class="product-feature" style="color:rgba(255,255,255,0.2)">AI triage assistant</li>
@@ -996,105 +325,64 @@ footer {
         </ul>
         <div class="product-price" style="color:rgba(255,255,255,0.25)">TBA</div>
         <div class="product-price-label">Notify me when available</div>
-        <span class="product-cta" style="opacity:0.4;pointer-events:none">Register interest</span>
+        <span class="product-cta" style="opacity:.4;pointer-events:none">Register interest</span>
       </div>
 
     </div>
   </div>
 </section>
 
-<!-- ─── HOW IT WORKS ─── -->
 <section class="section" id="how">
   <div class="main-container">
     <div class="text-center">
       <p class="section-label reveal">How it works</p>
-      <h2 class="section-title reveal">
-        <span class="light">Pick a product.</span><br>
-        <span class="dim">Deploy in days.</span>
-      </h2>
+      <h2 class="section-title reveal"><span class="light">Pick a product.</span><br><span class="dim">Deploy in days.</span></h2>
     </div>
     <div class="flow-grid">
-      <div class="flow-card reveal">
-        <div class="flow-num">01</div>
-        <div class="flow-title">Choose your product</div>
-        <div class="flow-body">Browse the AIFlow360 marketplace and find the product built for your industry. Each product page shows you exactly what's included, how it integrates, and what it costs.</div>
-      </div>
-      <div class="flow-card reveal">
-        <div class="flow-num">02</div>
-        <div class="flow-title">Start your pilot</div>
-        <div class="flow-body">Every product includes a free pilot period. Hardware ships to your door. AITECHNIC handles onboarding. You're live within a week — no tech team required.</div>
-      </div>
-      <div class="flow-card reveal">
-        <div class="flow-num">03</div>
-        <div class="flow-title">Connect your systems</div>
-        <div class="flow-body">Each product integrates with your existing tools — POS, CRM, accounting, or practice management software. One-click connect or we set it up for you.</div>
-      </div>
-      <div class="flow-card reveal">
-        <div class="flow-num">04</div>
-        <div class="flow-title">Grow with AI</div>
-        <div class="flow-body">As AITECHNIC releases new products, they appear in your AIFlow360 dashboard. Your account, integrations, and customer data carry across every product.</div>
-      </div>
+      <div class="flow-card reveal"><div class="flow-num">01</div><div class="flow-title">Choose your product</div><div class="flow-body">Browse the AIFlow360 marketplace and find the product built for your industry. Each product page shows you exactly what's included, how it integrates, and what it costs.</div></div>
+      <div class="flow-card reveal"><div class="flow-num">02</div><div class="flow-title">Start your pilot</div><div class="flow-body">Every product includes a free pilot period. Hardware ships to your door. AITECHNIC handles onboarding. You're live within a week — no tech team required.</div></div>
+      <div class="flow-card reveal"><div class="flow-num">03</div><div class="flow-title">Connect your systems</div><div class="flow-body">Each product integrates with your existing tools — POS, CRM, accounting, or practice management software. One-click connect or we set it up for you.</div></div>
+      <div class="flow-card reveal"><div class="flow-num">04</div><div class="flow-title">Grow with AI</div><div class="flow-body">As AITECHNIC releases new products, they appear in your AIFlow360 dashboard. Your account, integrations, and customer data carry across every product.</div></div>
     </div>
   </div>
 </section>
 
-<!-- ─── AITECHNIC PARENT LINK ─── -->
 <div class="parent-section">
   <div class="parent-inner">
-    <div class="parent-text">
+    <div>
       <div class="parent-label">Built by</div>
-      <div class="parent-title">
-        <span class="light">AIFlow360 is a platform</span><br>
-        <span class="dim">by AITECHNIC Technology Solutions</span>
-      </div>
-      <div class="parent-sub">
-        AITECHNIC has delivered 49+ AI projects for Australian businesses — from financial services to healthcare. AIFlow360 is how we package our best solutions into products anyone can use.
-      </div>
+      <div class="parent-title"><span class="light">AIFlow360 is a platform</span><br><span class="dim">by AITECHNIC Technology Solutions</span></div>
+      <div class="parent-sub">AITECHNIC has delivered 49+ AI projects for Australian businesses — from financial services to healthcare. AIFlow360 is how we package our best solutions into products anyone can use.</div>
     </div>
     <div style="display:flex;flex-direction:column;gap:12px;flex-shrink:0">
-      <a href="https://aitechnic.com.au" target="_blank" class="btn-white">
-        Visit aitechnic.com.au ↗
-      </a>
-      <a href="https://calendly.com/contact-info-aitechnic/30min" target="_blank" class="btn-outline">
-        Book a call
-      </a>
+      <a href="https://aitechnic.com.au" target="_blank" class="btn-white">Visit aitechnic.com.au ↗</a>
+      <a href="https://calendly.com/contact-info-aitechnic/30min" target="_blank" class="btn-outline">Book a call</a>
     </div>
   </div>
 </div>
 
-<!-- ─── CTA ─── -->
 <section class="cta-section">
   <div class="cta-glow"></div>
-  <p class="section-label" style="opacity:0.5;margin-bottom:20px">Get started</p>
-  <h2 class="cta-title reveal">
-    <span style="color:rgba(248,249,250,0.9)">Start your</span><br>
-    <span style="color:rgba(248,249,250,0.25)">AI transformation</span><br>
-    <span style="color:rgba(248,249,250,0.9)">today.</span>
-  </h2>
-  <p class="cta-sub reveal">
-    Tapee360 is live now for Sydney hospitality venues. Free 90-day pilot. NFC tags included. Set up in under an hour.
-  </p>
+  <p class="section-label" style="opacity:.5;margin-bottom:20px">Get started</p>
+  <h2 class="cta-title reveal"><span style="color:rgba(248,249,250,0.9)">Start your</span><br><span style="color:rgba(248,249,250,0.25)">AI transformation</span><br><span style="color:rgba(248,249,250,0.9)">today.</span></h2>
+  <p class="cta-sub reveal">Two products live now for Sydney hospitality venues. Free pilot. Hardware included. Set up in under an hour.</p>
   <div class="hero-actions reveal">
-    <a href="https://tapee360.vercel.app" target="_blank" class="btn-white">
-      Try Tapee360 free →
-    </a>
-    <a href="https://calendly.com/contact-info-aitechnic/30min" target="_blank" class="btn-outline">
-      Talk to AITECHNIC
-    </a>
+    <a href="https://tapee360.vercel.app" target="_blank" class="btn-white">Try Tapee360 free →</a>
+    <a href="/xpscore360" class="btn-outline">Explore XPscore360 ↗</a>
   </div>
 </section>
 
-<!-- ─── FOOTER ─── -->
 <footer>
   <div class="footer-inner">
     <div class="footer-top">
-      <div class="footer-brand">
+      <div>
         <div class="footer-logo">AI<span>Flow</span>360</div>
         <div class="footer-desc">The AI app marketplace by AITECHNIC Technology Solutions. Purpose-built products for Australian businesses.</div>
       </div>
       <div class="footer-links-col">
         <h4>Products</h4>
         <a href="https://tapee360.vercel.app" target="_blank">Tapee360 ↗</a>
+        <a href="/xpscore360">XPscore360 ↗</a>
         <a href="#">AIAdvisor — coming soon</a>
         <a href="#">MediFlow — coming soon</a>
       </div>
@@ -1109,6 +397,7 @@ footer {
         <h4>Get started</h4>
         <a href="https://calendly.com/contact-info-aitechnic/30min" target="_blank">Book a call</a>
         <a href="https://tapee360.vercel.app" target="_blank">Try Tapee360</a>
+        <a href="/xpscore360">Try XPscore360</a>
         <a href="mailto:contact.info@aitechnic.com.au">contact.info@aitechnic.com.au</a>
       </div>
     </div>
@@ -1121,16 +410,8 @@ footer {
 </footer>
 
 <script>
-// Scroll reveal — same IntersectionObserver pattern as aitechnic.com.au
-const obs = new IntersectionObserver((entries) => {
-  entries.forEach((e, i) => {
-    if (e.isIntersecting) {
-      setTimeout(() => e.target.classList.add('visible'), i * 80);
-      obs.unobserve(e.target);
-    }
-  });
-}, { threshold: 0.1 });
-document.querySelectorAll('.reveal').forEach(el => obs.observe(el));
+const obs=new IntersectionObserver((entries)=>{entries.forEach((e,i)=>{if(e.isIntersecting){setTimeout(()=>e.target.classList.add('visible'),i*80);obs.unobserve(e.target)}})},{threshold:0.1});
+document.querySelectorAll('.reveal').forEach(el=>obs.observe(el));
 </script>
 </body>
 </html>
