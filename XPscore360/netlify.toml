@@ -1,0 +1,29 @@
+# netlify.toml
+# Place this in: xpscore360/netlify.toml
+# (or repo root if deploying the whole repo)
+
+[build]
+  base    = "xpscore360"
+  publish = "xpscore360"
+  functions = "xpscore360/netlify/functions"
+
+# Inject Supabase config into the HTML at deploy time
+# so the browser gets the public anon key without us
+# hardcoding it in source.
+[[plugins]]
+  package = "@netlify/plugin-inline-env"
+
+# SPA routing — all paths serve index.html
+[[redirects]]
+  from   = "/*"
+  to     = "/index.html"
+  status = 200
+
+# Security headers
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Frame-Options        = "DENY"
+    X-Content-Type-Options = "nosniff"
+    Referrer-Policy        = "strict-origin-when-cross-origin"
+    Content-Security-Policy = "default-src 'self'; script-src 'self' 'unsafe-inline' https://fonts.googleapis.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://fonts.gstatic.com; font-src https://fonts.gstatic.com; connect-src 'self' https://*.supabase.co https://api.anthropic.com https://search.google.com;"
