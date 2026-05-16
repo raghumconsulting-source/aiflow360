@@ -1,0 +1,1041 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="theme-color" content="#080808">
+<title>XPScore360 · Guest Feedback</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;1,400&family=Geist:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+:root{
+  --bg:#080808;
+  --surface:#111;
+  --card:#161616;
+  --card2:#1a1a1a;
+  --border:#222;
+  --border-l:#2a2a2a;
+  --text:#f2efe9;
+  --muted:#555;
+  --faint:#1e1e1e;
+  --accent:#d4a853;
+  --accent-dim:#7a5f2a;
+  --accent-bg:rgba(212,168,83,0.08);
+  --green:#3aaa74;
+  --green-bg:rgba(58,170,116,0.1);
+  --red:#c9504c;
+  --red-bg:rgba(201,80,76,0.1);
+  --blue:#4a8fff;
+  --r:14px;
+  --pill:999px;
+  --font-display:'Playfair Display',serif;
+  --font-body:'Geist',sans-serif;
+}
+html,body{height:100%;background:#000;overflow:hidden}
+body{font-family:var(--font-body);font-size:15px;line-height:1.5;color:var(--text);display:flex;justify-content:center;align-items:center}
+
+/* shell */
+.shell{width:100%;max-width:393px;height:100vh;max-height:852px;background:var(--bg);display:flex;flex-direction:column;overflow:hidden;position:relative}
+@media(min-height:900px){.shell{border-radius:50px;border:1px solid #1a1a1a;height:852px;box-shadow:0 0 120px rgba(0,0,0,.95),0 0 0 .5px #333}}
+
+/* noise grain overlay */
+.shell::before{content:'';position:absolute;inset:0;z-index:1;pointer-events:none;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");opacity:.4;border-radius:inherit}
+
+/* ── SPLASH ── */
+.splash{position:absolute;inset:0;z-index:30;background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:32px 28px;text-align:center;transition:opacity .4s cubic-bezier(.4,0,.2,1),transform .4s cubic-bezier(.4,0,.2,1)}
+.splash.out{opacity:0;transform:scale(.95) translateY(-12px);pointer-events:none}
+
+.sp-monogram{width:72px;height:72px;border-radius:22px;background:linear-gradient(145deg,#1a1508,#0d0d0d);border:.5px solid var(--accent-dim);display:flex;align-items:center;justify-content:center;margin:0 auto 20px;box-shadow:0 8px 32px rgba(0,0,0,.6),inset 0 1px 0 rgba(212,168,83,.15)}
+.sp-monogram span{font-family:var(--font-display);font-size:22px;color:var(--accent);font-style:italic}
+
+.sp-name{font-family:var(--font-display);font-size:26px;font-weight:600;color:var(--text);margin-bottom:4px;letter-spacing:-.3px}
+.sp-loc{font-size:11px;color:var(--muted);letter-spacing:.08em;text-transform:uppercase;margin-bottom:6px}
+.sp-table{display:inline-flex;align-items:center;gap:6px;background:var(--surface);border:.5px solid var(--border-l);border-radius:var(--pill);padding:5px 14px;font-size:11px;color:var(--muted);margin-bottom:28px}
+.sp-table svg{opacity:.5}
+
+.sp-divider{width:32px;height:.5px;background:var(--border-l);margin:0 auto 20px}
+
+.sp-q{font-family:var(--font-display);font-size:20px;font-style:italic;color:var(--text);line-height:1.4;margin-bottom:6px}
+.sp-hint{font-size:11px;color:var(--muted);margin-bottom:28px;letter-spacing:.02em}
+
+.mode-stack{display:flex;flex-direction:column;gap:10px;width:100%;max-width:310px}
+.mode-btn{display:flex;align-items:center;gap:14px;padding:16px 18px;border-radius:16px;border:.5px solid var(--border-l);background:var(--surface);cursor:pointer;text-align:left;transition:all .18s;position:relative;overflow:hidden}
+.mode-btn::after{content:'';position:absolute;inset:0;background:linear-gradient(135deg,rgba(255,255,255,.02),transparent);pointer-events:none}
+.mode-btn:active{transform:scale(.975)}
+.mode-btn.primary{background:var(--accent);border-color:var(--accent);box-shadow:0 4px 24px rgba(212,168,83,.2)}
+.mode-btn.primary .mb-icon{background:rgba(0,0,0,.12);border-color:rgba(0,0,0,.1)}
+.mode-btn.primary .mb-title{color:#0a0800}
+.mode-btn.primary .mb-sub{color:rgba(0,0,0,.5)}
+.mode-btn.primary .mb-arr{color:rgba(0,0,0,.35)}
+.mb-icon{width:40px;height:40px;border-radius:11px;background:var(--card);border:.5px solid var(--border-l);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0}
+.mb-info{flex:1}
+.mb-title{font-size:14px;font-weight:500;color:var(--text);margin-bottom:2px}
+.mb-sub{font-size:11px;color:var(--muted);line-height:1.4}
+.mb-arr{font-size:15px;color:var(--muted);flex-shrink:0;font-family:var(--font-display)}
+
+.sp-later{font-size:12px;color:var(--muted);background:none;border:none;cursor:pointer;font-family:var(--font-body);padding:8px;margin-top:8px;transition:color .15s}
+.sp-later:hover{color:var(--text)}
+
+/* ── AUTH OVERLAY (Google sign in for owner) ── */
+.auth-overlay{position:absolute;inset:0;z-index:50;background:rgba(8,8,8,.96);backdrop-filter:blur(12px);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:32px 28px;text-align:center;opacity:0;pointer-events:none;transition:opacity .3s}
+.auth-overlay.show{opacity:1;pointer-events:all}
+.auth-title{font-family:var(--font-display);font-size:22px;color:var(--text);margin-bottom:6px}
+.auth-sub{font-size:12px;color:var(--muted);margin-bottom:28px;line-height:1.6}
+.google-btn{display:flex;align-items:center;gap:12px;width:100%;max-width:280px;padding:14px 20px;background:#fff;border:none;border-radius:13px;cursor:pointer;transition:opacity .15s,transform .12s;font-family:var(--font-body)}
+.google-btn:active{transform:scale(.97);opacity:.9}
+.g-logo{width:24px;height:24px;flex-shrink:0}
+.google-btn-text{flex:1;text-align:left;font-size:14px;font-weight:500;color:#1a1a1a}
+.auth-close{margin-top:16px;font-size:12px;color:var(--muted);background:none;border:none;cursor:pointer;font-family:var(--font-body);padding:8px}
+
+/* ── TOPBAR ── */
+.topbar{padding:14px 18px 11px;border-bottom:.5px solid var(--border);display:flex;align-items:center;gap:12px;flex-shrink:0;position:relative;z-index:2}
+.t-mono{width:36px;height:36px;border-radius:11px;background:linear-gradient(145deg,#1a1508,#0d0d0d);border:.5px solid var(--accent-dim);display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.t-mono span{font-family:var(--font-display);font-size:11px;color:var(--accent);font-style:italic}
+.t-info{flex:1;min-width:0}
+.t-name{font-size:13px;font-weight:500;color:var(--text);letter-spacing:-.1px}
+.t-sub{font-size:10px;color:var(--muted);margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.live-pill{display:flex;align-items:center;gap:5px;font-size:10px;color:var(--muted);background:var(--surface);border:.5px solid var(--border);border-radius:var(--pill);padding:4px 10px;flex-shrink:0}
+.live-dot{width:5px;height:5px;border-radius:50%;background:var(--green);animation:pulse 2.4s ease infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.25}}
+
+/* ── PROGRESS ── */
+.prog-wrap{padding:9px 18px 6px;flex-shrink:0;position:relative;z-index:2}
+.prog-segs{display:flex;gap:4px}
+.seg{flex:1;height:2px;border-radius:2px;background:var(--border);transition:background .5s cubic-bezier(.4,0,.2,1)}
+.seg.done{background:var(--accent)}.seg.active{background:var(--faint)}
+.prog-info{display:flex;justify-content:space-between;font-size:10px;color:var(--muted);margin-top:5px;letter-spacing:.02em}
+
+/* ── CHAT ── */
+.chat{flex:1;overflow-y:auto;padding:14px 16px 8px;display:flex;flex-direction:column;gap:10px;scroll-behavior:smooth;min-height:0;position:relative;z-index:2}
+.chat::-webkit-scrollbar{width:2px}
+.chat::-webkit-scrollbar-thumb{background:var(--border)}
+
+.bub{max-width:85%;padding:12px 16px;border-radius:18px;font-size:14px;line-height:1.6;animation:bubIn .22s cubic-bezier(.4,0,.2,1) both}
+@keyframes bubIn{from{opacity:0;transform:translateY(8px) scale(.97)}to{opacity:1;transform:none}}
+.bub.ai{background:var(--card);border:.5px solid var(--border-l);color:var(--text);align-self:flex-start;border-bottom-left-radius:5px}
+.bub.user{background:var(--accent);color:#0a0800;font-weight:500;align-self:flex-end;border-bottom-right-radius:5px}
+.bub.ok{align-self:center;background:var(--green-bg);border:.5px solid var(--green);color:var(--green);font-size:11px;border-radius:var(--pill);padding:7px 16px;max-width:92%;text-align:center;letter-spacing:.01em}
+.bub.bad{align-self:center;background:var(--red-bg);border:.5px solid var(--red);color:var(--red);font-size:11px;border-radius:var(--pill);padding:7px 16px;max-width:92%;text-align:center}
+
+.typing{display:flex;gap:5px;align-items:center;padding:13px 16px;background:var(--card);border:.5px solid var(--border-l);border-radius:18px;border-bottom-left-radius:5px;align-self:flex-start;animation:bubIn .18s ease both}
+.t-d{width:5px;height:5px;border-radius:50%;background:var(--muted);animation:blink 1.3s ease infinite}
+.t-d:nth-child(2){animation-delay:.18s}.t-d:nth-child(3){animation-delay:.36s}
+@keyframes blink{0%,80%,100%{opacity:.2}40%{opacity:1}}
+
+/* ── CHIP ZONE ── */
+.chip-zone{flex-shrink:0;border-top:.5px solid var(--border);background:var(--bg);position:relative;z-index:2}
+.chip-row{display:flex;gap:7px;padding:10px 16px 9px;overflow-x:auto;flex-wrap:nowrap;min-height:52px;align-items:center;scrollbar-width:none;-webkit-overflow-scrolling:touch}
+.chip-row::-webkit-scrollbar{display:none}
+.chip-divider{height:.5px;background:var(--border);margin:0 16px}
+.tag-section{position:relative;flex-shrink:0}
+.tag-label{font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.1em;padding:6px 16px 5px;display:block}
+.tag-row{display:flex;gap:6px;padding:0 16px 10px;overflow-x:auto;flex-wrap:nowrap;scrollbar-width:none;-webkit-overflow-scrolling:touch;align-items:center}
+.tag-row::-webkit-scrollbar{display:none}
+.tag-section::after{content:'';position:absolute;right:0;top:0;bottom:0;width:36px;background:linear-gradient(to right,transparent,var(--bg));pointer-events:none;z-index:1}
+
+.chip{padding:8px 15px;border:.5px solid var(--border-l);border-radius:var(--pill);font-size:13px;color:var(--text);cursor:pointer;background:var(--surface);transition:all .14s;user-select:none;white-space:nowrap;flex-shrink:0;animation:chipIn .16s cubic-bezier(.4,0,.2,1) both;font-family:var(--font-body)}
+@keyframes chipIn{from{opacity:0;transform:scale(.84) translateY(4px)}to{opacity:1;transform:none}}
+.chip:active{transform:scale(.91)}
+.chip.pos{border-color:var(--green);color:var(--green);background:var(--green-bg)}
+.chip.neg{border-color:var(--red);color:var(--red);background:var(--red-bg)}
+.chip.gold{border-color:var(--accent);color:var(--accent);background:var(--accent-bg)}
+
+.tag{padding:6px 12px;border:.5px solid var(--border);border-radius:var(--pill);font-size:11px;color:var(--muted);cursor:pointer;background:transparent;transition:all .14s;user-select:none;white-space:nowrap;flex-shrink:0;font-family:var(--font-body)}
+.tag:active{transform:scale(.91)}
+.tag.used{border-color:var(--accent-dim);color:var(--accent);background:var(--accent-bg)}
+
+.chip-placeholder{font-size:12px;color:var(--muted);padding:4px 2px;white-space:nowrap}
+
+/* ── INPUT ── */
+.inp-row{display:flex;gap:8px;align-items:center;padding:8px 16px 16px;flex-shrink:0;background:var(--bg);position:relative;z-index:2}
+.inp{flex:1;background:var(--surface);border:.5px solid var(--border-l);border-radius:var(--pill);padding:11px 18px;font-size:14px;color:var(--text);outline:none;font-family:var(--font-body);transition:border-color .2s}
+.inp:focus{border-color:var(--accent-dim)}
+.inp::placeholder{color:#333}
+.inp:disabled{opacity:.3}
+.send-btn{width:38px;height:38px;border-radius:50%;background:var(--accent);border:none;color:#0a0800;font-size:17px;display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;transition:opacity .15s,transform .12s;font-family:var(--font-display)}
+.send-btn:active{transform:scale(.86)}
+.send-btn:disabled{opacity:.2;cursor:default}
+
+/* ── SUMMARY SCREEN ── */
+.sum-screen{position:absolute;inset:0;z-index:25;background:var(--bg);display:flex;flex-direction:column;overflow:hidden;opacity:0;transform:translateY(100%);transition:opacity .45s cubic-bezier(.32,1,.5,1),transform .45s cubic-bezier(.32,1,.5,1);pointer-events:none}
+.sum-screen.in{opacity:1;transform:translateY(0);pointer-events:all}
+.sum-header{padding:14px 18px 12px;display:flex;align-items:center;gap:12px;border-bottom:.5px solid var(--border);flex-shrink:0}
+.sum-back{width:34px;height:34px;border-radius:10px;background:var(--surface);border:.5px solid var(--border-l);display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:16px;color:var(--muted);flex-shrink:0;transition:all .14s;font-family:var(--font-display)}
+.sum-back:active{transform:scale(.88)}
+.sum-title{font-family:var(--font-display);font-size:18px;color:var(--text);flex:1;font-style:italic}
+.sum-status{font-size:9px;font-weight:500;letter-spacing:.06em;text-transform:uppercase;background:var(--green-bg);border:.5px solid var(--green);color:var(--green);border-radius:var(--pill);padding:4px 10px;flex-shrink:0}
+
+.sum-body{flex:1;overflow-y:auto;padding:20px 18px 12px;min-height:0;-webkit-overflow-scrolling:touch}
+.sum-body::-webkit-scrollbar{width:2px}
+.sum-body::-webkit-scrollbar-thumb{background:var(--border)}
+
+.sum-hero{background:var(--card);border:.5px solid var(--border-l);border-radius:20px;padding:22px;text-align:center;margin-bottom:18px;position:relative;overflow:hidden}
+.sum-hero::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse at 50% -20%,rgba(212,168,83,.08),transparent 65%)}
+.sum-stars{font-size:26px;letter-spacing:5px;margin-bottom:8px;position:relative}
+.sum-verdict{font-family:var(--font-display);font-size:21px;color:var(--text);margin-bottom:4px;position:relative}
+.sum-meta{font-size:11px;color:var(--muted);position:relative;letter-spacing:.02em}
+
+.sum-section-lbl{font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.12em;margin-bottom:10px}
+.sum-topics{display:flex;flex-wrap:wrap;gap:7px;margin-bottom:18px}
+.sum-topic-tag{display:flex;align-items:center;gap:5px;padding:7px 13px;border-radius:var(--pill);border:.5px solid var(--accent-dim);background:var(--accent-bg);font-size:12px;color:var(--accent)}
+
+.sum-highlights{display:flex;flex-direction:column;gap:8px;margin-bottom:18px}
+.sum-hl{background:var(--card);border:.5px solid var(--border);border-radius:12px;padding:12px 15px;font-size:13px;color:var(--text);line-height:1.55;border-left:2.5px solid var(--green)}
+.sum-hl.neg{border-left-color:var(--red);color:var(--muted)}
+
+.sum-draft-label{font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.12em;margin-bottom:8px}
+.sum-draft{background:var(--card);border:.5px solid var(--border-l);border-radius:14px;padding:14px 16px;font-size:13px;color:var(--text);line-height:1.65;font-style:italic;margin-bottom:6px;min-height:88px;outline:none;width:100%;font-family:var(--font-body);resize:none;transition:border-color .2s}
+.sum-draft:focus{border-color:var(--accent-dim)}
+.sum-draft-hint{font-size:10px;color:var(--muted);margin-bottom:18px}
+
+.sum-foot{padding:10px 18px 20px;flex-shrink:0;border-top:.5px solid var(--border);background:var(--bg)}
+
+/* Google post button */
+.google-post-btn{display:flex;align-items:center;gap:12px;width:100%;padding:15px 18px;background:#fff;border:none;border-radius:14px;cursor:pointer;transition:opacity .15s,transform .12s;margin-bottom:10px;font-family:var(--font-body);box-shadow:0 2px 16px rgba(0,0,0,.3)}
+.google-post-btn:active{transform:scale(.97);opacity:.9}
+.g-icon{width:26px;height:26px;flex-shrink:0}
+.gp-info{flex:1;text-align:left}
+.gp-title{font-size:14px;font-weight:500;color:#111;margin-bottom:1px}
+.gp-sub{font-size:11px;color:#777}
+.gp-arr{font-size:15px;color:#bbb;flex-shrink:0;font-family:var(--font-display)}
+
+.copy-btn{width:100%;padding:12px;background:transparent;border:.5px solid var(--border-l);border-radius:12px;font-family:var(--font-body);font-size:13px;color:var(--muted);cursor:pointer;transition:all .15s;display:flex;align-items:center;justify-content:center;gap:8px;margin-bottom:10px}
+.copy-btn:active{background:var(--surface)}
+.copy-btn.done{border-color:var(--green);color:var(--green)}
+.sum-privacy{font-size:10px;color:var(--muted);text-align:center;letter-spacing:.01em}
+
+/* ── QUICK REVIEW SCREEN ── */
+.qr-screen{position:absolute;inset:0;z-index:20;background:var(--bg);display:flex;flex-direction:column;overflow:hidden;opacity:0;transform:translateX(100%);transition:opacity .35s cubic-bezier(.4,0,.2,1),transform .35s cubic-bezier(.4,0,.2,1);pointer-events:none}
+.qr-screen.in{opacity:1;transform:translateX(0);pointer-events:all}
+.qr-header{padding:14px 18px 12px;display:flex;align-items:center;gap:12px;border-bottom:.5px solid var(--border);flex-shrink:0}
+.qr-back{width:34px;height:34px;border-radius:10px;background:var(--surface);border:.5px solid var(--border-l);display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:16px;color:var(--muted);flex-shrink:0;font-family:var(--font-display)}
+.qr-back:active{transform:scale(.88)}
+.qr-hinfo{flex:1}
+.qr-htitle{font-family:var(--font-display);font-size:17px;color:var(--text);font-style:italic}
+.qr-hsub{font-size:10px;color:var(--muted);margin-top:1px;letter-spacing:.02em}
+.qr-badge{font-size:9px;font-weight:500;letter-spacing:.06em;text-transform:uppercase;background:var(--accent-bg);border:.5px solid var(--accent-dim);color:var(--accent);border-radius:var(--pill);padding:4px 10px;flex-shrink:0}
+
+.qr-body{flex:1;overflow-y:auto;padding:16px 18px 10px;min-height:0;-webkit-overflow-scrolling:touch}
+.qr-body::-webkit-scrollbar{width:2px}
+.qr-body::-webkit-scrollbar-thumb{background:var(--border)}
+
+.qr-overall{background:var(--card);border:.5px solid var(--border-l);border-radius:18px;padding:18px;margin-bottom:14px;text-align:center;position:relative;overflow:hidden}
+.qr-overall::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse at 50% -30%,rgba(212,168,83,.05),transparent 60%)}
+.qr-ov-label{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.1em;margin-bottom:14px}
+.qr-stars{display:flex;justify-content:center;gap:8px;margin-bottom:8px}
+.qr-star{font-size:30px;cursor:pointer;transition:transform .15s,filter .15s;filter:grayscale(1) brightness(.25);user-select:none;-webkit-user-select:none}
+.qr-star.lit{filter:none;transform:scale(1.08)}
+.qr-ov-hint{font-size:11px;color:var(--muted);min-height:16px;letter-spacing:.01em}
+
+.qr-section-lbl{font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.12em;margin-bottom:10px;margin-top:4px;padding-left:1px}
+.qr-grid{display:flex;flex-direction:column;gap:7px;margin-bottom:14px}
+.qr-card{background:var(--card);border:.5px solid var(--border);border-radius:13px;padding:11px 13px;display:flex;align-items:center;gap:12px;transition:border-color .2s}
+.qr-card.rated{border-color:var(--border-l)}
+.qr-cicon{width:32px;height:32px;border-radius:9px;background:var(--surface);border:.5px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:15px;flex-shrink:0;transition:all .2s}
+.qr-card.rated .qr-cicon{border-color:var(--accent-dim);background:var(--accent-bg)}
+.qr-cinfo{flex:1;min-width:0}
+.qr-cname{font-size:12px;color:var(--text);font-weight:500}
+.qr-csub{font-size:10px;color:var(--muted);margin-top:1px}
+.qr-emrow{display:flex;gap:4px}
+.qr-em{width:29px;height:29px;border-radius:8px;border:.5px solid var(--border);background:var(--surface);display:flex;align-items:center;justify-content:center;font-size:13px;cursor:pointer;transition:all .13s;user-select:none;-webkit-user-select:none;flex-shrink:0}
+.qr-em:active{transform:scale(.8)}
+.qr-em.sel{border-color:var(--accent-dim);background:var(--accent-bg);transform:scale(1.14)}
+
+.qr-comment-wrap{margin-bottom:14px}
+.qr-textarea{width:100%;background:var(--card);border:.5px solid var(--border);border-radius:13px;padding:12px 15px;font-size:13px;color:var(--text);font-family:var(--font-body);line-height:1.6;resize:none;outline:none;min-height:72px;transition:border-color .2s}
+.qr-textarea:focus{border-color:var(--accent-dim)}
+.qr-textarea::placeholder{color:#2a2a2a}
+
+.qr-prog-dots{display:flex;justify-content:center;gap:5px;padding:6px 0 4px}
+.qr-dot{width:5px;height:5px;border-radius:50%;background:var(--border);transition:all .3s cubic-bezier(.4,0,.2,1)}
+.qr-dot.done{background:var(--accent);width:14px;border-radius:3px}
+
+.qr-foot{padding:10px 18px 20px;flex-shrink:0;border-top:.5px solid var(--border);background:var(--bg)}
+.qr-submit{width:100%;padding:15px;background:var(--accent);border:none;border-radius:14px;font-family:var(--font-body);font-size:15px;font-weight:500;color:#0a0800;cursor:pointer;transition:opacity .15s,transform .12s;display:flex;align-items:center;justify-content:center;gap:8px;letter-spacing:-.1px}
+.qr-submit:active{transform:scale(.97);opacity:.9}
+.qr-submit:disabled{opacity:.22;cursor:default}
+.qr-hint{font-size:10px;color:var(--muted);text-align:center;margin-top:8px;letter-spacing:.01em}
+
+/* ── TOAST ── */
+.toast{position:absolute;bottom:110px;left:50%;transform:translateX(-50%) translateY(10px);background:var(--card2);border:.5px solid var(--border-l);border-left:2.5px solid var(--green);color:var(--text);padding:10px 16px;border-radius:10px;font-size:12px;z-index:99;white-space:nowrap;opacity:0;transition:opacity .28s,transform .28s;pointer-events:none;font-family:var(--font-body)}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+/* ── SAVING INDICATOR ── */
+.saving-dot{display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--accent);animation:pulse 1.5s ease infinite;margin-right:5px;vertical-align:middle}
+</style>
+</head>
+<body>
+<div class="shell">
+
+<!-- SPLASH -->
+<div class="splash" id="splash">
+  <div class="sp-monogram"><span id="sp-mono">E&O</span></div>
+  <div class="sp-name" id="sp-name">Ember &amp; Oak</div>
+  <div class="sp-loc" id="sp-loc">The Rocks · Sydney</div>
+  <div class="sp-table">
+    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/></svg>
+    <span id="sp-table-txt">Table 4</span>
+  </div>
+  <div class="sp-divider"></div>
+  <div class="sp-q">"How did we serve you today?"</div>
+  <div class="sp-hint">Takes about 30 seconds · No sign-up needed</div>
+  <div class="mode-stack">
+    <div class="mode-btn primary" onclick="startChatFlow()">
+      <div class="mb-icon">💬</div>
+      <div class="mb-info">
+        <div class="mb-title">Chat with us</div>
+        <div class="mb-sub">AI-guided conversation — feels natural</div>
+      </div>
+      <div class="mb-arr">→</div>
+    </div>
+    <div class="mode-btn" onclick="openQuickReview()">
+      <div class="mb-icon">⚡</div>
+      <div class="mb-info">
+        <div class="mb-title">Quick review</div>
+        <div class="mb-sub">Rate each area with one tap · 30 sec</div>
+      </div>
+      <div class="mb-arr">→</div>
+    </div>
+  </div>
+  <button class="sp-later" onclick="hideSplash()">Maybe later</button>
+</div>
+
+<!-- SUMMARY SCREEN -->
+<div class="sum-screen" id="sum-screen">
+  <div class="sum-header">
+    <div class="sum-back" onclick="closeSummary()">←</div>
+    <div class="sum-title">Your review</div>
+    <div class="sum-status" id="sum-status">✓ Saved</div>
+  </div>
+  <div class="sum-body">
+    <div class="sum-hero">
+      <div class="sum-stars" id="sum-stars">★★★★★</div>
+      <div class="sum-verdict" id="sum-verdict">Excellent experience</div>
+      <div class="sum-meta" id="sum-meta">Ember &amp; Oak · Table 4</div>
+    </div>
+    <div class="sum-section-lbl" id="sum-topics-lbl" style="display:none">What you covered</div>
+    <div class="sum-topics" id="sum-topics"></div>
+    <div class="sum-section-lbl" id="sum-hl-lbl" style="display:none">Key highlights</div>
+    <div class="sum-highlights" id="sum-highlights"></div>
+    <div id="sum-draft-section" style="display:none">
+      <div class="sum-draft-label">Your Google review draft</div>
+      <textarea class="sum-draft" id="sum-draft" rows="4"></textarea>
+      <div class="sum-draft-hint">✏️ Edit freely before posting — this goes to Google in your name</div>
+    </div>
+  </div>
+  <div class="sum-foot">
+    <button class="google-post-btn" id="google-post-btn" onclick="openGoogleReview()" style="display:none">
+      <svg class="g-icon" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+        <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
+        <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
+        <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/>
+        <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
+      </svg>
+      <div class="gp-info">
+        <div class="gp-title">Post to Google Reviews</div>
+        <div class="gp-sub">Opens Google · posts from your account</div>
+      </div>
+      <div class="gp-arr">→</div>
+    </button>
+    <button class="copy-btn" id="copy-btn" onclick="copyDraft()" style="display:none">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+      Copy review text
+    </button>
+    <div class="sum-privacy">🔒 Private until you choose to post publicly</div>
+  </div>
+</div>
+
+<!-- QUICK REVIEW SCREEN -->
+<div class="qr-screen" id="qr-screen">
+  <div class="qr-header">
+    <div class="qr-back" onclick="closeQR()">←</div>
+    <div class="qr-hinfo">
+      <div class="qr-htitle">Quick Review</div>
+      <div class="qr-hsub" id="qr-sub">Ember &amp; Oak · Table 4</div>
+    </div>
+    <div class="qr-badge">⚡ 30 sec</div>
+  </div>
+  <div class="qr-body">
+    <div class="qr-overall">
+      <div class="qr-ov-label">Overall experience</div>
+      <div class="qr-stars">
+        <span class="qr-star" data-v="1" onclick="setOverall(1)">★</span>
+        <span class="qr-star" data-v="2" onclick="setOverall(2)">★</span>
+        <span class="qr-star" data-v="3" onclick="setOverall(3)">★</span>
+        <span class="qr-star" data-v="4" onclick="setOverall(4)">★</span>
+        <span class="qr-star" data-v="5" onclick="setOverall(5)">★</span>
+      </div>
+      <div class="qr-ov-hint" id="qr-ov-hint">Tap to rate</div>
+    </div>
+    <div class="qr-prog-dots" id="qr-dots"></div>
+    <div class="qr-section-lbl">Rate each area</div>
+    <div class="qr-grid" id="qr-grid"></div>
+    <div class="qr-comment-wrap">
+      <div class="qr-section-lbl">Anything else? <span style="color:#2a2a2a">(optional)</span></div>
+      <textarea class="qr-textarea" id="qr-comment" placeholder="Tell us more..."></textarea>
+    </div>
+  </div>
+  <div class="qr-foot">
+    <button class="qr-submit" id="qr-submit" onclick="submitQR()" disabled>See my review summary →</button>
+    <div class="qr-hint">Private · Only seen by management until you post publicly</div>
+  </div>
+</div>
+
+<!-- TOPBAR -->
+<div class="topbar">
+  <div class="t-mono"><span id="t-mono">E&O</span></div>
+  <div class="t-info">
+    <div class="t-name" id="t-name">Ember &amp; Oak</div>
+    <div class="t-sub" id="t-sub">Table 4 · The Rocks</div>
+  </div>
+  <div class="live-pill"><div class="live-dot"></div><span id="timer-txt">0:00</span></div>
+</div>
+
+<!-- PROGRESS -->
+<div class="prog-wrap">
+  <div class="prog-segs">
+    <div class="seg active" id="seg0"></div>
+    <div class="seg" id="seg1"></div>
+    <div class="seg" id="seg2"></div>
+    <div class="seg" id="seg3"></div>
+  </div>
+  <div class="prog-info"><span id="prog-l">Just getting started</span><span id="prog-r">~30 sec</span></div>
+</div>
+
+<!-- CHAT -->
+<div class="chat" id="chat"></div>
+
+<!-- CHIP ZONE -->
+<div class="chip-zone">
+  <div class="chip-row" id="chip-row"><div class="chip-placeholder">Select a mode above to begin...</div></div>
+  <div class="chip-divider"></div>
+  <div class="tag-section">
+    <span class="tag-label">Add a topic</span>
+    <div class="tag-row" id="tag-row"></div>
+  </div>
+</div>
+
+<!-- INPUT -->
+<div class="inp-row">
+  <input class="inp" id="inp" placeholder="Or type anything..." disabled/>
+  <button class="send-btn" id="send-btn" onclick="handleSend()" disabled>↑</button>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<script>
+/* ════════════════════════════════════════════════
+   VENUE CONFIG
+   In production this comes from URL params + Supabase.
+   Format: ?tid=TENANT_UUID&vid=VENUE_UUID&table=4
+════════════════════════════════════════════════ */
+const PARAMS = new URLSearchParams(location.search);
+const VENUE = {
+  tenantId:   PARAMS.get('tid')   || 'demo-tenant',
+  venueId:    PARAMS.get('vid')   || 'demo-venue',
+  table:      PARAMS.get('table') || '4',
+  name:       PARAMS.get('name')  || 'Ember & Oak',
+  location:   PARAMS.get('loc')   || 'The Rocks, Sydney',
+  type:       PARAMS.get('type')  || 'fine dining restaurant',
+  googlePlaceId: PARAMS.get('gid') || 'ChIJN1t_tDeuEmsRUsoyG83frY4',
+  monogram:   PARAMS.get('mono')  || 'E&O',
+  specialties:['wagyu tenderloin','truffle bruschetta','lobster bisque','wine flight'],
+  knownFor:   'wood-fired cuisine and intimate atmosphere'
+};
+
+/* ════════════════════════════════════════════════
+   SUPABASE CONFIG
+   Set these in your Netlify environment variables
+   and inject via a small Netlify Edge Function.
+   For now we set them here for dev; in production
+   replace with your real project URL + anon key.
+════════════════════════════════════════════════ */
+const SUPABASE_URL  = window.__SUPABASE_URL__  || 'https://iroseywidzacqinmjtdc.supabase.co';
+const SUPABASE_ANON = window.__SUPABASE_ANON__ || 'YOUR_ANON_KEY_HERE';
+
+/* Lightweight Supabase REST helper — no SDK needed */
+async function dbInsert(table, payload) {
+  try {
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/${table}`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'apikey': SUPABASE_ANON,
+        'Authorization': `Bearer ${SUPABASE_ANON}`,
+        'Prefer': 'return=representation'
+      },
+      body: JSON.stringify(payload)
+    });
+    if (!res.ok) { console.warn('DB insert failed:', res.status); return null; }
+    return await res.json();
+  } catch(e) { console.warn('DB error:', e); return null; }
+}
+
+/* ════════════════════════════════════════════════
+   INIT — populate UI from VENUE config
+════════════════════════════════════════════════ */
+function initVenue() {
+  const mono = VENUE.monogram;
+  document.getElementById('sp-mono').textContent    = mono;
+  document.getElementById('t-mono').textContent     = mono;
+  document.getElementById('sp-name').textContent    = VENUE.name;
+  document.getElementById('t-name').textContent     = VENUE.name;
+  document.getElementById('sp-loc').textContent     = VENUE.location;
+  document.getElementById('sp-table-txt').textContent = `Table ${VENUE.table}`;
+  document.getElementById('t-sub').textContent      = `Table ${VENUE.table} · ${VENUE.location}`;
+  document.getElementById('qr-sub').textContent     = `${VENUE.name} · Table ${VENUE.table}`;
+  document.title = `${VENUE.name} · Guest Feedback`;
+}
+initVenue();
+
+/* ════════════════════════════════════════════════
+   TAGS
+════════════════════════════════════════════════ */
+const ALL_TAGS = [
+  {label:'Food quality',    topic:'food'},
+  {label:'Coffee / drinks', topic:'drinks'},
+  {label:'Service',         topic:'service'},
+  {label:'Wait time',       topic:'wait'},
+  {label:'Ambience',        topic:'ambience'},
+  {label:'Value for money', topic:'value'},
+  {label:'Parking',         topic:'parking'},
+  {label:'Seating',         topic:'seating'},
+  {label:'Noise level',     topic:'noise'},
+  {label:'Cleanliness',     topic:'cleanliness'},
+  {label:'Menu variety',    topic:'menu'},
+  {label:'Staff attitude',  topic:'staff'},
+  {label:'Portion size',    topic:'portions'},
+  {label:'Presentation',    topic:'presentation'},
+  {label:'Dessert',         topic:'dessert'},
+  {label:'Cocktails',       topic:'cocktails'},
+  {label:'Bathroom',        topic:'bathroom'},
+  {label:'Music',           topic:'music'},
+  {label:'Kids friendly',   topic:'family'},
+  {label:'Payment ease',    topic:'payment'},
+];
+
+const OPENERS = [
+  {text:`Our wagyu tenderloin is the dish guests talk about most — did you get to try it tonight?`,topic:'food'},
+  {text:`We're really proud of our wood-fired kitchen — how did the food come across tonight?`,topic:'food'},
+  {text:`The lobster bisque has been on our menu since we opened — did you get a chance to try it?`,topic:'food'},
+  {text:`We always want Table ${VENUE.table} to feel like the best seat in the house — did the space work for you tonight?`,topic:'ambience'},
+  {text:`Our team really tries to make every visit feel personal — how was the service experience for you?`,topic:'service'},
+  {text:`Our sommelier puts a lot of care into each pairing — did you go for the wine flight this evening?`,topic:'drinks'},
+];
+
+const PROG_LABELS = [
+  ['Just getting started','~30 sec'],
+  ['Going well','Almost there'],
+  ['Nearly done','One more step'],
+  ['All done','Thank you ✦']
+];
+
+const VERDICTS = ['','Disappointing visit','Mixed experience','Pretty good visit','Really enjoyed it','Excellent experience'];
+
+/* ════════════════════════════════════════════════
+   STATE
+════════════════════════════════════════════════ */
+let S = {
+  step:0, mood:null, topics:[], usedTags:new Set(),
+  timerSec:0, timerRef:null, done:false,
+  history:[], opener:null,
+  googleDraft:'', highlights:[], overallScore:0,
+  sessionId: crypto.randomUUID()
+};
+
+/* ════════════════════════════════════════════════
+   TIMER
+════════════════════════════════════════════════ */
+function startTimer(){
+  S.timerRef = setInterval(()=>{
+    S.timerSec++;
+    const m=Math.floor(S.timerSec/60),s=S.timerSec%60;
+    document.getElementById('timer-txt').textContent=`${m}:${s<10?'0':''}${s}`;
+  },1000);
+}
+function stopTimer(){ clearInterval(S.timerRef); }
+
+function setProgress(n){
+  ['seg0','seg1','seg2','seg3'].forEach((id,i)=>{
+    document.getElementById(id).className='seg'+(i<n?' done':i===n?' active':'');
+  });
+  const[l,r]=PROG_LABELS[Math.min(n,3)];
+  document.getElementById('prog-l').textContent=l;
+  document.getElementById('prog-r').textContent=r;
+}
+
+/* ════════════════════════════════════════════════
+   CHAT BUBBLES
+════════════════════════════════════════════════ */
+function addBub(type, text=''){
+  const chat=document.getElementById('chat');
+  const el=document.createElement('div');
+  if(type==='typing'){
+    el.className='typing';el.id='typing-bub';
+    el.innerHTML='<div class="t-d"></div><div class="t-d"></div><div class="t-d"></div>';
+  } else {
+    el.className=`bub ${type}`;el.textContent=text;
+  }
+  document.getElementById('typing-bub')?.remove();
+  chat.appendChild(el);
+  chat.scrollTop=chat.scrollHeight;
+  return el;
+}
+
+/* ════════════════════════════════════════════════
+   CHIPS
+════════════════════════════════════════════════ */
+function setChips(chips, loading=false){
+  const row=document.getElementById('chip-row');row.innerHTML='';
+  if(loading){
+    const d=document.createElement('div');d.className='chip-placeholder';
+    d.innerHTML='<span class="saving-dot"></span>Thinking...';
+    row.appendChild(d);return;
+  }
+  chips.forEach((ch,i)=>{
+    const d=document.createElement('div');
+    d.className='chip'+(ch.style?' '+ch.style:'');
+    d.textContent=ch.label;
+    d.style.animationDelay=`${i*0.045}s`;
+    d.onclick=()=>{
+      if(ch.action==='summary'){addBub('user',ch.label);clearChips();openSummary();}
+      else handleChip(ch.label);
+    };
+    row.appendChild(d);
+  });
+}
+function clearChips(){document.getElementById('chip-row').innerHTML='';}
+
+function buildTags(){
+  const row=document.getElementById('tag-row');row.innerHTML='';
+  ALL_TAGS.forEach((t,i)=>{
+    const used=S.usedTags.has(t.topic);
+    const d=document.createElement('div');
+    d.className='tag'+(used?' used':'');d.id=`tg-${t.topic}`;
+    d.textContent=used?`✓ ${t.label}`:t.label;
+    d.style.animationDelay=`${i*0.012}s`;
+    d.onclick=()=>tapTag(t);
+    row.appendChild(d);
+  });
+}
+function tapTag(t){
+  if(S.done)return;
+  S.usedTags.add(t.topic);
+  if(!S.topics.includes(t.topic))S.topics.push(t.topic);
+  const el=document.getElementById(`tg-${t.topic}`);
+  if(el){el.className='tag used';el.textContent=`✓ ${t.label}`;}
+  handleChip(t.label);
+}
+function markTagUsed(topic){
+  S.usedTags.add(topic);
+  const t=ALL_TAGS.find(x=>x.topic===topic);
+  const el=document.getElementById(`tg-${topic}`);
+  if(el&&t){el.className='tag used';el.textContent=`✓ ${t.label}`;}
+}
+
+/* ════════════════════════════════════════════════
+   AI VIA NETLIFY FUNCTION
+   In dev mode (no Netlify), falls back to direct
+   Supabase Edge Function call. The key NEVER
+   touches the browser — it stays on the server.
+════════════════════════════════════════════════ */
+async function askAI(userMsg){
+  S.history.push({role:'user',content:userMsg});
+
+  const turnNote = S.step<=1
+    ? `Turn ${S.step+1}: ask ONE follow-up about a different aspect not yet discussed.`
+    : S.step===2
+    ? `Turn 3: ask ONE final specific question then prepare to wrap up.`
+    : `Turn ${S.step+1} — FINAL. Do NOT ask more questions. Wrap up. If positive use action=request_google_review with google_draft. If neutral use end_neutral. If negative use end_negative.`;
+
+  const system = `You are XPScore360, a warm concise AI feedback assistant for ${VENUE.name}, a ${VENUE.type} in ${VENUE.location}.
+
+RULES:
+1. ONE short message per turn — max 2 sentences, conversational
+2. NEVER repeat a question already asked
+3. Each turn MUST advance — ask something NEW or wrap up
+4. Generate 3-5 chips suited to your message
+5. Topics covered so far: ${S.topics.join(', ')||'none'}
+6. POSITIVE → include google_draft (1st person, 2-3 sentences, specific, ready to publish)
+7. NEGATIVE → empathise, offer manager contact, NO Google review
+8. NEUTRAL → offer manager contact, close gracefully
+
+${turnNote}
+
+Venue specialties: ${VENUE.specialties.join(', ')}
+Opener: "${S.opener}"
+Customer mood: ${S.mood||'unknown'}
+
+Respond ONLY in this JSON (no markdown):
+{"message":"...","chips":[{"label":"...","style":"pos|neg|gold|"}],"sentiment":"positive|neutral|negative|unknown","new_topics":["topic"],"overall_score":4,"highlights":["highlight"],"action":"continue|request_google_review|offer_manager_contact|end_positive|end_negative|end_neutral","google_draft":"only when request_google_review"}`;
+
+  /* ── Try Netlify function first (production path) ── */
+  try {
+    const res = await fetch('/.netlify/functions/ai-review', {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({
+        system,
+        messages: S.history,
+        venueId: VENUE.venueId,
+        tenantId: VENUE.tenantId
+      })
+    });
+    if(res.ok){
+      const data=await res.json();
+      if(data.content){
+        const raw=data.content[0]?.text||'';
+        S.history.push({role:'assistant',content:raw});
+        return parseAI(raw);
+      }
+    }
+  } catch(_){}
+
+  /* ── Fallback: direct Anthropic (dev only, shows banner) ── */
+  showToast('⚠️ Running in dev mode — deploy to Netlify for production');
+  try {
+    const res = await fetch('https://api.anthropic.com/v1/messages',{
+      method:'POST',
+      headers:{
+        'Content-Type':'application/json',
+        'x-api-key':'REPLACE_IN_NETLIFY_FUNCTION',
+        'anthropic-version':'2023-06-01',
+        'anthropic-dangerous-direct-browser-access':'true'
+      },
+      body:JSON.stringify({
+        model:'claude-sonnet-4-20250514',
+        max_tokens:600,
+        system,
+        messages:S.history
+      })
+    });
+    if(!res.ok){addBub('bad',`API error ${res.status}`);return null;}
+    const data=await res.json();
+    const raw=data.content?.[0]?.text||'';
+    S.history.push({role:'assistant',content:raw});
+    return parseAI(raw);
+  } catch(e){
+    addBub('bad','Connection error — please try again');
+    return null;
+  }
+}
+
+function parseAI(raw){
+  try{
+    return JSON.parse(raw.replace(/```json\s*/gi,'').replace(/```\s*/g,'').trim());
+  }catch(e){
+    console.error('Parse error:',raw);
+    addBub('bad','Response error — tap a chip to continue');
+    return null;
+  }
+}
+
+/* ════════════════════════════════════════════════
+   INTERACTION
+════════════════════════════════════════════════ */
+async function handleChip(label){
+  if(S.done)return;
+  addBub('user',label);clearChips();
+  document.getElementById('inp').value='';
+  if(S.step===0)startTimer();
+  await process(label);
+}
+
+async function handleSend(){
+  const v=document.getElementById('inp').value.trim();
+  if(!v||S.done)return;
+  document.getElementById('inp').value='';
+  addBub('user',v);clearChips();
+  if(S.step===0)startTimer();
+  await process(v);
+}
+
+document.getElementById('inp').addEventListener('keydown',e=>{if(e.key==='Enter')handleSend();});
+
+async function process(userText){
+  S.step=Math.min(S.step+1,4);
+  setProgress(S.step);
+  addBub('typing');
+  setChips([],true);
+
+  const r=await askAI(userText);
+  document.getElementById('typing-bub')?.remove();
+
+  if(!r){
+    setChips([{label:'Try again',style:'gold'},{label:'Skip to summary',style:''}]);
+    document.querySelectorAll('#chip-row .chip')[1].onclick=()=>{addBub('user','Skip to summary');clearChips();openSummary();};
+    enableInp();return;
+  }
+
+  if(r.sentiment&&r.sentiment!=='unknown')S.mood=r.sentiment;
+  if(r.overall_score)S.overallScore=r.overall_score;
+  if(r.highlights?.length)S.highlights=[...new Set([...S.highlights,...r.highlights])].slice(0,4);
+  if(r.new_topics?.length)r.new_topics.forEach(t=>{if(!S.topics.includes(t)){S.topics.push(t);markTagUsed(t);}});
+  if(r.google_draft)S.googleDraft=r.google_draft;
+
+  switch(r.action){
+    case'request_google_review':
+      addBub('ai',r.message);setProgress(4);
+      setTimeout(()=>{setChips([{label:'See my full summary',style:'gold',action:'summary'},{label:'Maybe later',style:''}]);enableInp();},350);
+      break;
+    case'end_positive':
+      addBub('ai',r.message);
+      setTimeout(()=>{addBub('ok','✓ Feedback saved · Thank you so much!');endFlow(true);},500);
+      break;
+    case'end_negative':
+      addBub('ai',r.message);
+      setTimeout(()=>{addBub('bad','⚡ Manager alerted · We\'ll be in touch');endFlow(false);},500);
+      break;
+    case'end_neutral':
+      addBub('ai',r.message);
+      setTimeout(()=>{addBub('ok','✓ Feedback saved · We\'ll act on this');endFlow(false);},500);
+      break;
+    case'offer_manager_contact':
+      addBub('ai',r.message);
+      setChips([{label:'Yes, contact me',style:'gold'},{label:'Just note it',style:''},{label:"I'd like a remedy",style:'neg'}]);
+      enableInp();break;
+    default:
+      addBub('ai',r.message);
+      if(S.step>=4){
+        setChips([{label:'See my review summary',style:'gold',action:'summary'},{label:'All good, done',style:'pos'}]);
+      } else {
+        setChips(r.chips||[{label:"That's everything",style:'gold'},{label:'One more thing',style:''}]);
+      }
+      enableInp();
+  }
+
+  /* Save to Supabase — non-blocking */
+  saveSession();
+}
+
+function enableInp(){
+  document.getElementById('inp').disabled=false;
+  document.getElementById('send-btn').disabled=false;
+}
+
+function endFlow(showSummaryOpt=false){
+  S.done=true;stopTimer();
+  document.getElementById('inp').disabled=true;
+  document.getElementById('send-btn').disabled=true;
+  document.getElementById('t-sub').textContent=`Complete · ${S.timerSec}s · Thank you`;
+  setProgress(4);
+  const tr=document.getElementById('tag-row');tr.style.opacity='.25';tr.style.pointerEvents='none';
+  if(showSummaryOpt){
+    setTimeout(()=>setChips([{label:'See my full summary',style:'gold',action:'summary'}]),900);
+  } else clearChips();
+  saveSession();
+}
+
+/* ════════════════════════════════════════════════
+   SAVE SESSION TO SUPABASE
+   Writes to review_sessions table.
+   Anon key + RLS ensures each row is tenant-scoped.
+════════════════════════════════════════════════ */
+async function saveSession(){
+  if(SUPABASE_ANON==='YOUR_ANON_KEY_HERE')return; // dev mode
+  await dbInsert('review_sessions',{
+    id:          S.sessionId,
+    tenant_id:   VENUE.tenantId,
+    venue_id:    VENUE.venueId,
+    table_number:VENUE.table,
+    mode:        'chat',
+    overall_score:S.overallScore||null,
+    sentiment:   S.mood||'unknown',
+    topics:      S.topics,
+    highlights:  S.highlights,
+    google_draft:S.googleDraft||null,
+    duration_sec:S.timerSec,
+    is_complete: S.done,
+    raw_history: JSON.stringify(S.history)
+  });
+}
+
+/* ════════════════════════════════════════════════
+   SUMMARY SCREEN
+════════════════════════════════════════════════ */
+function openSummary(){
+  const score=S.overallScore||3;
+  const isPos=S.mood==='positive'||score>=4;
+
+  document.getElementById('sum-stars').textContent='★'.repeat(score)+'☆'.repeat(5-score);
+  document.getElementById('sum-verdict').textContent=VERDICTS[score]||'Your experience';
+  document.getElementById('sum-meta').textContent=`${VENUE.name} · Table ${VENUE.table} · ${new Date().toLocaleDateString('en-AU',{day:'numeric',month:'short',year:'numeric'})}`;
+
+  const status=document.getElementById('sum-status');
+  if(isPos){status.textContent='⭐ Positive';status.style.background='var(--green-bg)';status.style.borderColor='var(--green)';status.style.color='var(--green)';}
+  else{status.textContent='📝 Recorded';status.style.background='var(--accent-bg)';status.style.borderColor='var(--accent-dim)';status.style.color='var(--accent)';}
+
+  const topicsEl=document.getElementById('sum-topics');
+  topicsEl.innerHTML='';
+  const tlbl=document.getElementById('sum-topics-lbl');
+  if(S.topics.length){
+    tlbl.style.display='block';
+    S.topics.forEach(t=>{
+      const tag=ALL_TAGS.find(x=>x.topic===t);if(!tag)return;
+      const d=document.createElement('div');d.className='sum-topic-tag';d.textContent=`✓ ${tag.label}`;
+      topicsEl.appendChild(d);
+    });
+  } else tlbl.style.display='none';
+
+  const hlEl=document.getElementById('sum-highlights');
+  hlEl.innerHTML='';
+  const hllbl=document.getElementById('sum-hl-lbl');
+  if(S.highlights.length){
+    hllbl.style.display='block';
+    S.highlights.forEach(h=>{
+      const d=document.createElement('div');d.className='sum-hl'+(isPos?'':' neg');d.textContent=h;hlEl.appendChild(d);
+    });
+  } else hllbl.style.display='none';
+
+  const draftSec=document.getElementById('sum-draft-section');
+  const gBtn=document.getElementById('google-post-btn');
+  const cBtn=document.getElementById('copy-btn');
+  if(isPos&&S.googleDraft){
+    draftSec.style.display='block';
+    document.getElementById('sum-draft').value=S.googleDraft;
+    gBtn.style.display='flex';cBtn.style.display='flex';
+  } else {draftSec.style.display='none';gBtn.style.display='none';cBtn.style.display='none';}
+
+  document.getElementById('sum-screen').classList.add('in');
+}
+function closeSummary(){document.getElementById('sum-screen').classList.remove('in');}
+
+/* ════════════════════════════════════════════════
+   GOOGLE DEEP LINK
+════════════════════════════════════════════════ */
+function openGoogleReview(){
+  const draft=document.getElementById('sum-draft').value.trim();
+  navigator.clipboard?.writeText(draft).catch(()=>{});
+  showToast('✓ Review text copied — just paste into Google!');
+  setTimeout(()=>{
+    window.open(`https://search.google.com/local/writereview?placeid=${VENUE.googlePlaceId}`,'_blank','noopener,noreferrer');
+  },800);
+}
+
+function copyDraft(){
+  const draft=document.getElementById('sum-draft').value.trim();
+  if(!draft)return;
+  navigator.clipboard.writeText(draft).then(()=>{
+    const btn=document.getElementById('copy-btn');
+    btn.classList.add('done');
+    btn.textContent='✓ Copied to clipboard';
+    setTimeout(()=>{btn.classList.remove('done');btn.innerHTML='<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg> Copy review text';},3000);
+  }).catch(()=>showToast('Select and copy manually'));
+}
+
+/* ════════════════════════════════════════════════
+   QUICK REVIEW
+════════════════════════════════════════════════ */
+const QR_CATS=[
+  {id:'food',    icon:'🍽️',name:'Food quality',   sub:'Taste, freshness, presentation'},
+  {id:'service', icon:'🤝',name:'Service',         sub:'Staff attentiveness & warmth'},
+  {id:'drinks',  icon:'🍷',name:'Drinks',          sub:'Wine, cocktails, coffee'},
+  {id:'ambience',icon:'✨',name:'Ambience',        sub:'Atmosphere & lighting'},
+  {id:'value',   icon:'💎',name:'Value',           sub:'Worth the price?'},
+  {id:'noise',   icon:'🔊',name:'Noise level',     sub:'Comfortable to converse?'},
+];
+const QR_EM=['😞','😐','🙂','😊','🤩'];
+const QR_HINTS=['','Poor experience','Could be better','Pretty good','Really enjoyed it','Absolutely wonderful'];
+let QRS={overall:0,cats:{},comment:''};
+
+function buildQRGrid(){
+  const prog=document.getElementById('qr-dots');prog.innerHTML='';
+  for(let i=0;i<7;i++){const d=document.createElement('div');d.className='qr-dot';d.id=`qd${i}`;prog.appendChild(d);}
+  const grid=document.getElementById('qr-grid');grid.innerHTML='';
+  QR_CATS.forEach(cat=>{
+    const card=document.createElement('div');card.className='qr-card';card.id=`qrc-${cat.id}`;
+    const ems=QR_EM.map((em,i)=>`<div class="qr-em" id="qre-${cat.id}-${i}" onclick="setCat('${cat.id}',${i})">${em}</div>`).join('');
+    card.innerHTML=`<div class="qr-cicon" id="qrci-${cat.id}">${cat.icon}</div><div class="qr-cinfo"><div class="qr-cname">${cat.name}</div><div class="qr-csub">${cat.sub}</div></div><div class="qr-emrow">${ems}</div>`;
+    grid.appendChild(card);
+  });
+}
+
+function setOverall(v){
+  QRS.overall=v;
+  document.querySelectorAll('.qr-star').forEach(s=>s.classList.toggle('lit',parseInt(s.dataset.v)<=v));
+  document.getElementById('qr-ov-hint').textContent=QR_HINTS[v]||'';
+  updateQRDots();checkQRBtn();
+}
+
+function setCat(id,val){
+  QRS.cats[id]=val;
+  QR_CATS.forEach((_,i)=>{document.getElementById(`qre-${id}-${i}`)?.classList.toggle('sel',i===val);});
+  document.getElementById(`qrc-${id}`)?.classList.add('rated');
+  const icon=document.getElementById(`qrci-${id}`);
+  if(icon){icon.style.borderColor='var(--accent-dim)';icon.style.background='var(--accent-bg)';}
+  updateQRDots();checkQRBtn();
+}
+
+function updateQRDots(){
+  const done=(QRS.overall>0?1:0)+Object.keys(QRS.cats).length;
+  for(let i=0;i<7;i++){document.getElementById(`qd${i}`)?.classList.toggle('done',i<done);}
+}
+function checkQRBtn(){document.getElementById('qr-submit').disabled=QRS.overall===0;}
+function openQuickReview(){hideSplash();buildQRGrid();document.getElementById('qr-screen').classList.add('in');}
+function closeQR(){document.getElementById('qr-screen').classList.remove('in');QRS={overall:0,cats:{},comment:''};}
+
+function submitQR(){
+  S.overallScore=QRS.overall;
+  S.mood=QRS.overall>=4?'positive':QRS.overall>=3?'neutral':'negative';
+  S.highlights=QR_CATS.filter(c=>(QRS.cats[c.id]??-1)>=3).map(c=>`${c.name} was great`);
+  S.topics=QR_CATS.filter(c=>QRS.cats[c.id]!==undefined).map(c=>c.id);
+
+  if(QRS.overall>=4){
+    const highs=QR_CATS.filter(c=>(QRS.cats[c.id]??-1)>=3).map(c=>c.name.toLowerCase());
+    const comment=document.getElementById('qr-comment').value.trim();
+    const parts=highs.length>=2
+      ? [`Had a wonderful experience at ${VENUE.name} — the ${highs.slice(0,2).join(' and ')} really stood out.`]
+      : highs.length===1
+      ? [`Really enjoyed ${VENUE.name} — the ${highs[0]} in particular was excellent.`]
+      : [`Had a great experience at ${VENUE.name}.`];
+    parts.push(comment||`Would definitely recommend to anyone looking for quality dining in ${VENUE.location}.`);
+    S.googleDraft=parts.join(' ');
+  }
+
+  document.getElementById('qr-screen').classList.remove('in');
+  saveSession();
+  openSummary();
+}
+
+/* ════════════════════════════════════════════════
+   START CHAT
+════════════════════════════════════════════════ */
+function startChatFlow(){
+  hideSplash();
+  const op=OPENERS[Math.floor(Math.random()*OPENERS.length)];
+  S.opener=op.text;
+  S.history.push({role:'assistant',content:op.text});
+
+  const initChips=
+    op.topic==='food'    ?[{label:'Yes, loved it',style:'pos'},{label:'Yes, was okay',style:''},{label:'Wasn\'t great',style:'neg'},{label:'Didn\'t order it',style:''}]
+  : op.topic==='drinks'  ?[{label:'Yes, great',style:'pos'},{label:'Skipped drinks',style:''},{label:'Coffee was off',style:'neg'},{label:'Water only',style:''}]
+  : op.topic==='ambience'?[{label:'Loved the vibe',style:'pos'},{label:'It was fine',style:''},{label:'A bit noisy',style:'neg'},{label:'Tight seating',style:'neg'}]
+  :                       [{label:'Yes, great',style:'pos'},{label:'It was okay',style:''},{label:'Had an issue',style:'neg'},{label:'Something else',style:''}];
+
+  setTimeout(()=>{addBub('ai',op.text);setChips(initChips);enableInp();buildTags();},500);
+}
+
+function hideSplash(){document.getElementById('splash').classList.add('out');}
+
+/* ════════════════════════════════════════════════
+   TOAST
+════════════════════════════════════════════════ */
+let toastTimer;
+function showToast(msg){
+  const t=document.getElementById('toast');
+  t.textContent=msg;t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer=setTimeout(()=>t.classList.remove('show'),3200);
+}
+
+/* ════════════════════════════════════════════════
+   INIT
+════════════════════════════════════════════════ */
+setProgress(0);
+buildTags();
+</script>
+</div>
+</body>
+</html>
