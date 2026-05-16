@@ -691,7 +691,7 @@ Respond ONLY in this JSON (no markdown):
         return parseAI(raw);
       }
     }
-  } catch(_){}
+ } catch(err){ console.error('Netlify function error:', err); }
 
   /* ── Fallback: direct Anthropic (dev only, shows banner) ── */
   showToast('⚠️ Running in dev mode — deploy to Netlify for production');
