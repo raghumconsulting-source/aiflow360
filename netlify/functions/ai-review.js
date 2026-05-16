@@ -1,18 +1,8 @@
 /**
  * Netlify Function: ai-review
  * Proxies requests to Anthropic API — API key NEVER touches the browser.
- *
- * Deploy path: netlify/functions/ai-review.js
- * Called via:  POST /.netlify/functions/ai-review
- *
- * Required Netlify environment variables:
- *   ANTHROPIC_API_KEY   = sk-ant-...
- *   SUPABASE_URL        = https://xxxx.supabase.co
- *   SUPABASE_SERVICE_KEY= eyJ...  (service role — only used server-side)
  */
-
-export default async function handler(req) {
-  /* CORS — allow only your domain in production */
+exports.handler = async function(event, context) {
   const headers = {
     'Access-Control-Allow-Origin': '*',
     'Access-Control-Allow-Methods': 'POST, OPTIONS',
@@ -20,23 +10,21 @@ export default async function handler(req) {
     'Content-Type': 'application/json',
   };
 
-  if (req.method === 'OPTIONS') {
-    return new Response(null, { status: 204, headers });
+  if (event.httpMethod === 'OPTIONS') {
+    return { statusCode: 204, headers, body: '' };
   }
-
-  if (req.method !== 'POST') {
-    return new Response(JSON.stringify({ error: 'Method not allowed' }), { status: 405, headers });
+  if (event.httpMethod !== 'POST') {
+    return { statusCode: 405, headers, body: JSON.stringify({ error: 'Method not allowed' }) };
   }
 
   try {
-    const body = await req.json();
+    const body = JSON.parse(event.body);
     const { system, messages, venueId, tenantId } = body;
 
     if (!system || !messages) {
-      return new Response(JSON.stringify({ error: 'Missing required fields' }), { status: 400, headers });
+      return { statusCode: 400, headers, body: JSON.stringify({ error: 'Missing required fields' }) };
     }
 
-    /* ── Call Anthropic ── */
     const anthropicRes = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
       headers: {
@@ -45,7 +33,7 @@ export default async function handler(req) {
         'anthropic-version': '2023-06-01',
       },
       body: JSON.stringify({
-        model: 'claude-sonnet-4-20250514',
+        model: 'claude-sonnet-4-5',
         max_tokens: 600,
         system,
         messages,
@@ -55,14 +43,12 @@ export default async function handler(req) {
     if (!anthropicRes.ok) {
       const err = await anthropicRes.json().catch(() => ({}));
       console.error('Anthropic error:', err);
-      return new Response(JSON.stringify({ error: 'AI service error', detail: err?.error?.message }), {
-        status: anthropicRes.status, headers
-      });
+      return { statusCode: anthropicRes.status, headers, body: JSON.stringify({ error: 'AI service error', detail: err?.error?.message }) };
     }
 
     const data = await anthropicRes.json();
 
-    /* ── Optional: log token usage to Supabase ── */
+    // Optional: log token usage to Supabase
     if (process.env.SUPABASE_URL && process.env.SUPABASE_SERVICE_KEY && venueId) {
       try {
         await fetch(`${process.env.SUPABASE_URL}/rest/v1/token_usage_log`, {
@@ -75,7 +61,7 @@ export default async function handler(req) {
           body: JSON.stringify({
             tenant_id: tenantId || null,
             venue_id: venueId || null,
-            model: 'claude-sonnet-4-20250514',
+            model: 'claude-sonnet-4-5',
             input_tokens: data.usage?.input_tokens || 0,
             output_tokens: data.usage?.output_tokens || 0,
             feature: 'guest_review_chat',
@@ -86,12 +72,10 @@ export default async function handler(req) {
       }
     }
 
-    return new Response(JSON.stringify(data), { status: 200, headers });
+    return { statusCode: 200, headers, body: JSON.stringify(data) };
 
   } catch (err) {
     console.error('Function error:', err);
-    return new Response(JSON.stringify({ error: 'Internal error' }), { status: 500, headers });
+    return { statusCode: 500, headers, body: JSON.stringify({ error: 'Internal error' }) };
   }
-}
-
-export const config = { path: '/api/ai-review' };
+};
