@@ -88,11 +88,11 @@ body::before{content:'';position:fixed;inset:0;background-image:url("data:image/
 
 /* PRODUCTS */
 .products-section{background:var(--bg-5);padding:100px 24px}
-.products-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:2px;margin-top:60px}
+.products-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:2px;margin-top:0}
 @media(max-width:1100px){.products-grid{grid-template-columns:repeat(2,1fr)}}
 @media(max-width:600px){.products-grid{grid-template-columns:1fr}}
 
-.product-card{background:var(--bg-6);border:1px solid var(--stroke-light);padding:36px 30px;position:relative;overflow:hidden;cursor:pointer;transition:background .3s,border-color .3s;text-decoration:none;display:block}
+.product-card{background:var(--bg-6);border:1px solid var(--stroke-light);padding:36px 30px;position:relative;overflow:hidden;transition:background .3s,border-color .3s;text-decoration:none;display:block}
 .product-card:hover{background:var(--bg-13);border-color:var(--stroke-med)}
 .product-card::after{content:'';position:absolute;bottom:0;left:0;width:100%;height:2px;background:var(--purple);transform:scaleX(0);transform-origin:left;transition:transform .4s cubic-bezier(0.25,0.46,0.45,0.94)}
 .product-card:hover::after{transform:scaleX(1)}
@@ -116,15 +116,60 @@ body::before{content:'';position:fixed;inset:0;background-image:url("data:image/
 
 .product-price{font-family:var(--font-sora);font-size:20px;font-weight:400;color:rgba(248,249,250,0.9);letter-spacing:-.5px;margin-bottom:4px}
 .product-price-label{font-size:11px;color:rgba(255,255,255,0.3);letter-spacing:.08em;margin-bottom:18px}
-.product-cta{display:inline-flex;align-items:center;gap:8px;font-family:var(--font-mono);font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:rgba(255,255,255,0.9);text-decoration:none;padding:9px 18px;border-radius:9999px;border:1px solid var(--stroke-light);transition:all .2s}
-.product-cta:hover{border-color:var(--stroke-med)}
-.product-card.tapee360 .product-cta{background:rgba(212,168,67,0.1);border-color:rgba(212,168,67,0.3);color:var(--gold)}
-.product-card.tapee360 .product-cta:hover{background:rgba(212,168,67,0.15)}
-.product-card.xpscore .product-cta{background:rgba(0,194,168,0.08);border-color:rgba(0,194,168,0.3);color:var(--xp)}
-.product-card.xpscore .product-cta:hover{background:rgba(0,194,168,0.14)}
 
 .live-ribbon{position:absolute;top:20px;right:20px;background:var(--gold);color:var(--bg-5);font-family:var(--font-mono);font-size:9px;font-weight:600;letter-spacing:.18em;text-transform:uppercase;padding:4px 12px;border-radius:9999px}
 .live-ribbon.xp{background:var(--xp)}
+
+/* ── FREE TRIAL BANNER ────────────────────────────── */
+.trial-banner{
+  background:linear-gradient(135deg,rgba(0,194,168,0.06) 0%,rgba(141,89,255,0.06) 100%);
+  border:1px solid rgba(0,194,168,0.2);border-radius:14px;
+  padding:22px 28px;display:flex;align-items:center;
+  justify-content:space-between;gap:20px;margin-bottom:44px;flex-wrap:wrap;
+}
+.trial-left{display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+.trial-badge{
+  background:var(--xp);color:#000;font-family:var(--font-mono);
+  font-size:9px;font-weight:600;letter-spacing:.18em;text-transform:uppercase;
+  padding:5px 14px;border-radius:9999px;white-space:nowrap;flex-shrink:0;
+}
+.trial-text strong{
+  font-family:var(--font-sora);font-size:15px;font-weight:500;
+  color:rgba(248,249,250,0.95);display:block;margin-bottom:3px;letter-spacing:-.2px;
+}
+.trial-text span{font-size:12px;color:rgba(255,255,255,0.4);letter-spacing:.02em}
+.trial-cta-btn{
+  background:var(--xp);color:#000;font-family:var(--font-mono);
+  font-size:11px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;
+  padding:11px 22px;border-radius:9999px;border:none;cursor:pointer;
+  text-decoration:none;white-space:nowrap;display:inline-flex;
+  align-items:center;gap:8px;transition:opacity .2s;flex-shrink:0;
+}
+.trial-cta-btn:hover{opacity:.85}
+
+/* ── PRODUCT CARD CTAs ─────────────────────────────── */
+.pc-actions{margin-top:4px;display:flex;align-items:center;flex-wrap:wrap;gap:12px}
+.pc-btn-primary{
+  display:inline-flex;align-items:center;gap:7px;
+  font-family:var(--font-mono);font-size:11px;font-weight:600;
+  letter-spacing:.08em;text-transform:uppercase;
+  padding:10px 20px;border-radius:9999px;
+  cursor:pointer;text-decoration:none;transition:opacity .2s;white-space:nowrap;
+}
+.pc-btn-primary:hover{opacity:.85}
+.pc-btn-primary.tapee-btn{background:var(--gold);color:#000}
+.pc-btn-primary.xp-btn{background:var(--xp);color:#000}
+.pc-btn-sec{
+  font-family:var(--font-mono);font-size:10px;
+  color:rgba(255,255,255,0.35);letter-spacing:.06em;text-decoration:none;
+}
+.pc-btn-sec:hover{color:rgba(255,255,255,0.65)}
+.pc-trial-note{
+  font-size:10px;color:rgba(255,255,255,0.28);
+  letter-spacing:.04em;margin-top:10px;
+  display:flex;align-items:center;gap:6px;
+}
+.pc-trial-note::before{content:'✓';color:var(--xp);font-size:9px;font-weight:700}
 
 /* FLOW */
 .flow-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:2px;margin-top:60px;background:rgba(255,255,255,0.04)}
@@ -183,7 +228,7 @@ footer{background:var(--bg-5);border-top:1px solid var(--stroke-light);padding:6
     <li><a href="#how" class="nav-link">How it works</a></li>
     <li><a href="https://aitechnic.com.au" target="_blank" class="nav-link">AITECHNIC</a></li>
   </ul>
-  <a href="https://tapee360.vercel.app" target="_blank" class="nav-cta">Try Tapee360 →</a>
+  <a href="/onboarding.html" class="nav-cta">Start free trial →</a>
 </nav>
 
 <section class="hero">
@@ -197,7 +242,7 @@ footer{background:var(--bg-5);border-top:1px solid var(--stroke-light);padding:6
   <p class="hero-sub">AIFlow360 is AITECHNIC's platform for purpose-built AI products. Each app is designed for a specific Australian industry — ready to deploy, not just a concept.</p>
   <div class="hero-actions">
     <a href="#products" class="btn-white">Browse products <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17L17 7"/><path d="M7 7h10v10"/></svg></a>
-    <a href="https://aitechnic.com.au" target="_blank" class="btn-outline">Visit AITECHNIC ↗</a>
+    <a href="/onboarding.html?product=xpscore360" class="btn-outline">Try XPscore360 free ↗</a>
   </div>
   <div class="hero-stats">
     <div><div class="hero-stat-num">2</div><div class="hero-stat-label">Products live now</div></div>
@@ -219,7 +264,6 @@ footer{background:var(--bg-5);border-top:1px solid var(--stroke-light);padding:6
     <div class="marquee-item"><div class="marquee-dot xp"></div><div class="marquee-text">Real-time manager alerts</div></div>
     <div class="marquee-item"><div class="marquee-dot"></div><div class="marquee-text">Sydney hosted · Supabase</div></div>
     <div class="marquee-item"><div class="marquee-dot"></div><div class="marquee-text">More products coming</div></div>
-    <!-- duplicate -->
     <div class="marquee-item"><div class="marquee-dot"></div><div class="marquee-text">Tapee360 — Live now</div></div>
     <div class="marquee-item"><div class="marquee-dot xp"></div><div class="marquee-text">XPscore360 — Live now</div></div>
     <div class="marquee-item"><div class="marquee-dot"></div><div class="marquee-text">NFC tap ordering</div></div>
@@ -247,19 +291,30 @@ footer{background:var(--bg-5);border-top:1px solid var(--stroke-light);padding:6
   </div>
 </section>
 
-<!-- ═══════════════════════════════
-     PRODUCTS SECTION — 4 cards
-═══════════════════════════════ -->
+<!-- PRODUCTS SECTION -->
 <section class="products-section" id="products">
   <div class="main-container">
     <div class="text-center">
       <p class="section-label reveal">Marketplace</p>
       <h2 class="section-title reveal"><span class="light">Products</span><span class="dim"> on AIFlow360</span></h2>
     </div>
+
+    <!-- FREE TRIAL BANNER -->
+    <div class="trial-banner reveal">
+      <div class="trial-left">
+        <div class="trial-badge">7-day free trial</div>
+        <div class="trial-text">
+          <strong>Try any product free for 7 days</strong>
+          <span>No credit card required &middot; Cancel anytime &middot; Live in under an hour</span>
+        </div>
+      </div>
+      <a href="/onboarding.html" class="trial-cta-btn">Start free trial &rarr;</a>
+    </div>
+
     <div class="products-grid">
 
       <!-- TAPEE360 -->
-      <a href="https://tapee360.vercel.app" target="_blank" class="product-card tapee360 reveal">
+      <div class="product-card tapee360 reveal">
         <div class="live-ribbon">Live</div>
         <div class="product-tag live"><div class="product-tag-dot"></div>Hospitality · Now</div>
         <div class="product-name">Tapee360</div>
@@ -273,11 +328,15 @@ footer{background:var(--bg-5);border-top:1px solid var(--stroke-light);padding:6
         </ul>
         <div class="product-price">$99 <span style="font-size:14px;color:rgba(255,255,255,0.3)">/ $199 / $299</span></div>
         <div class="product-price-label">per venue / month · NFC tags included</div>
-        <span class="product-cta">Explore Tapee360 ↗</span>
-      </a>
+        <div class="pc-actions">
+          <a href="/onboarding.html?product=tapee360" class="pc-btn-primary tapee-btn">Start free trial →</a>
+          <a href="https://tapee360.vercel.app" target="_blank" class="pc-btn-sec">Learn more ↗</a>
+        </div>
+        <div class="pc-trial-note">7 days free · NFC tags included · No lock-in</div>
+      </div>
 
-      <!-- XPSCORE360 — NEW -->
-      <a href="/xpscore360" class="product-card xpscore reveal">
+      <!-- XPSCORE360 -->
+      <div class="product-card xpscore reveal">
         <div class="live-ribbon xp">Live</div>
         <div class="product-tag live-xp"><div class="product-tag-dot"></div>Hospitality · Now</div>
         <div class="product-name">XPscore360</div>
@@ -291,8 +350,12 @@ footer{background:var(--bg-5);border-top:1px solid var(--stroke-light);padding:6
         </ul>
         <div class="product-price">$49 <span style="font-size:14px;color:rgba(255,255,255,0.3)">/ $99 / $199</span></div>
         <div class="product-price-label">per venue / month · NFC stickers included</div>
-        <span class="product-cta">Explore XPscore360 ↗</span>
-      </a>
+        <div class="pc-actions">
+          <a href="/onboarding.html?product=xpscore360" class="pc-btn-primary xp-btn">Start free trial →</a>
+          <a href="/XPscore360/" class="pc-btn-sec">See it live ↗</a>
+        </div>
+        <div class="pc-trial-note">7 days free · No credit card · Live in 1 hour</div>
+      </div>
 
       <!-- AIADVISOR -->
       <div class="product-card reveal">
@@ -308,7 +371,7 @@ footer{background:var(--bg-5);border-top:1px solid var(--stroke-light);padding:6
         </ul>
         <div class="product-price" style="color:rgba(255,255,255,0.25)">TBA</div>
         <div class="product-price-label">Notify me when available</div>
-        <span class="product-cta" style="opacity:.4;pointer-events:none">Register interest</span>
+        <span class="pc-btn-sec" style="opacity:.4;pointer-events:none">Register interest</span>
       </div>
 
       <!-- MEDIFLOW -->
@@ -325,7 +388,7 @@ footer{background:var(--bg-5);border-top:1px solid var(--stroke-light);padding:6
         </ul>
         <div class="product-price" style="color:rgba(255,255,255,0.25)">TBA</div>
         <div class="product-price-label">Notify me when available</div>
-        <span class="product-cta" style="opacity:.4;pointer-events:none">Register interest</span>
+        <span class="pc-btn-sec" style="opacity:.4;pointer-events:none">Register interest</span>
       </div>
 
     </div>
@@ -365,10 +428,10 @@ footer{background:var(--bg-5);border-top:1px solid var(--stroke-light);padding:6
   <div class="cta-glow"></div>
   <p class="section-label" style="opacity:.5;margin-bottom:20px">Get started</p>
   <h2 class="cta-title reveal"><span style="color:rgba(248,249,250,0.9)">Start your</span><br><span style="color:rgba(248,249,250,0.25)">AI transformation</span><br><span style="color:rgba(248,249,250,0.9)">today.</span></h2>
-  <p class="cta-sub reveal">Two products live now for Sydney hospitality venues. Free pilot. Hardware included. Set up in under an hour.</p>
+  <p class="cta-sub reveal">Two products live now for Sydney hospitality venues. Free 7-day trial. Hardware included. Set up in under an hour.</p>
   <div class="hero-actions reveal">
     <a href="https://tapee360.vercel.app" target="_blank" class="btn-white">Try Tapee360 free →</a>
-    <a href="/xpscore360" class="btn-outline">Explore XPscore360 ↗</a>
+    <a href="/onboarding.html?product=xpscore360" class="btn-outline">Try XPscore360 free ↗</a>
   </div>
 </section>
 
@@ -382,7 +445,7 @@ footer{background:var(--bg-5);border-top:1px solid var(--stroke-light);padding:6
       <div class="footer-links-col">
         <h4>Products</h4>
         <a href="https://tapee360.vercel.app" target="_blank">Tapee360 ↗</a>
-        <a href="/xpscore360">XPscore360 ↗</a>
+        <a href="/onboarding.html?product=xpscore360">XPscore360 ↗</a>
         <a href="#">AIAdvisor — coming soon</a>
         <a href="#">MediFlow — coming soon</a>
       </div>
@@ -396,13 +459,13 @@ footer{background:var(--bg-5);border-top:1px solid var(--stroke-light);padding:6
       <div class="footer-links-col">
         <h4>Get started</h4>
         <a href="https://calendly.com/contact-info-aitechnic/30min" target="_blank">Book a call</a>
-        <a href="https://tapee360.vercel.app" target="_blank">Try Tapee360</a>
-        <a href="/xpscore360">Try XPscore360</a>
+        <a href="https://tapee360.vercel.app" target="_blank">Try Tapee360 free</a>
+        <a href="/onboarding.html?product=xpscore360">Try XPscore360 free</a>
         <a href="mailto:contact.info@aitechnic.com.au">contact.info@aitechnic.com.au</a>
       </div>
     </div>
     <div class="footer-wordmark">AIFLOW360</div>
-      <div class="footer-bottom">
+    <div class="footer-bottom">
       <div class="footer-copy">© 2025 AITECHNIC Technology Solutions Pvt Ltd. All rights reserved.</div>
       <div class="footer-copy">aiflow360.com · Sydney, NSW, Australia</div>
     </div>

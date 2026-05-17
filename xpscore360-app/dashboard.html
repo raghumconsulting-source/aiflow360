@@ -1,0 +1,1408 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>XPscore360 — Dashboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#FFFFFF;--surface:#F7F7F5;--card:#FFFFFF;
+  --border:rgba(0,0,0,0.08);--border-d:rgba(0,0,0,0.14);
+  --text:#0F0F0D;--muted:#888880;--faint:#F0F0EC;
+  --green:#1D9E75;--green-bg:#EAF3DE;--green-t:#3B6D11;
+  --red:#E24B4A;--red-bg:#FCEBEB;--red-t:#A32D2D;
+  --amber:#BA7517;--amber-bg:#FAEEDA;--amber-t:#633806;
+  --blue-bg:#E6F1FB;--blue-t:#185FA5;
+  --teal:#00C2A8;
+  --r:8px;--rl:12px;
+}
+html,body{min-height:100vh;background:var(--surface)}
+body{font-family:'Geist',sans-serif;font-size:14px;color:var(--text);line-height:1.5}
+
+/* ── Auth overlay ─────────────────────────────────── */
+#auth-overlay{
+  position:fixed;inset:0;background:var(--surface);
+  display:flex;align-items:center;justify-content:center;
+  z-index:999;transition:opacity .3s;
+}
+#auth-overlay.hide{opacity:0;pointer-events:none}
+.auth-card{
+  background:var(--bg);border:1px solid var(--border);
+  border-radius:16px;padding:48px 40px;text-align:center;
+  max-width:360px;width:90%;
+}
+.auth-logo{width:40px;height:40px;border-radius:10px;
+  background:var(--text);display:flex;align-items:center;
+  justify-content:center;font-size:14px;font-weight:500;
+  color:#fff;margin:0 auto 20px}
+.auth-title{font-size:22px;font-weight:500;margin-bottom:6px;letter-spacing:-.02em}
+.auth-sub{font-size:13px;color:var(--muted);margin-bottom:28px}
+.auth-btn{
+  display:flex;align-items:center;justify-content:center;gap:10px;
+  width:100%;padding:12px 20px;background:var(--text);color:#fff;
+  border:none;border-radius:var(--r);font-family:'Geist',sans-serif;
+  font-size:14px;font-weight:500;cursor:pointer;transition:opacity .15s;
+  text-decoration:none;
+}
+.auth-btn:hover{opacity:.85}
+.auth-btn svg{width:18px;height:18px;flex-shrink:0}
+.auth-foot{font-size:12px;color:var(--muted);margin-top:20px}
+.auth-foot a{color:var(--text);text-decoration:underline;text-underline-offset:2px}
+
+/* ── Upgrade wall ─────────────────────────────────── */
+#upgrade-overlay{
+  position:fixed;inset:0;background:rgba(247,247,245,.95);
+  display:none;align-items:center;justify-content:center;z-index:998;
+}
+#upgrade-overlay.show{display:flex}
+.upgrade-card{
+  background:var(--bg);border:1px solid var(--border);border-radius:16px;
+  padding:40px;text-align:center;max-width:400px;width:90%;
+}
+.upgrade-card h2{font-size:20px;font-weight:500;margin-bottom:8px}
+.upgrade-card p{font-size:13px;color:var(--muted);margin-bottom:24px}
+.upgrade-card a{
+  display:inline-flex;align-items:center;gap:6px;
+  padding:11px 24px;background:var(--text);color:#fff;
+  border-radius:var(--r);font-size:14px;font-weight:500;
+  text-decoration:none;transition:opacity .15s;
+}
+.upgrade-card a:hover{opacity:.85}
+
+/* ── Top bar ──────────────────────────────────────── */
+.topbar{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:13px 20px;border-bottom:0.5px solid var(--border);
+  gap:12px;flex-wrap:wrap;background:var(--bg);
+  position:sticky;top:0;z-index:100;
+}
+.tl{display:flex;align-items:center;gap:10px}
+.logo{
+  width:28px;height:28px;border-radius:7px;background:var(--text);
+  display:flex;align-items:center;justify-content:center;
+  font-size:10px;font-weight:500;color:#fff;flex-shrink:0;
+}
+.tl-name{font-size:14px;font-weight:500}
+.vpill{
+  display:flex;align-items:center;gap:6px;padding:4px 12px;
+  background:var(--surface);border:0.5px solid var(--border-d);
+  border-radius:20px;font-size:12px;color:var(--muted);cursor:pointer;
+}
+.vpill select{background:none;border:none;outline:none;
+  font-family:'Geist',sans-serif;font-size:12px;color:var(--muted);cursor:pointer}
+.vdot{width:6px;height:6px;border-radius:50%;background:var(--green);flex-shrink:0;animation:vp 2s infinite}
+@keyframes vp{0%,100%{opacity:1}50%{opacity:.3}}
+.tr{display:flex;align-items:center;gap:8px}
+.tbtn{
+  display:flex;align-items:center;gap:5px;padding:6px 10px;
+  border:0.5px solid var(--border-d);border-radius:var(--r);
+  font-size:12px;color:var(--muted);cursor:pointer;
+  background:var(--bg);font-family:'Geist',sans-serif;transition:all .15s;
+}
+.tbtn:hover{border-color:var(--text);color:var(--text)}
+.tbtn.loading{opacity:.5;pointer-events:none}
+.avatar{
+  width:28px;height:28px;border-radius:50%;
+  background:var(--blue-bg);display:flex;align-items:center;
+  justify-content:center;font-size:10px;font-weight:500;
+  color:var(--blue-t);cursor:pointer;flex-shrink:0;
+}
+
+/* ── Tabs ─────────────────────────────────────────── */
+.tabs{
+  display:flex;padding:0 20px;
+  border-bottom:0.5px solid var(--border);
+  gap:2px;overflow-x:auto;background:var(--bg);
+}
+.tabs::-webkit-scrollbar{display:none}
+.tab{
+  padding:10px 14px;font-size:13px;color:var(--muted);
+  cursor:pointer;border-bottom:2px solid transparent;
+  margin-bottom:-0.5px;white-space:nowrap;
+  display:flex;align-items:center;gap:5px;transition:color .15s;
+}
+.tab:hover{color:var(--text)}
+.tab.on{color:var(--text);font-weight:500;border-bottom-color:var(--text)}
+.tbadge{
+  font-size:10px;font-weight:500;padding:1px 6px;border-radius:8px;
+  background:var(--red-bg);color:var(--red-t);
+}
+
+/* ── Panels ───────────────────────────────────────── */
+.panel{display:none;padding:18px 20px;flex-direction:column;gap:14px;animation:up .25s ease both}
+.panel.on{display:flex}
+@keyframes up{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+
+/* ── KPI grid ─────────────────────────────────────── */
+.kpi-row{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+@media(max-width:700px){.kpi-row{grid-template-columns:1fr 1fr}}
+.kpi{background:var(--surface);border-radius:var(--r);padding:12px 14px}
+.kpi-lbl{font-size:11px;color:var(--muted);margin-bottom:5px;display:flex;align-items:center;gap:5px}
+.kpi-lbl svg{width:13px;height:13px;flex-shrink:0}
+.kpi-val{font-size:22px;font-weight:500;line-height:1;margin-bottom:3px}
+.kpi-d{font-size:11px;display:flex;align-items:center;gap:3px}
+.kpi-d svg{width:12px;height:12px}
+.up{color:var(--green)}.dn{color:var(--red)}.neu{color:var(--muted)}
+
+/* ── Grids ────────────────────────────────────────── */
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.g3{display:grid;grid-template-columns:minmax(0,1.5fr) minmax(0,1fr);gap:12px}
+@media(max-width:700px){.g2,.g3{grid-template-columns:1fr}}
+
+/* ── Cards ────────────────────────────────────────── */
+.card{
+  background:var(--bg);border:0.5px solid var(--border);
+  border-radius:var(--rl);padding:14px;
+}
+.ch{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:12px}
+.ch-t{font-size:13px;font-weight:500}
+.ch-s{font-size:11px;color:var(--muted);margin-top:2px}
+.pill{font-size:10px;font-weight:500;padding:3px 8px;border-radius:10px}
+.pg{background:var(--green-bg);color:var(--green-t)}
+.pr{background:var(--red-bg);color:var(--red-t)}
+.pa{background:var(--amber-bg);color:var(--amber-t)}
+.pb{background:var(--blue-bg);color:var(--blue-t)}
+.pn{background:var(--surface);color:var(--muted)}
+
+/* ── Sentiment bars ───────────────────────────────── */
+.sent-row{display:flex;align-items:center;gap:8px;margin-bottom:7px}
+.sent-lbl{font-size:11px;color:var(--muted);width:52px;flex-shrink:0}
+.sent-track{flex:1;background:var(--surface);border-radius:3px;height:8px;overflow:hidden}
+.sent-fill{height:100%;border-radius:3px;width:0;transition:width 1.2s cubic-bezier(.22,1,.36,1)}
+.fg{background:var(--green)}.fa{background:var(--amber)}.fr{background:var(--red)}
+.sent-pct{font-size:11px;font-weight:500;width:28px;text-align:right;flex-shrink:0}
+.score-big{font-size:40px;font-weight:500;line-height:1;text-align:center;padding:8px 0 4px}
+.score-stars{display:flex;justify-content:center;gap:3px;font-size:14px;color:var(--amber);margin-bottom:10px}
+
+/* ── Venue scorecards ─────────────────────────────── */
+.vc-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+@media(max-width:700px){.vc-grid{grid-template-columns:1fr}}
+.vc{
+  background:var(--bg);border:0.5px solid var(--border);
+  border-radius:var(--rl);padding:12px;cursor:pointer;transition:border-color .15s;
+}
+.vc:hover{border-color:var(--border-d)}
+.vc.best{border-color:var(--green);border-width:1px}
+.vc.warn{border-color:var(--red);border-width:1px}
+.vc-top{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:8px;gap:6px}
+.vc-name{font-size:12px;font-weight:500;line-height:1.3}
+.vc-tag{font-size:10px;font-weight:500;padding:2px 7px;border-radius:8px;white-space:nowrap;flex-shrink:0}
+.tg{background:var(--green-bg);color:var(--green-t)}
+.tr2{background:var(--red-bg);color:var(--red-t)}
+.tn{background:var(--surface);color:var(--muted)}
+.vc-score{font-size:26px;font-weight:500;line-height:1;margin-bottom:2px}
+.vc-stars{display:flex;gap:1px;font-size:10px;color:var(--amber);margin-bottom:8px}
+.vc-rows{display:flex;flex-direction:column;gap:4px}
+.vc-row{display:flex;justify-content:space-between;font-size:11px}
+.vc-row span:first-child{color:var(--muted)}
+.vc-row span:last-child{font-weight:500}
+.vc-ai{margin-top:9px;padding-top:9px;border-top:0.5px solid var(--border);font-size:11px;color:var(--muted);display:flex;gap:5px;line-height:1.4}
+.vc-ai svg{width:13px;height:13px;flex-shrink:0;margin-top:1px}
+.aig{color:var(--green)}.aiw{color:var(--red)}.aim{color:var(--amber)}
+
+/* ── AI insights box ──────────────────────────────── */
+.ai-box{background:var(--bg);border:0.5px solid var(--border);border-radius:var(--rl);padding:14px}
+.ai-hdr{display:flex;align-items:center;gap:8px;margin-bottom:10px}
+.ai-dot{width:7px;height:7px;border-radius:50%;background:var(--green);animation:aipl 2s infinite;flex-shrink:0}
+@keyframes aipl{0%,100%{opacity:1}50%{opacity:.25}}
+.ai-ttl{font-size:13px;font-weight:500}
+.ai-gen{font-size:11px;color:var(--muted);margin-left:auto}
+.ai-sum{
+  font-size:12px;color:var(--muted);line-height:1.6;
+  padding:10px 12px;background:var(--surface);border-radius:0 var(--r) var(--r) 0;
+  border-left:2px solid var(--green);margin-bottom:12px;
+}
+.issue-lbl{font-size:11px;font-weight:500;color:var(--muted);margin-bottom:6px}
+.issue{
+  display:flex;align-items:flex-start;gap:8px;padding:9px 10px;
+  border-radius:var(--r);border:0.5px solid var(--border);margin-bottom:6px;
+}
+.issue:last-child{margin-bottom:0}
+.issue.hi{background:var(--red-bg);border-color:rgba(226,75,74,.3)}
+.issue.md{background:var(--amber-bg);border-color:rgba(186,117,23,.3)}
+.issue.lo{background:var(--surface)}
+.issue-ico{width:20px;height:20px;border-radius:5px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.ico-h{background:var(--red)}.ico-m{background:var(--amber)}.ico-l{background:var(--border-d)}
+.issue-ico svg{width:11px;height:11px;color:#fff}
+.issue-body{flex:1;min-width:0}
+.issue-title{font-size:12px;font-weight:500;margin-bottom:2px}
+.issue-rec{font-size:11px;color:var(--muted);line-height:1.5}
+.cnt{font-size:10px;font-weight:500;padding:1px 6px;border-radius:6px;white-space:nowrap;align-self:flex-start;margin-top:2px;flex-shrink:0}
+.ch2{background:var(--red-bg);color:var(--red-t)}
+.cm2{background:var(--amber-bg);color:var(--amber-t)}
+.cl2{background:var(--surface);color:var(--muted)}
+.strengths{display:flex;gap:5px;flex-wrap:wrap;margin-top:10px}
+.str{font-size:11px;padding:3px 9px;border-radius:10px;background:var(--green-bg);color:var(--green-t);display:flex;align-items:center;gap:3px}
+.action-list{margin-top:10px;display:flex;flex-direction:column;gap:3px}
+.action-item{font-size:11px;color:var(--muted);display:flex;align-items:flex-start;gap:5px;padding:4px 0;border-bottom:0.5px solid var(--border)}
+.action-item:last-child{border:none}
+.action-item svg{width:13px;height:13px;flex-shrink:0;margin-top:1px;color:var(--muted)}
+.rpt-btn{
+  width:100%;margin-top:10px;padding:8px;border:0.5px solid var(--border-d);
+  border-radius:var(--r);font-size:12px;cursor:pointer;
+  background:var(--bg);color:var(--text);
+  display:flex;align-items:center;justify-content:center;gap:5px;
+  font-family:'Geist',sans-serif;transition:all .15s;
+}
+.rpt-btn:hover{background:var(--text);color:#fff}
+.rpt-btn svg{width:13px;height:13px}
+
+/* ── Reviews ──────────────────────────────────────── */
+.rev-item{padding:10px 0;border-bottom:0.5px solid var(--border)}
+.rev-item:last-child{border:none;padding-bottom:0}
+.ri-top{display:flex;align-items:center;gap:5px;margin-bottom:4px;flex-wrap:wrap}
+.ri-stars{display:flex;gap:1px;font-size:11px;color:var(--amber)}
+.ri-stars.lo{color:var(--red)}
+.ri-venue{font-size:10px;padding:1px 6px;border-radius:4px;background:var(--blue-bg);color:var(--blue-t)}
+.ri-tbl{font-size:10px;padding:1px 6px;border-radius:4px;background:var(--surface);color:var(--muted)}
+.ri-time{font-size:10px;color:var(--muted);margin-left:auto;opacity:.6}
+.ri-txt{font-size:12px;line-height:1.5;margin-bottom:4px}
+.ri-tags{display:flex;gap:4px;flex-wrap:wrap;align-items:center}
+.ri-tag{font-size:10px;padding:1px 6px;border-radius:4px;background:var(--surface);color:var(--muted)}
+.ri-rec{font-size:11px;color:var(--amber);display:flex;align-items:center;gap:3px;margin-top:3px}
+.ri-rec svg{width:12px;height:12px}
+
+/* ── Alerts ───────────────────────────────────────── */
+.alert-item{display:flex;align-items:flex-start;gap:8px;padding:9px;border-radius:var(--r);background:var(--red-bg);margin-bottom:6px}
+.alert-item:last-child{margin:0}
+.al-ico{width:24px;height:24px;border-radius:5px;background:var(--red);display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.al-ico svg{width:12px;height:12px;color:#fff}
+.al-body{flex:1;min-width:0}
+.al-ttl{font-size:12px;font-weight:500;color:var(--red-t);margin-bottom:1px}
+.al-sub{font-size:11px;color:var(--muted)}
+.al-time{font-size:10px;color:var(--muted);white-space:nowrap;opacity:.7}
+
+/* ── Usage bars ───────────────────────────────────── */
+.use-row{display:flex;align-items:center;gap:8px;margin-bottom:7px}
+.use-lbl{font-size:11px;color:var(--muted);width:64px;flex-shrink:0}
+.use-track{flex:1;background:var(--surface);border-radius:3px;height:5px;overflow:hidden}
+.use-fill{height:100%;border-radius:3px;background:var(--text);width:0;transition:width 1.4s cubic-bezier(.22,1,.36,1)}
+.use-val{font-size:11px;color:var(--muted);width:52px;text-align:right;flex-shrink:0}
+.up-btn{
+  width:100%;margin-top:8px;padding:7px;border:0.5px solid var(--border-d);
+  border-radius:var(--r);font-size:12px;cursor:pointer;
+  background:var(--bg);color:var(--text);
+  display:flex;align-items:center;justify-content:center;gap:5px;
+  font-family:'Geist',sans-serif;transition:all .15s;
+}
+.up-btn:hover{background:var(--text);color:#fff}
+.up-btn svg{width:13px;height:13px}
+
+/* ── Topic chips ──────────────────────────────────── */
+.topic-grid{display:flex;flex-wrap:wrap;gap:7px}
+.tc{
+  display:flex;flex-direction:column;align-items:center;
+  padding:8px 10px;border:0.5px solid var(--border);
+  border-radius:var(--r);min-width:62px;cursor:pointer;transition:border-color .15s;
+}
+.tc:hover{border-color:var(--border-d)}
+.tc-n{font-size:18px;font-weight:500;line-height:1}
+.tc-l{font-size:10px;color:var(--muted);margin-top:3px;text-align:center}
+
+/* ── Reviews tab ──────────────────────────────────── */
+.rev-table{width:100%;border-collapse:collapse;font-size:12px}
+.rev-table th{text-align:left;font-size:11px;font-weight:500;color:var(--muted);padding:8px 12px;border-bottom:0.5px solid var(--border);white-space:nowrap}
+.rev-table td{padding:10px 12px;border-bottom:0.5px solid var(--border);vertical-align:middle}
+.rev-table tr:last-child td{border:none}
+.rev-table tr:hover td{background:var(--surface)}
+.stars-sm{display:flex;gap:1px;font-size:11px;color:var(--amber)}
+.stars-sm.lo{color:var(--red)}
+.sent-badge{font-size:10px;font-weight:500;padding:2px 7px;border-radius:6px}
+.sb-pos{background:var(--green-bg);color:var(--green-t)}
+.sb-neu{background:var(--surface);color:var(--muted)}
+.sb-neg{background:var(--red-bg);color:var(--red-t)}
+.filter-row{display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap}
+.fsel{
+  padding:6px 10px;border:0.5px solid var(--border-d);border-radius:var(--r);
+  font-size:12px;font-family:'Geist',sans-serif;color:var(--text);
+  background:var(--bg);outline:none;cursor:pointer;
+}
+
+/* ── Skeleton loader ──────────────────────────────── */
+.skel{background:var(--surface);border-radius:6px;animation:sk 1.4s ease infinite}
+@keyframes sk{0%,100%{opacity:1}50%{opacity:.5}}
+
+/* ── Empty state ──────────────────────────────────── */
+.empty{text-align:center;padding:40px 20px;color:var(--muted)}
+.empty svg{width:32px;height:32px;margin:0 auto 10px;display:block;color:var(--border-d)}
+.empty p{font-size:13px}
+
+/* ── Loader spinner ───────────────────────────────── */
+.spinner{width:16px;height:16px;border:2px solid var(--border-d);border-top-color:var(--text);border-radius:50%;animation:spin .7s linear infinite;display:inline-block}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+canvas{display:block;width:100%!important}
+</style>
+</head>
+<body>
+
+<!-- Auth overlay -->
+<div id="auth-overlay">
+  <div class="auth-card">
+    <div class="auth-logo">XP</div>
+    <div class="auth-title">Sign in to continue</div>
+    <div class="auth-sub">Access your XPscore360 dashboard</div>
+    <button class="auth-btn" id="google-btn">
+      <svg viewBox="0 0 24 24" fill="none"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z" fill="#FBBC05"/><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/></svg>
+      Continue with Google
+    </button>
+    <div class="auth-foot">No account? <a href="/onboarding.html">Start free trial →</a></div>
+  </div>
+</div>
+
+<!-- Upgrade overlay (shown to free plan users) -->
+<div id="upgrade-overlay">
+  <div class="upgrade-card">
+    <div style="font-size:32px;margin-bottom:12px">📊</div>
+    <h2>Upgrade to access the dashboard</h2>
+    <p>The management dashboard is available on Pro and Business plans. Your free trial includes the review widget and basic settings.</p>
+    <a href="/onboarding.html?product=xpscore360&step=plan">Upgrade now →</a>
+  </div>
+</div>
+
+<!-- App shell (hidden until auth) -->
+<div id="app" style="display:none">
+
+  <!-- Top bar -->
+  <div class="topbar">
+    <div class="tl">
+      <div class="logo">XP</div>
+      <span class="tl-name">XPscore360</span>
+      <div class="vpill">
+        <div class="vdot"></div>
+        <select id="venue-select" onchange="onVenueChange()">
+          <option value="all">All venues</option>
+        </select>
+      </div>
+    </div>
+    <div class="tr">
+      <select class="tbtn" id="period-select" style="border:0.5px solid var(--border-d);padding:6px 10px;border-radius:var(--r);font-size:12px;font-family:'Geist',sans-serif;color:var(--muted);cursor:pointer;background:var(--bg)" onchange="loadDashboard()">
+        <option value="7">Last 7 days</option>
+        <option value="30" selected>Last 30 days</option>
+        <option value="90">Last 90 days</option>
+      </select>
+      <button class="tbtn" id="refresh-btn" onclick="refreshAI()">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M3 21v-5h5"/></svg>
+        Refresh AI
+      </button>
+      <div class="avatar" id="user-avatar" onclick="signOut()" title="Sign out">?</div>
+    </div>
+  </div>
+
+  <!-- Tabs -->
+  <div class="tabs">
+    <div class="tab on" onclick="showTab('overview',this)">Overview</div>
+    <div class="tab" onclick="showTab('reviews',this)">Reviews</div>
+    <div class="tab" onclick="showTab('interactions',this)">Interactions</div>
+    <div class="tab" onclick="showTab('analytics',this)">Analytics</div>
+    <div class="tab" id="alerts-tab" onclick="showTab('alerts',this)">Alerts <span class="tbadge" id="alert-count">0</span></div>
+    <div class="tab" onclick="showTab('ai',this)">AI insights</div>
+    <div class="tab" onclick="window.location.href='/settings.html'">Settings ↗</div>
+  </div>
+
+  <!-- ══ OVERVIEW TAB ══════════════════════════════ -->
+  <div class="panel on" id="tab-overview">
+
+    <!-- KPIs -->
+    <div class="kpi-row">
+      <div class="kpi">
+        <div class="kpi-lbl">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+          Total sessions
+        </div>
+        <div class="kpi-val" id="k-sessions">—</div>
+        <div class="kpi-d neu" id="k-sessions-d">Loading...</div>
+      </div>
+      <div class="kpi">
+        <div class="kpi-lbl">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+          Avg XP score
+        </div>
+        <div class="kpi-val" id="k-score">—</div>
+        <div class="kpi-d neu" id="k-score-d">Loading...</div>
+      </div>
+      <div class="kpi">
+        <div class="kpi-lbl">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+          Google drafts
+        </div>
+        <div class="kpi-val" id="k-drafts">—</div>
+        <div class="kpi-d neu" id="k-drafts-d">Loading...</div>
+      </div>
+      <div class="kpi">
+        <div class="kpi-lbl">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+          Open alerts
+        </div>
+        <div class="kpi-val dn" id="k-alerts">—</div>
+        <div class="kpi-d neu" id="k-alerts-d">Loading...</div>
+      </div>
+    </div>
+
+    <!-- Charts row -->
+    <div class="g2">
+      <div class="card">
+        <div class="ch">
+          <div><div class="ch-t">Sessions by day</div><div class="ch-s" id="chart-period-lbl">Last 30 days · all venues</div></div>
+          <span class="pill pg" id="live-pill">Live</span>
+        </div>
+        <canvas id="sessChart" height="80"></canvas>
+      </div>
+      <div class="card">
+        <div class="ch"><div class="ch-t">XP score breakdown</div></div>
+        <div class="score-big" id="score-display">—</div>
+        <div class="score-stars" id="score-stars">★★★★☆</div>
+        <div class="sent-row"><div class="sent-lbl">Positive</div><div class="sent-track"><div class="sent-fill fg" id="sf1"></div></div><div class="sent-pct" id="sp1">—</div></div>
+        <div class="sent-row"><div class="sent-lbl">Neutral</div><div class="sent-track"><div class="sent-fill fa" id="sf2"></div></div><div class="sent-pct" id="sp2">—</div></div>
+        <div class="sent-row"><div class="sent-lbl">Negative</div><div class="sent-track"><div class="sent-fill fr" id="sf3"></div></div><div class="sent-pct" id="sp3">—</div></div>
+        <canvas id="sentChart" height="60" style="margin-top:10px"></canvas>
+      </div>
+    </div>
+
+    <!-- Venue scorecards -->
+    <div style="font-size:12px;font-weight:500;color:var(--muted)">Venue scorecards</div>
+    <div class="vc-grid" id="vc-grid">
+      <div class="vc"><div class="skel" style="height:120px"></div></div>
+      <div class="vc"><div class="skel" style="height:120px"></div></div>
+      <div class="vc"><div class="skel" style="height:120px"></div></div>
+    </div>
+
+    <!-- AI insights + right column -->
+    <div class="g3">
+      <div class="ai-box" id="ai-panel">
+        <div class="ai-hdr">
+          <div class="ai-dot"></div>
+          <div class="ai-ttl">AI insights</div>
+          <div class="ai-gen" id="ai-gen-time">Loading...</div>
+        </div>
+        <div class="skel" style="height:60px;margin-bottom:12px"></div>
+        <div class="skel" style="height:40px;margin-bottom:6px"></div>
+        <div class="skel" style="height:40px;margin-bottom:6px"></div>
+        <div class="skel" style="height:40px"></div>
+      </div>
+
+      <div style="display:flex;flex-direction:column;gap:12px">
+
+        <!-- Recent reviews -->
+        <div class="card">
+          <div class="ch">
+            <div><div class="ch-t">Recent reviews</div><div class="ch-s">All venues · live</div></div>
+            <span class="pill pg">Live</span>
+          </div>
+          <div id="recent-reviews"><div class="skel" style="height:160px"></div></div>
+        </div>
+
+        <!-- Manager alerts -->
+        <div class="card">
+          <div class="ch"><div class="ch-t">Manager alerts</div><span class="pill pr" id="alert-pill">0 open</span></div>
+          <div id="recent-alerts"><div class="skel" style="height:100px"></div></div>
+        </div>
+
+        <!-- Plan usage -->
+        <div class="card">
+          <div class="ch">
+            <div><div class="ch-t">Plan usage</div><div class="ch-s" id="plan-label">Loading...</div></div>
+            <span class="pill pa" id="usage-pct">—</span>
+          </div>
+          <div class="use-row"><div class="use-lbl">Sessions</div><div class="use-track"><div class="use-fill" id="uf1"></div></div><div class="use-val" id="uv1">—</div></div>
+          <div class="use-row"><div class="use-lbl">Tokens</div><div class="use-track"><div class="use-fill" id="uf2"></div></div><div class="use-val" id="uv2">—</div></div>
+          <div class="use-row"><div class="use-lbl">Venues</div><div class="use-track"><div class="use-fill" id="uf3"></div></div><div class="use-val" id="uv3">—</div></div>
+          <button class="up-btn" onclick="window.location.href='/onboarding.html?step=plan'">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg>
+            Upgrade plan
+          </button>
+        </div>
+
+        <!-- Top topics -->
+        <div class="card">
+          <div class="ch"><div class="ch-t">Top topics this month</div></div>
+          <div class="topic-grid" id="topic-grid">
+            <div class="skel" style="height:56px;width:62px"></div>
+            <div class="skel" style="height:56px;width:62px"></div>
+            <div class="skel" style="height:56px;width:62px"></div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ REVIEWS TAB ════════════════════════════════ -->
+  <div class="panel" id="tab-reviews">
+    <div class="filter-row">
+      <select class="fsel" id="rev-venue-filter" onchange="loadReviewsTab()">
+        <option value="">All venues</option>
+      </select>
+      <select class="fsel" id="rev-sentiment-filter" onchange="loadReviewsTab()">
+        <option value="">All sentiment</option>
+        <option value="positive">Positive</option>
+        <option value="neutral">Neutral</option>
+        <option value="negative">Negative</option>
+      </select>
+      <select class="fsel" id="rev-score-filter" onchange="loadReviewsTab()">
+        <option value="">All scores</option>
+        <option value="5">5 stars</option>
+        <option value="4">4 stars</option>
+        <option value="3">3 stars</option>
+        <option value="1">1-2 stars</option>
+      </select>
+    </div>
+    <div class="card" style="overflow-x:auto">
+      <table class="rev-table" id="reviews-table">
+        <thead>
+          <tr>
+            <th>Score</th>
+            <th>Venue</th>
+            <th>Table</th>
+            <th>Sentiment</th>
+            <th>Topics</th>
+            <th>Recovery</th>
+            <th>Time</th>
+          </tr>
+        </thead>
+        <tbody id="reviews-tbody">
+          <tr><td colspan="7" style="text-align:center;padding:40px;color:var(--muted)"><div class="spinner"></div></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ══ INTERACTIONS TAB ═══════════════════════════ -->
+  <div class="panel" id="tab-interactions">
+    <div class="g2">
+      <div class="card">
+        <div class="ch"><div class="ch-t">Recent conversations</div></div>
+        <div id="interactions-list"><div class="skel" style="height:200px"></div></div>
+      </div>
+      <div class="card" id="convo-detail">
+        <div class="ch"><div class="ch-t">Conversation detail</div></div>
+        <div class="empty">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+          <p>Select a conversation to view</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ ANALYTICS TAB ══════════════════════════════ -->
+  <div class="panel" id="tab-analytics">
+    <div class="g2">
+      <div class="card">
+        <div class="ch"><div class="ch-t">Score trend</div></div>
+        <canvas id="trendChart" height="100"></canvas>
+      </div>
+      <div class="card">
+        <div class="ch"><div class="ch-t">Sentiment distribution</div></div>
+        <canvas id="sentPieChart" height="100"></canvas>
+      </div>
+    </div>
+    <div class="card">
+      <div class="ch"><div class="ch-t">Top topics breakdown</div></div>
+      <canvas id="topicChart" height="80"></canvas>
+    </div>
+  </div>
+
+  <!-- ══ ALERTS TAB ═════════════════════════════════ -->
+  <div class="panel" id="tab-alerts">
+    <div class="card">
+      <div class="ch"><div class="ch-t">Manager alerts</div><span class="pill pr" id="alerts-count-badge">Loading...</span></div>
+      <div id="all-alerts"><div class="skel" style="height:200px"></div></div>
+    </div>
+  </div>
+
+  <!-- ══ AI INSIGHTS TAB ════════════════════════════ -->
+  <div class="panel" id="tab-ai">
+    <div id="ai-insights-full">
+      <div class="skel" style="height:300px"></div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+// ── Config ─────────────────────────────────────────
+const SUPABASE_URL = 'https://iroseywidzacqinmjtdc.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imlyb3NleXdpZHphY3Fpbm1qdGRjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg5MTgwMTQsImV4cCI6MjA5NDQ5NDAxNH0.x66R6jOUcU8eaXxxXL2OtUX9rJ3ddntQTYLrOdnpzOk';
+const API_BASE     = '/.netlify/functions';
+
+const { createClient } = supabase;
+const sb = createClient(SUPABASE_URL, SUPABASE_KEY);
+
+// ── State ───────────────────────────────────────────
+let SESSION   = null;
+let TENANT    = null;
+let VENUES    = [];
+let sessChart = null;
+let sentChart = null;
+
+// ── Auth ────────────────────────────────────────────
+document.getElementById('google-btn').addEventListener('click', async () => {
+  await sb.auth.signInWithOAuth({
+    provider: 'google',
+    options: { redirectTo: window.location.origin + '/xpscore360-app/dashboard.html' },
+  });
+});
+
+async function init() {
+  const { data: { session } } = await sb.auth.getSession();
+  if (!session) {
+    document.getElementById('auth-overlay').style.display = 'flex';
+    return;
+  }
+  SESSION = session;
+  document.getElementById('auth-overlay').classList.add('hide');
+  setTimeout(() => document.getElementById('auth-overlay').style.display = 'none', 350);
+
+  // Set avatar initials
+  const name = session.user.user_metadata?.full_name || session.user.email || '?';
+  document.getElementById('user-avatar').textContent = name.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
+
+  // Load tenant
+  const { data: tenant } = await sb
+    .from('tenants')
+    .select('*')
+    .eq('contact_email', session.user.email)
+    .single();
+
+  if (!tenant) { alert('No account found for this email. Please complete onboarding.'); return; }
+  TENANT = tenant;
+
+  // Check plan — free plan gets upgrade wall
+  // Uncomment to enforce:
+  // if (tenant.current_plan === 'free') {
+  //   document.getElementById('upgrade-overlay').classList.add('show');
+  //   return;
+  // }
+
+  // Load venues
+  const { data: venues } = await sb
+    .from('venues')
+    .select('*')
+    .eq('tenant_id', tenant.id)
+    .eq('is_active', true)
+    .order('name');
+
+  VENUES = venues || [];
+
+  // Populate venue selects
+  const venueSelect = document.getElementById('venue-select');
+  const revVenueFilter = document.getElementById('rev-venue-filter');
+  VENUES.forEach(v => {
+    venueSelect.insertAdjacentHTML('beforeend', `<option value="${v.id}">${v.display_name || v.name}</option>`);
+    revVenueFilter.insertAdjacentHTML('beforeend', `<option value="${v.id}">${v.display_name || v.name}</option>`);
+  });
+
+  // Update plan usage
+  updatePlanUsage();
+
+  // Load dashboard data
+  await loadDashboard();
+  document.getElementById('app').style.display = 'block';
+}
+
+// ── Sign out ────────────────────────────────────────
+async function signOut() {
+  if (!confirm('Sign out?')) return;
+  await sb.auth.signOut();
+  window.location.reload();
+}
+
+// ── Tab switching ───────────────────────────────────
+function showTab(name, btn) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('on'));
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('on'));
+  btn.classList.add('on');
+  document.getElementById(`tab-${name}`).classList.add('on');
+
+  if (name === 'reviews')      loadReviewsTab();
+  if (name === 'interactions') loadInteractionsTab();
+  if (name === 'analytics')    loadAnalyticsTab();
+  if (name === 'alerts')       loadAlertsTab();
+  if (name === 'ai')           loadAITab();
+}
+
+// ── Venue change ────────────────────────────────────
+function onVenueChange() { loadDashboard(); }
+
+// ── Helpers ─────────────────────────────────────────
+function ease(t){return t<0.5?2*t*t:1-Math.pow(-2*t+2,2)/2}
+function countUp(el, target, dec, dur){
+  const start=performance.now();
+  function frame(now){
+    const p=Math.min((now-start)/dur,1);
+    const v=target*ease(p);
+    el.textContent=dec?v.toFixed(dec):Math.round(v);
+    if(p<1)requestAnimationFrame(frame);
+  }
+  requestAnimationFrame(frame);
+}
+function stars(score){
+  const full=Math.floor(score);
+  const half=score-full>=0.3?1:0;
+  const empty=5-full-half;
+  return '★'.repeat(full)+(half?'½':'')+'☆'.repeat(empty);
+}
+function timeAgo(ts){
+  const diff=(Date.now()-new Date(ts))/1000;
+  if(diff<60) return 'just now';
+  if(diff<3600) return Math.round(diff/60)+'m ago';
+  if(diff<86400) return Math.round(diff/3600)+'h ago';
+  return Math.round(diff/86400)+'d ago';
+}
+function periodDays(){ return parseInt(document.getElementById('period-select').value)||30; }
+function selectedVenueId(){ const v=document.getElementById('venue-select').value; return v==='all'?null:v; }
+
+function dateFrom(){
+  const d=new Date();
+  d.setDate(d.getDate()-periodDays());
+  return d.toISOString();
+}
+
+const isDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+const textCol = isDark?'rgba(255,255,255,0.4)':'rgba(0,0,0,0.35)';
+const gridCol = isDark?'rgba(255,255,255,0.05)':'rgba(0,0,0,0.05)';
+
+// ── Main dashboard load ─────────────────────────────
+async function loadDashboard() {
+  if (!TENANT) return;
+  const venueId = selectedVenueId();
+  const from    = dateFrom();
+
+  let q = sb.from('review_sessions')
+    .select('*')
+    .eq('tenant_id', TENANT.id)
+    .gte('created_at', from)
+    .order('created_at', { ascending: false });
+
+  if (venueId) q = q.eq('venue_id', venueId);
+  const { data: sessions } = await q.limit(500);
+  const rows = sessions || [];
+
+  // ── KPIs ──────────────────────────────────────────
+  const total    = rows.length;
+  const positive = rows.filter(r=>r.sentiment==='positive').length;
+  const neutral  = rows.filter(r=>r.sentiment==='neutral').length;
+  const negative = rows.filter(r=>r.sentiment==='negative').length;
+  const drafts   = rows.filter(r=>r.google_draft).length;
+  const alerts   = rows.filter(r=>r.manager_alert&&!r.google_posted).length;
+  const scores   = rows.filter(r=>r.overall_score).map(r=>r.overall_score);
+  const avgScore = scores.length ? (scores.reduce((a,b)=>a+b,0)/scores.length) : 0;
+
+  const posPct = total ? Math.round(positive/total*100) : 0;
+  const neuPct = total ? Math.round(neutral/total*100)  : 0;
+  const negPct = total ? Math.round(negative/total*100) : 0;
+
+  // Animate KPIs
+  const kSessions = document.getElementById('k-sessions');
+  const kScore    = document.getElementById('k-score');
+  const kDrafts   = document.getElementById('k-drafts');
+  const kAlerts   = document.getElementById('k-alerts');
+  countUp(kSessions, total,    0, 1000);
+  countUp(kScore,    avgScore, 1, 1000);
+  countUp(kDrafts,   drafts,   0, 1000);
+  countUp(kAlerts,   alerts,   0, 800);
+
+  document.getElementById('k-sessions-d').textContent = `${periodDays()}-day period`;
+  document.getElementById('k-score-d').textContent = scores.length ? `${scores.length} rated sessions` : 'No ratings yet';
+  document.getElementById('k-drafts-d').textContent = total ? `${Math.round(drafts/total*100)}% conversion rate` : '—';
+  document.getElementById('k-alerts-d').textContent = alerts > 0 ? `${alerts} need attention` : 'All clear';
+
+  document.getElementById('alert-count').textContent = alerts;
+  document.getElementById('alert-pill').textContent  = `${alerts} open`;
+
+  // Score display
+  document.getElementById('score-display').textContent = avgScore ? avgScore.toFixed(1) : '—';
+  document.getElementById('score-stars').textContent   = avgScore ? stars(avgScore) : '—';
+
+  // Sentiment bars
+  setTimeout(() => {
+    document.getElementById('sf1').style.width = posPct + '%';
+    document.getElementById('sf2').style.width = neuPct + '%';
+    document.getElementById('sf3').style.width = negPct + '%';
+    document.getElementById('sp1').textContent = posPct + '%';
+    document.getElementById('sp2').textContent = neuPct + '%';
+    document.getElementById('sp3').textContent = negPct + '%';
+  }, 300);
+
+  // ── Session chart ──────────────────────────────────
+  buildSessionChart(rows);
+  buildSentimentChart(rows);
+
+  // ── Venue scorecards ───────────────────────────────
+  buildVenueCards(rows);
+
+  // ── AI panel ──────────────────────────────────────
+  loadAIInsights();
+
+  // ── Recent reviews ─────────────────────────────────
+  buildRecentReviews(rows.slice(0, 5));
+
+  // ── Recent alerts ──────────────────────────────────
+  buildRecentAlerts(rows.filter(r=>r.manager_alert).slice(0, 3));
+
+  // ── Topics ─────────────────────────────────────────
+  buildTopics(rows);
+
+  // ── Chart period label ─────────────────────────────
+  document.getElementById('chart-period-lbl').textContent =
+    `Last ${periodDays()} days · ${venueId ? (VENUES.find(v=>v.id===venueId)?.name||'venue') : 'all venues'}`;
+}
+
+// ── Session chart ───────────────────────────────────
+function buildSessionChart(rows) {
+  const days = periodDays() <= 14 ? periodDays() : 14;
+  const labels = [];
+  const data   = [];
+
+  for (let i = days-1; i >= 0; i--) {
+    const d = new Date();
+    d.setDate(d.getDate() - i);
+    const key = d.toISOString().split('T')[0];
+    labels.push(['Su','Mo','Tu','We','Th','Fr','Sa'][d.getDay()]);
+    data.push(rows.filter(r => r.created_at?.startsWith(key)).length);
+  }
+
+  const maxVal = Math.max(...data, 1);
+  const barColors = data.map(v => v >= maxVal * 0.7 ? '#1D9E75' : isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.07)');
+
+  if (sessChart) { sessChart.destroy(); sessChart = null; }
+  const ctx = document.getElementById('sessChart').getContext('2d');
+  sessChart = new Chart(ctx, {
+    type: 'bar',
+    data: { labels, datasets: [{ data, backgroundColor: barColors, borderRadius: 3, borderSkipped: false }] },
+    options: {
+      responsive: true,
+      animation: { duration: 1200, easing: 'easeOutQuart' },
+      plugins: { legend: { display: false }, tooltip: {
+        callbacks: { label: c => ' ' + c.parsed.y + ' sessions' },
+        backgroundColor: isDark?'#1a1a1a':'#fff',
+        titleColor: isDark?'#fff':'#000',
+        bodyColor: textCol,
+        borderColor: isDark?'rgba(255,255,255,0.1)':'rgba(0,0,0,0.1)',
+        borderWidth: 1,
+      }},
+      scales: {
+        x: { grid: { display: false }, ticks: { color: textCol, font: { size: 10 } } },
+        y: { grid: { color: gridCol }, ticks: { color: textCol, font: { size: 10 }, maxTicksLimit: 4 }, border: { display: false } },
+      },
+    },
+  });
+}
+
+// ── Sentiment trend chart ───────────────────────────
+function buildSentimentChart(rows) {
+  const days = 14;
+  const labels = [];
+  const posData = [];
+  const negData = [];
+
+  for (let i = days-1; i >= 0; i--) {
+    const d = new Date();
+    d.setDate(d.getDate() - i);
+    const key = d.toISOString().split('T')[0];
+    labels.push(['Su','Mo','Tu','We','Th','Fr','Sa'][d.getDay()]);
+    const dayRows = rows.filter(r => r.created_at?.startsWith(key));
+    const t = dayRows.length || 1;
+    posData.push(Math.round(dayRows.filter(r=>r.sentiment==='positive').length/t*100));
+    negData.push(Math.round(dayRows.filter(r=>r.sentiment==='negative').length/t*100));
+  }
+
+  if (sentChart) { sentChart.destroy(); sentChart = null; }
+  const ctx = document.getElementById('sentChart').getContext('2d');
+  sentChart = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [
+        { label: 'Positive', data: posData, borderColor: '#1D9E75', backgroundColor: 'transparent', tension: .4, pointRadius: 0, borderWidth: 2 },
+        { label: 'Negative', data: negData, borderColor: '#E24B4A', backgroundColor: 'transparent', tension: .4, pointRadius: 0, borderWidth: 1.5 },
+      ],
+    },
+    options: {
+      responsive: true,
+      animation: { duration: 1400, easing: 'easeOutQuart' },
+      plugins: { legend: { display: true, position: 'bottom', labels: { color: textCol, font: { size: 10 }, boxWidth: 12, padding: 10 } } },
+      scales: {
+        x: { grid: { display: false }, ticks: { color: textCol, font: { size: 9 } } },
+        y: { grid: { color: gridCol }, ticks: { color: textCol, font: { size: 9 }, maxTicksLimit: 3 }, border: { display: false }, min: 0, max: 100 },
+      },
+    },
+  });
+}
+
+// ── Venue scorecards ────────────────────────────────
+function buildVenueCards(rows) {
+  const grid = document.getElementById('vc-grid');
+  if (!VENUES.length) {
+    grid.innerHTML = '<div class="empty"><p>No venues found</p></div>';
+    return;
+  }
+
+  const cards = VENUES.map(v => {
+    const vRows    = rows.filter(r => r.venue_id === v.id);
+    const total    = vRows.length;
+    const positive = vRows.filter(r=>r.sentiment==='positive').length;
+    const alerts   = vRows.filter(r=>r.manager_alert&&!r.google_posted).length;
+    const scores   = vRows.filter(r=>r.overall_score).map(r=>r.overall_score);
+    const avg      = scores.length ? (scores.reduce((a,b)=>a+b,0)/scores.length) : 0;
+    const posPct   = total ? Math.round(positive/total*100) : 0;
+    return { v, total, avg, posPct, alerts };
+  }).sort((a,b) => b.avg - a.avg);
+
+  grid.innerHTML = cards.map((c, i) => {
+    const cls  = i === 0 ? 'best' : (c.avg < 3.5 || c.alerts > 2) ? 'warn' : '';
+    const tag  = i === 0 ? '<span class="vc-tag tg">Top venue</span>' :
+                 cls==='warn' ? '<span class="vc-tag tr2">Needs attention</span>' :
+                 '<span class="vc-tag tn">Stable</span>';
+    const aiIco = cls==='warn'
+      ? '<svg class="aiw" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>'
+      : '<svg class="aig" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>';
+    const aiMsg = cls==='warn'
+      ? 'Score needs attention — check the AI insights tab for specific recommendations.'
+      : i===0 ? 'Top performing venue. Keep the consistency going — guests notice it.'
+      : 'Stable performance. Monitor for any emerging trends.';
+    const starsStr = avg ? '★'.repeat(Math.round(avg))+'☆'.repeat(5-Math.round(avg)) : '—';
+    return `
+      <div class="vc ${cls}" onclick="filterByVenue('${c.v.id}')">
+        <div class="vc-top"><div class="vc-name">${c.v.display_name||c.v.name}</div>${tag}</div>
+        <div class="vc-score">${avg ? avg.toFixed(1) : '—'}</div>
+        <div class="vc-stars">${starsStr}</div>
+        <div class="vc-rows">
+          <div class="vc-row"><span>Sessions</span><span>${c.total}</span></div>
+          <div class="vc-row"><span>Positive</span><span class="${c.posPct>=60?'up':c.posPct<40?'dn':''}">${c.posPct}%</span></div>
+          <div class="vc-row"><span>Alerts</span><span class="${c.alerts>0?'dn':'up'}">${c.alerts} open</span></div>
+        </div>
+        <div class="vc-ai">${aiIco}<span>${aiMsg}</span></div>
+      </div>`;
+  }).join('');
+}
+
+function filterByVenue(id) {
+  document.getElementById('venue-select').value = id;
+  loadDashboard();
+}
+
+// ── AI Insights ─────────────────────────────────────
+async function loadAIInsights() {
+  const panel = document.getElementById('ai-panel');
+  try {
+    const venueId = selectedVenueId() || (VENUES[0]?.id);
+    if (!venueId) return;
+
+    const res = await fetch(`${API_BASE}/venue-insights?venue_id=${venueId}&tenant_id=${TENANT.id}&days=${periodDays()}`);
+    if (!res.ok) throw new Error('Insights not available');
+    const data = await res.json();
+
+    if (!data.insights) throw new Error('No insights yet');
+    const ins = data.insights;
+    const venue = VENUES.find(v=>v.id===venueId);
+    const genTime = data.generated_at ? timeAgo(data.generated_at) : 'just now';
+
+    panel.innerHTML = `
+      <div class="ai-hdr">
+        <div class="ai-dot"></div>
+        <div class="ai-ttl">AI insight — ${venue?.display_name||venue?.name||'Venue'}</div>
+        <div class="ai-gen">${genTime}</div>
+      </div>
+      <div class="ai-sum">${ins.summary || 'Analysis complete.'}</div>
+      <div class="issue-lbl">Issues to address</div>
+      ${(ins.top_issues||[]).map(issue => `
+        <div class="issue ${issue.severity==='high'?'hi':issue.severity==='medium'?'md':'lo'}">
+          <div class="issue-ico ${issue.severity==='high'?'ico-h':issue.severity==='medium'?'ico-m':'ico-l'}">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+          </div>
+          <div class="issue-body">
+            <div class="issue-title">${issue.topic} — ${issue.severity} severity</div>
+            <div class="issue-rec">${issue.recommendation}</div>
+          </div>
+          <span class="cnt ${issue.severity==='high'?'ch2':issue.severity==='medium'?'cm2':'cl2'}">${issue.mention_count} mentions</span>
+        </div>`).join('')}
+      ${ins.strengths?.length ? `
+        <div class="strengths">
+          ${ins.strengths.map(s=>`<div class="str">✓ ${s}</div>`).join('')}
+        </div>` : ''}
+      ${ins.action_items?.length ? `
+        <div class="issue-lbl" style="margin-top:12px">Action items</div>
+        <div class="action-list">
+          ${ins.action_items.map(a=>`
+            <div class="action-item">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+              ${a}
+            </div>`).join('')}
+        </div>` : ''}
+      <button class="rpt-btn" onclick="refreshAI()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/></svg>
+        Refresh AI insights
+      </button>`;
+  } catch (e) {
+    panel.innerHTML = `
+      <div class="ai-hdr"><div class="ai-dot"></div><div class="ai-ttl">AI insights</div></div>
+      <div class="empty">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+        <p>No AI insights yet — click Refresh AI to generate</p>
+      </div>
+      <button class="rpt-btn" onclick="refreshAI()">Generate AI insights →</button>`;
+  }
+}
+
+async function refreshAI() {
+  const btn = document.getElementById('refresh-btn');
+  btn.classList.add('loading');
+  btn.textContent = 'Generating...';
+  try {
+    const venueId = selectedVenueId() || VENUES[0]?.id;
+    if (!venueId) return;
+    await fetch(`${API_BASE}/venue-insights?venue_id=${venueId}&tenant_id=${TENANT.id}&days=${periodDays()}&refresh=true`);
+    await loadAIInsights();
+  } catch(e) { console.warn('AI refresh failed:', e); }
+  finally {
+    btn.classList.remove('loading');
+    btn.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M3 21v-5h5"/></svg> Refresh AI`;
+  }
+}
+
+// ── Recent reviews ──────────────────────────────────
+function buildRecentReviews(rows) {
+  const el = document.getElementById('recent-reviews');
+  if (!rows.length) { el.innerHTML = '<div class="empty"><p>No reviews yet</p></div>'; return; }
+  el.innerHTML = rows.map(r => {
+    const venue   = VENUES.find(v=>v.id===r.venue_id);
+    const score   = r.overall_score || 0;
+    const starsEl = '★'.repeat(score)+'☆'.repeat(5-score);
+    const tags    = (r.topics||[]).slice(0,2).map(t=>`<div class="ri-tag">${t}</div>`).join('');
+    const draft   = r.google_draft ? `<span class="pill pg" style="font-size:10px">Draft sent</span>` : '';
+    const recovery = r.manager_alert ? `<div class="ri-rec"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:12px;height:12px"><path d="M20 12v6a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-6"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="13"/></svg>Alert raised</div>` : '';
+    return `
+      <div class="rev-item">
+        <div class="ri-top">
+          <div class="ri-stars${score<=2?' lo':''}">${starsEl}</div>
+          ${venue?`<div class="ri-venue">${venue.display_name||venue.name}</div>`:''}
+          ${r.table_ref?`<div class="ri-tbl">${r.table_ref}</div>`:''}
+          <div class="ri-time">${timeAgo(r.created_at)}</div>
+        </div>
+        ${r.highlights?.[0]?`<div class="ri-txt">"${r.highlights[0]}"</div>`:''}
+        <div class="ri-tags">${tags}${draft}</div>
+        ${recovery}
+      </div>`;
+  }).join('');
+}
+
+// ── Recent alerts ───────────────────────────────────
+function buildRecentAlerts(rows) {
+  const el = document.getElementById('recent-alerts');
+  if (!rows.length) {
+    el.innerHTML = '<div class="empty"><p>No open alerts — all clear</p></div>';
+    return;
+  }
+  el.innerHTML = rows.map(r => {
+    const venue = VENUES.find(v=>v.id===r.venue_id);
+    return `
+      <div class="alert-item">
+        <div class="al-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg></div>
+        <div class="al-body">
+          <div class="al-ttl">${r.manager_alert_reason||'Negative feedback'}</div>
+          <div class="al-sub">${venue?.name||'Venue'} · ${r.table_ref||'—'}</div>
+        </div>
+        <div class="al-time">${timeAgo(r.created_at)}</div>
+      </div>`;
+  }).join('');
+}
+
+// ── Topics ──────────────────────────────────────────
+function buildTopics(rows) {
+  const counts = {};
+  rows.forEach(r => (r.topics||[]).forEach(t => { counts[t]=(counts[t]||0)+1; }));
+  const sorted = Object.entries(counts).sort((a,b)=>b[1]-a[1]).slice(0,8);
+  const grid   = document.getElementById('topic-grid');
+  if (!sorted.length) { grid.innerHTML = '<div class="empty"><p>No topics yet</p></div>'; return; }
+  grid.innerHTML = sorted.map(([t,n])=>`
+    <div class="tc"><div class="tc-n">${n}</div><div class="tc-l">${t}</div></div>`).join('');
+}
+
+// ── Plan usage ──────────────────────────────────────
+function updatePlanUsage() {
+  if (!TENANT) return;
+  const plan     = TENANT.current_plan || 'free';
+  const sessions = TENANT.sessions_this_month || 0;
+  const maxSess  = TENANT.plan_sessions_pm || 100;
+  const tokens   = TENANT.tokens_this_month || 0;
+  const maxTok   = TENANT.plan_tokens_pm || 50000;
+  const venues   = VENUES.length;
+  const maxVen   = TENANT.plan_venues || 1;
+
+  const month = new Date().toLocaleString('default',{month:'long'});
+  document.getElementById('plan-label').textContent = `${plan.charAt(0).toUpperCase()+plan.slice(1)} plan · ${month} ${new Date().getFullYear()}`;
+
+  const sessPct = maxSess ? Math.min(Math.round(sessions/maxSess*100),100) : 0;
+  const tokPct  = maxTok  ? Math.min(Math.round(tokens/maxTok*100),100)   : 0;
+  const venPct  = maxVen  ? Math.min(Math.round(venues/maxVen*100),100)   : 0;
+  const overall = Math.round((sessPct+tokPct)/2);
+
+  document.getElementById('usage-pct').textContent = overall+'%';
+  document.getElementById('usage-pct').className   = `pill ${overall>=80?'pr':overall>=50?'pa':'pg'}`;
+
+  setTimeout(()=>{
+    document.getElementById('uf1').style.width = sessPct+'%';
+    document.getElementById('uf2').style.width = tokPct+'%';
+    document.getElementById('uf3').style.width = venPct+'%';
+  }, 400);
+
+  const fmtTok = n => n>=1000 ? Math.round(n/1000)+'k' : String(n);
+  document.getElementById('uv1').textContent = `${sessions}/${maxSess}`;
+  document.getElementById('uv2').textContent = `${fmtTok(tokens)}/${fmtTok(maxTok)}`;
+  document.getElementById('uv3').textContent = `${venues}/${maxVen}`;
+}
+
+// ── Reviews tab ─────────────────────────────────────
+async function loadReviewsTab() {
+  if (!TENANT) return;
+  const tbody    = document.getElementById('reviews-tbody');
+  const venueId  = document.getElementById('rev-venue-filter').value;
+  const sent     = document.getElementById('rev-sentiment-filter').value;
+  const scoreMin = document.getElementById('rev-score-filter').value;
+  tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;padding:24px"><div class="spinner"></div></td></tr>`;
+
+  let q = sb.from('review_sessions')
+    .select('*').eq('tenant_id', TENANT.id)
+    .gte('created_at', dateFrom())
+    .order('created_at', { ascending: false })
+    .limit(100);
+
+  if (venueId)  q = q.eq('venue_id', venueId);
+  if (sent)     q = q.eq('sentiment', sent);
+  if (scoreMin) q = scoreMin==='1' ? q.lte('overall_score',2) : q.eq('overall_score', parseInt(scoreMin));
+
+  const { data } = await q;
+  const rows = data || [];
+
+  if (!rows.length) {
+    tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;padding:40px;color:var(--muted)">No reviews match your filters</td></tr>`;
+    return;
+  }
+
+  tbody.innerHTML = rows.map(r => {
+    const venue = VENUES.find(v=>v.id===r.venue_id);
+    const score = r.overall_score || 0;
+    const stars = '★'.repeat(score)+'☆'.repeat(5-score);
+    const sentCls = r.sentiment==='positive'?'sb-pos':r.sentiment==='negative'?'sb-neg':'sb-neu';
+    const topics  = (r.topics||[]).slice(0,3).join(', ') || '—';
+    return `
+      <tr style="cursor:pointer" onclick="showConvo('${r.id}')">
+        <td><div class="stars-sm${score<=2?' lo':''}">${stars}</div></td>
+        <td>${venue?.name||'—'}</td>
+        <td>${r.table_ref||'—'}</td>
+        <td><span class="sent-badge ${sentCls}">${r.sentiment||'unknown'}</span></td>
+        <td style="color:var(--muted)">${topics}</td>
+        <td>${r.manager_alert?`<span class="pill pr">Alert</span>`:r.google_draft?`<span class="pill pg">Draft</span>`:'—'}</td>
+        <td style="color:var(--muted)">${timeAgo(r.created_at)}</td>
+      </tr>`;
+  }).join('');
+}
+
+// ── Interactions tab ────────────────────────────────
+async function loadInteractionsTab() {
+  if (!TENANT) return;
+  const list = document.getElementById('interactions-list');
+  list.innerHTML = `<div style="text-align:center;padding:20px"><div class="spinner"></div></div>`;
+
+  const { data } = await sb.from('review_sessions')
+    .select('id,created_at,sentiment,overall_score,venue_id,table_ref,conversation_history')
+    .eq('tenant_id', TENANT.id)
+    .not('conversation_history', 'is', null)
+    .order('created_at', { ascending: false })
+    .limit(20);
+
+  const rows = data || [];
+  if (!rows.length) { list.innerHTML = '<div class="empty"><p>No conversation history yet</p></div>'; return; }
+
+  list.innerHTML = rows.map(r => {
+    const venue = VENUES.find(v=>v.id===r.venue_id);
+    const turns = Array.isArray(r.conversation_history) ? r.conversation_history.length : 0;
+    return `
+      <div style="padding:10px 0;border-bottom:0.5px solid var(--border);cursor:pointer" onclick="showConvo('${r.id}')">
+        <div style="display:flex;align-items:center;gap:6px;margin-bottom:3px">
+          <span style="font-size:11px;color:var(--amber)">${'★'.repeat(r.overall_score||0)}</span>
+          <span class="sent-badge ${r.sentiment==='positive'?'sb-pos':r.sentiment==='negative'?'sb-neg':'sb-neu'}">${r.sentiment||'unknown'}</span>
+          <span style="font-size:10px;color:var(--muted);margin-left:auto">${timeAgo(r.created_at)}</span>
+        </div>
+        <div style="font-size:12px;color:var(--muted)">${venue?.name||'—'} · ${r.table_ref||'—'} · ${turns} turns</div>
+      </div>`;
+  }).join('');
+}
+
+async function showConvo(id) {
+  const detail = document.getElementById('convo-detail');
+  detail.innerHTML = `<div class="ch"><div class="ch-t">Conversation</div></div><div style="text-align:center;padding:20px"><div class="spinner"></div></div>`;
+
+  const { data: r } = await sb.from('review_sessions').select('*').eq('id', id).single();
+  if (!r) return;
+
+  const msgs = Array.isArray(r.conversation_history) ? r.conversation_history : [];
+  detail.innerHTML = `
+    <div class="ch">
+      <div>
+        <div class="ch-t">Conversation detail</div>
+        <div class="ch-s">${timeAgo(r.created_at)} · ${r.table_ref||'—'}</div>
+      </div>
+      <span class="sent-badge ${r.sentiment==='positive'?'sb-pos':r.sentiment==='negative'?'sb-neg':'sb-neu'}">${r.sentiment||'unknown'}</span>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:8px">
+      ${msgs.map(m=>`
+        <div style="display:flex;${m.role==='user'?'justify-content:flex-end':''}">
+          <div style="max-width:80%;padding:8px 12px;border-radius:${m.role==='user'?'12px 12px 2px 12px':'12px 12px 12px 2px'};background:${m.role==='user'?'var(--text)':'var(--surface)'};color:${m.role==='user'?'#fff':'var(--text)'};font-size:12px;line-height:1.5">
+            ${m.content}
+          </div>
+        </div>`).join('')}
+    </div>
+    ${r.google_draft?`
+      <div style="margin-top:14px;padding:10px 12px;background:var(--green-bg);border-radius:8px;border-left:2px solid var(--green)">
+        <div style="font-size:11px;font-weight:500;color:var(--green-t);margin-bottom:4px">Google review draft</div>
+        <div style="font-size:12px;color:var(--muted);line-height:1.5">${r.google_draft}</div>
+      </div>`:''}`;
+}
+
+// ── Analytics tab ───────────────────────────────────
+let trendChart=null, sentPieChart=null, topicChart=null;
+async function loadAnalyticsTab() {
+  if (!TENANT) return;
+  const { data } = await sb.from('review_sessions')
+    .select('overall_score,sentiment,topics,created_at')
+    .eq('tenant_id', TENANT.id)
+    .gte('created_at', dateFrom())
+    .order('created_at');
+
+  const rows = data || [];
+
+  // Score trend
+  const weeklyScores = {};
+  rows.forEach(r => {
+    const week = r.created_at?.slice(0,7);
+    if (!weeklyScores[week]) weeklyScores[week]={sum:0,n:0};
+    if (r.overall_score) { weeklyScores[week].sum+=r.overall_score; weeklyScores[week].n++; }
+  });
+  const trendLabels = Object.keys(weeklyScores).sort();
+  const trendData   = trendLabels.map(k => weeklyScores[k].n ? +(weeklyScores[k].sum/weeklyScores[k].n).toFixed(2) : 0);
+
+  if (trendChart) { trendChart.destroy(); trendChart=null; }
+  trendChart = new Chart(document.getElementById('trendChart').getContext('2d'), {
+    type:'line',
+    data:{ labels:trendLabels, datasets:[{ label:'Avg score', data:trendData, borderColor:'#1D9E75', backgroundColor:'transparent', tension:.4, pointRadius:3, borderWidth:2 }] },
+    options:{ responsive:true, animation:{duration:1000}, plugins:{legend:{display:false}}, scales:{
+      x:{grid:{display:false},ticks:{color:textCol,font:{size:9}}},
+      y:{grid:{color:gridCol},ticks:{color:textCol,font:{size:9}},min:1,max:5,border:{display:false}},
+    }},
+  });
+
+  // Sentiment pie
+  const pos = rows.filter(r=>r.sentiment==='positive').length;
+  const neu = rows.filter(r=>r.sentiment==='neutral').length;
+  const neg = rows.filter(r=>r.sentiment==='negative').length;
+  if (sentPieChart) { sentPieChart.destroy(); sentPieChart=null; }
+  sentPieChart = new Chart(document.getElementById('sentPieChart').getContext('2d'), {
+    type:'doughnut',
+    data:{ labels:['Positive','Neutral','Negative'], datasets:[{ data:[pos,neu,neg], backgroundColor:['#1D9E75','#BA7517','#E24B4A'], borderWidth:0 }] },
+    options:{ responsive:true, animation:{duration:1000}, plugins:{ legend:{position:'bottom',labels:{color:textCol,font:{size:10},padding:10}} } },
+  });
+
+  // Topics
+  const counts = {};
+  rows.forEach(r=>(r.topics||[]).forEach(t=>{counts[t]=(counts[t]||0)+1;}));
+  const sorted = Object.entries(counts).sort((a,b)=>b[1]-a[1]).slice(0,8);
+  if (topicChart) { topicChart.destroy(); topicChart=null; }
+  topicChart = new Chart(document.getElementById('topicChart').getContext('2d'), {
+    type:'bar',
+    data:{ labels:sorted.map(e=>e[0]), datasets:[{ data:sorted.map(e=>e[1]), backgroundColor:'#1D9E75', borderRadius:4 }] },
+    options:{ responsive:true, animation:{duration:1000}, indexAxis:'y', plugins:{legend:{display:false}}, scales:{
+      x:{grid:{color:gridCol},ticks:{color:textCol,font:{size:9}},border:{display:false}},
+      y:{grid:{display:false},ticks:{color:textCol,font:{size:10}}},
+    }},
+  });
+}
+
+// ── Alerts tab ──────────────────────────────────────
+async function loadAlertsTab() {
+  if (!TENANT) return;
+  const el = document.getElementById('all-alerts');
+  el.innerHTML = `<div style="text-align:center;padding:20px"><div class="spinner"></div></div>`;
+
+  const { data } = await sb.from('review_sessions')
+    .select('*')
+    .eq('tenant_id', TENANT.id)
+    .eq('manager_alert', true)
+    .order('created_at', { ascending: false })
+    .limit(50);
+
+  const rows = data || [];
+  document.getElementById('alerts-count-badge').textContent = `${rows.length} total`;
+
+  if (!rows.length) {
+    el.innerHTML = '<div class="empty"><p>No alerts — all clear</p></div>';
+    return;
+  }
+  el.innerHTML = rows.map(r => {
+    const venue = VENUES.find(v=>v.id===r.venue_id);
+    return `
+      <div class="alert-item" style="margin-bottom:8px;cursor:pointer" onclick="showTab('interactions',document.querySelectorAll('.tab')[2]);showConvo('${r.id}')">
+        <div class="al-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg></div>
+        <div class="al-body">
+          <div class="al-ttl">${r.manager_alert_reason||'Negative feedback'}</div>
+          <div class="al-sub">${venue?.name||'—'} · ${r.table_ref||'—'} · ${(r.topics||[]).slice(0,2).join(', ')||'—'}</div>
+        </div>
+        <div class="al-time">${timeAgo(r.created_at)}</div>
+      </div>`;
+  }).join('');
+}
+
+// ── AI tab ──────────────────────────────────────────
+async function loadAITab() {
+  const el = document.getElementById('ai-insights-full');
+  el.innerHTML = '<div class="skel" style="height:300px"></div>';
+  try {
+    const promises = VENUES.slice(0,3).map(v =>
+      fetch(`${API_BASE}/venue-insights?venue_id=${v.id}&tenant_id=${TENANT.id}&days=${periodDays()}`)
+        .then(r=>r.json()).then(d=>({venue:v, data:d})).catch(()=>null)
+    );
+    const results = (await Promise.all(promises)).filter(Boolean);
+
+    el.innerHTML = results.map(({venue, data}) => {
+      const ins = data?.insights;
+      if (!ins) return `
+        <div class="ai-box" style="margin-bottom:14px">
+          <div class="ai-hdr"><div class="ai-dot"></div><div class="ai-ttl">${venue.display_name||venue.name}</div></div>
+          <div class="empty"><p>No insights yet — click Refresh AI to generate</p></div>
+        </div>`;
+
+      return `
+        <div class="ai-box" style="margin-bottom:14px">
+          <div class="ai-hdr">
+            <div class="ai-dot"></div>
+            <div class="ai-ttl">${venue.display_name||venue.name}</div>
+            <div class="ai-gen">${data.generated_at ? timeAgo(data.generated_at) : 'just now'}</div>
+          </div>
+          <div class="ai-sum">${ins.summary||'—'}</div>
+          ${(ins.top_issues||[]).slice(0,2).map(issue=>`
+            <div class="issue ${issue.severity==='high'?'hi':issue.severity==='medium'?'md':'lo'}" style="margin-bottom:6px">
+              <div class="issue-body">
+                <div class="issue-title">${issue.topic} — ${issue.severity}</div>
+                <div class="issue-rec">${issue.recommendation}</div>
+              </div>
+              <span class="cnt ${issue.severity==='high'?'ch2':issue.severity==='medium'?'cm2':'cl2'}">${issue.mention_count}</span>
+            </div>`).join('')}
+          ${ins.strengths?.length?`<div class="strengths">${ins.strengths.map(s=>`<div class="str">✓ ${s}</div>`).join('')}</div>`:''}
+        </div>`;
+    }).join('');
+  } catch(e) {
+    el.innerHTML = '<div class="empty"><p>Failed to load AI insights</p></div>';
+  }
+}
+
+// ── Boot ────────────────────────────────────────────
+init();
+</script>
+</body>
+</html>

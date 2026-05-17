@@ -1,0 +1,93 @@
+=================================================================
+PATCH 1 of 2 — onboarding.html
+Replace the showSuccess() function (one change only)
+=================================================================
+
+FIND this in onboarding.html:
+─────────────────────────────
+function showSuccess(data){
+  const cfg=PRODUCTS[S.product];const planName=cfg.plans.find(p=>p.id===S.plan)?.name||S.plan;
+  document.getElementById('ok-summary').innerHTML=`
+    <div class="sum-row"><span>Business</span><span>${S.bn}</span></div>
+    <div class="sum-row"><span>Product</span><span>${cfg.name}</span></div>
+    <div class="sum-row"><span>Skin</span><span>${SKINS.find(s=>s.id===S.skin)?.name||S.skin}</span></div>
+    <div class="sum-row"><span>Plan</span><span>${planName}</span></div>
+    <div class="sum-row"><span>First venue</span><span>${S.vn}</span></div>
+    <div class="sum-row"><span>Login email</span><span>${S.em}</span></div>
+    <div class="sum-row"><span>Tenant ID</span><span style="font-family:monospace;font-size:11px">${data.tenantId||'—'}</span></div>`;
+  document.getElementById('ok-btn').onclick=()=>window.location.href=cfg.dashboard;
+  document.getElementById(`p${S.step}`).style.display='none';
+  document.getElementById('p-ok').style.display='block';
+  document.getElementById('prog').style.width='100%';
+  document.querySelectorAll('.step').forEach(el=>el.className='step done');
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+
+
+REPLACE WITH:
+─────────────────────────────
+function showSuccess(data){
+  const cfg=PRODUCTS[S.product];const planName=cfg.plans.find(p=>p.id===S.plan)?.name||S.plan;
+  const tenantId=data.tenantId||'';
+  const venueId=data.venueId||data.firstVenueId||'';
+  document.getElementById('ok-summary').innerHTML=`
+    <div class="sum-row"><span>Business</span><span>${S.bn}</span></div>
+    <div class="sum-row"><span>Product</span><span>${cfg.name}</span></div>
+    <div class="sum-row"><span>Skin</span><span>${SKINS.find(s=>s.id===S.skin)?.name||S.skin}</span></div>
+    <div class="sum-row"><span>Plan</span><span>${planName}</span></div>
+    <div class="sum-row"><span>First venue</span><span>${S.vn}</span></div>
+    <div class="sum-row"><span>Login email</span><span>${S.em}</span></div>
+    <div class="sum-row"><span>Tenant ID</span><span style="font-family:monospace;font-size:11px">${tenantId||'—'}</span></div>`;
+
+  // Build settings URL with tenant + venue IDs embedded
+  const settingsUrl = `https://aiflow360.com/settings.html?tid=${encodeURIComponent(tenantId)}&vid=${encodeURIComponent(venueId)}`;
+
+  document.getElementById('ok-btn').textContent = 'Go to settings →';
+  document.getElementById('ok-btn').onclick = () => window.location.href = settingsUrl;
+
+  document.getElementById(`p${S.step}`).style.display='none';
+  document.getElementById('p-ok').style.display='block';
+  document.getElementById('prog').style.width='100%';
+  document.querySelectorAll('.step').forEach(el=>el.className='step done');
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+
+
+
+=================================================================
+PATCH 2 of 2 — settings.html
+Replace the Config block at the top of the <script> tag
+=================================================================
+
+FIND this in settings.html:
+─────────────────────────────
+// ── Config ─────────────────────────────────────────────
+const TENANT_ID  = '67549aad-9d63-4204-8b4a-4c82e3f806ba';
+const VENUE_ID   = 'faa2aa93-768e-4da9-8f4b-1b697cfe34c8';
+const API_BASE   = '/.netlify/functions/venue-config';
+const WIDGET_BASE = 'https://aiflow360.com/XPscore360/';
+let VENUE_SLUG   = 'j-m-fashions'; // updated from DB on load
+
+
+REPLACE WITH:
+─────────────────────────────
+// ── Config ─────────────────────────────────────────────
+// IDs come from URL params injected by onboarding.html
+// Fallback to hardcoded values for direct dev access
+const _p         = new URLSearchParams(location.search);
+const TENANT_ID  = _p.get('tid') || '67549aad-9d63-4204-8b4a-4c82e3f806ba';
+const VENUE_ID   = _p.get('vid') || 'faa2aa93-768e-4da9-8f4b-1b697cfe34c8';
+const API_BASE   = '/.netlify/functions/venue-config';
+const WIDGET_BASE = 'https://aiflow360.com/XPscore360/';
+let VENUE_SLUG   = 'j-m-fashions'; // updated from DB on load
+
+// Show a banner if IDs came from URL (freshly onboarded)
+if (_p.get('tid')) {
+  document.addEventListener('DOMContentLoaded', () => {
+    const banner = document.createElement('div');
+    banner.style.cssText = 'background:#1A7A4A;color:#fff;text-align:center;padding:10px 20px;font-size:13px;font-family:Geist,sans-serif;';
+    banner.textContent = '🎉 Account created! Configure your venue settings below then save.';
+    document.body.prepend(banner);
+    setTimeout(() => banner.remove(), 6000);
+  });
+}

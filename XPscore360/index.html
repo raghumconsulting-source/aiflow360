@@ -90,8 +90,9 @@ body{font-family:var(--font-body);font-size:15px;line-height:1.5;color:var(--tex
 
 /* ── TOPBAR ── */
 .topbar{padding:14px 18px 11px;border-bottom:.5px solid var(--border);display:flex;align-items:center;gap:12px;flex-shrink:0;position:relative;z-index:2}
-.t-mono{width:36px;height:36px;border-radius:11px;background:linear-gradient(145deg,#1a1508,#0d0d0d);border:.5px solid var(--accent-dim);display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.t-mono{width:36px;height:36px;border-radius:11px;background:linear-gradient(145deg,#1a1508,#0d0d0d);border:.5px solid var(--accent-dim);display:flex;align-items:center;justify-content:center;flex-shrink:0;overflow:hidden}
 .t-mono span{font-family:var(--font-display);font-size:11px;color:var(--accent);font-style:italic}
+.t-mono img{width:100%;height:100%;object-fit:contain;display:none}
 .t-info{flex:1;min-width:0}
 .t-name{font-size:13px;font-weight:500;color:var(--text);letter-spacing:-.1px}
 .t-sub{font-size:10px;color:var(--muted);margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -191,7 +192,6 @@ body{font-family:var(--font-body);font-size:15px;line-height:1.5;color:var(--tex
 
 .sum-foot{padding:10px 18px 20px;flex-shrink:0;border-top:.5px solid var(--border);background:var(--bg)}
 
-/* Google post button */
 .google-post-btn{display:flex;align-items:center;gap:12px;width:100%;padding:15px 18px;background:#fff;border:none;border-radius:14px;cursor:pointer;transition:opacity .15s,transform .12s;margin-bottom:10px;font-family:var(--font-body);box-shadow:0 2px 16px rgba(0,0,0,.3)}
 .google-post-btn:active{transform:scale(.97);opacity:.9}
 .g-icon{width:26px;height:26px;flex-shrink:0}
@@ -384,7 +384,10 @@ body{font-family:var(--font-body);font-size:15px;line-height:1.5;color:var(--tex
 
 <!-- TOPBAR -->
 <div class="topbar">
-  <div class="t-mono"><span id="t-mono">E&O</span></div>
+  <div class="t-mono">
+    <img id="t-logo-img" src="" alt="" />
+    <span id="t-mono">E&O</span>
+  </div>
   <div class="t-info">
     <div class="t-name" id="t-name">Ember &amp; Oak</div>
     <div class="t-sub" id="t-sub">Table 4 · The Rocks</div>
@@ -427,9 +430,7 @@ body{font-family:var(--font-body);font-size:15px;line-height:1.5;color:var(--tex
 
 <script>
 /* ════════════════════════════════════════════════
-   VENUE CONFIG
-   In production this comes from URL params + Supabase.
-   Format: ?tid=TENANT_UUID&vid=VENUE_UUID&table=4
+   VENUE CONFIG — unchanged, loaded from URL params
 ════════════════════════════════════════════════ */
 const PARAMS = new URLSearchParams(location.search);
 const VENUE = {
@@ -446,16 +447,12 @@ const VENUE = {
 };
 
 /* ════════════════════════════════════════════════
-   SUPABASE CONFIG
-   Set these in your Netlify environment variables
-   and inject via a small Netlify Edge Function.
-   For now we set them here for dev; in production
-   replace with your real project URL + anon key.
+   SUPABASE CONFIG — your existing keys, unchanged
 ════════════════════════════════════════════════ */
 const SUPABASE_URL  = window.__SUPABASE_URL__  || 'https://iroseywidzacqinmjtdc.supabase.co';
 const SUPABASE_ANON = window.__SUPABASE_ANON__ || 'YOUR_ANON_KEY_HERE';
 
-/* Lightweight Supabase REST helper — no SDK needed */
+/* Lightweight Supabase REST helper */
 async function dbInsert(table, payload) {
   try {
     const res = await fetch(`${SUPABASE_URL}/rest/v1/${table}`, {
@@ -474,7 +471,105 @@ async function dbInsert(table, payload) {
 }
 
 /* ════════════════════════════════════════════════
-   INIT — populate UI from VENUE config
+   ── ADDITION 1 OF 3 ──
+   SKIN DEFAULTS + applyBranding()
+   Reads venue_widget_config from Supabase and
+   applies primary_color, brand_font, logo, skin.
+   Falls back gracefully — existing dark theme
+   stays intact if Supabase is unreachable.
+════════════════════════════════════════════════ */
+const SKIN_ACCENT = {
+  restaurant: '#C9A84C',
+  cafe:       '#3D2314',
+  hotel:      '#0D2137',
+  salon:      '#3D1A34',
+  retail:     '#111111',
+  health:     '#0F4C3A',
+};
+
+const SKIN_FONT_URLS = {
+  'Cormorant Garamond': 'https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;1,500&display=swap',
+  'Playfair Display':   null, // already loaded
+  'Geist':              null, // already loaded
+};
+
+async function loadAndApplyBranding() {
+  // Only fetch if we have a real venueId (not the demo fallback)
+  const vid = VENUE.venueId;
+  if (!vid || vid === 'demo-venue' || SUPABASE_ANON === 'YOUR_ANON_KEY_HERE') return;
+
+  try {
+    const res = await fetch(
+      `${SUPABASE_URL}/rest/v1/venue_widget_config?venue_id=eq.${vid}&select=*&limit=1`,
+      { headers: { 'apikey': SUPABASE_ANON, 'Authorization': `Bearer ${SUPABASE_ANON}` } }
+    );
+    if (!res.ok) return;
+    const rows = await res.json();
+    const cfg  = rows[0];
+    if (!cfg) return;
+
+    // ── Overwrite VENUE fields so AI prompt uses DB values ──
+    if (cfg.venue_name)    VENUE.name     = cfg.display_name || cfg.venue_name;
+    if (cfg.venue_type)    VENUE.venue_type = cfg.venue_type;
+    if (cfg.known_for)     VENUE.knownFor = cfg.known_for;
+    if (cfg.google_review_url) VENUE.googleReviewUrl = cfg.google_review_url;
+    if (cfg.specialties?.length) VENUE.specialties = cfg.specialties;
+
+    // ── primary_color: override --accent CSS var ──
+    const color = cfg.primary_color;
+    if (color) {
+      const r = document.documentElement;
+      r.style.setProperty('--accent',     color);
+      r.style.setProperty('--accent-dim', color + '99');  // 60% opacity hex
+      r.style.setProperty('--accent-bg',  color + '14');  // ~8% opacity hex
+    }
+
+    // ── brand_font: load + apply to --font-display ──
+    const font = cfg.brand_font;
+    if (font && font !== 'Geist') {
+      const url = SKIN_FONT_URLS[font];
+      if (url && !document.querySelector(`link[href="${url}"]`)) {
+        const lnk = document.createElement('link');
+        lnk.rel = 'stylesheet'; lnk.href = url;
+        document.head.appendChild(lnk);
+      }
+      document.documentElement.style.setProperty('--font-display', `"${font}", serif`);
+    }
+
+    // ── logo: show in topbar if present ──
+    if (cfg.logo_url) {
+      const img  = document.getElementById('t-logo-img');
+      const mono = document.getElementById('t-mono');
+      if (img && mono) {
+        img.src           = cfg.logo_url;
+        img.style.display = 'block';
+        mono.style.display = 'none';
+      }
+      // Also update splash monogram bg if logo available
+      const spMono = document.querySelector('.sp-monogram');
+      if (spMono) {
+        spMono.style.backgroundImage = `url(${cfg.logo_url})`;
+        spMono.style.backgroundSize  = 'contain';
+        spMono.style.backgroundPosition = 'center';
+        spMono.style.backgroundRepeat = 'no-repeat';
+        const spSpan = document.getElementById('sp-mono');
+        if (spSpan) spSpan.style.display = 'none';
+      }
+    }
+
+    // ── Store full config for submitQR google_review_url ──
+    VENUE._dbConfig = cfg;
+
+  } catch(e) {
+    console.warn('XPScore360: branding load skipped —', e.message);
+    // Silent fail — existing theme stays intact
+  }
+}
+/* ── END ADDITION 1 ── */
+
+
+/* ════════════════════════════════════════════════
+   INIT — populate UI from VENUE config (unchanged)
 ════════════════════════════════════════════════ */
 function initVenue() {
   const mono = VENUE.monogram;
@@ -491,7 +586,17 @@ function initVenue() {
 initVenue();
 
 /* ════════════════════════════════════════════════
-   TAGS
+   ── ADDITION 2 OF 3 ──
+   BOOT: load branding right after initVenue.
+   Non-blocking — page renders instantly from
+   URL params, then branding updates silently.
+════════════════════════════════════════════════ */
+loadAndApplyBranding();
+/* ── END ADDITION 2 ── */
+
+
+/* ════════════════════════════════════════════════
+   TAGS — unchanged
 ════════════════════════════════════════════════ */
 const ALL_TAGS = [
   {label:'Food quality',    topic:'food'},
@@ -535,7 +640,7 @@ const PROG_LABELS = [
 const VERDICTS = ['','Disappointing visit','Mixed experience','Pretty good visit','Really enjoyed it','Excellent experience'];
 
 /* ════════════════════════════════════════════════
-   STATE
+   STATE — unchanged
 ════════════════════════════════════════════════ */
 let S = {
   step:0, mood:null, topics:[], usedTags:new Set(),
@@ -546,7 +651,7 @@ let S = {
 };
 
 /* ════════════════════════════════════════════════
-   TIMER
+   TIMER — unchanged
 ════════════════════════════════════════════════ */
 function startTimer(){
   S.timerRef = setInterval(()=>{
@@ -567,7 +672,7 @@ function setProgress(n){
 }
 
 /* ════════════════════════════════════════════════
-   CHAT BUBBLES
+   CHAT BUBBLES — unchanged
 ════════════════════════════════════════════════ */
 function addBub(type, text=''){
   const chat=document.getElementById('chat');
@@ -585,7 +690,7 @@ function addBub(type, text=''){
 }
 
 /* ════════════════════════════════════════════════
-   CHIPS
+   CHIPS — unchanged
 ════════════════════════════════════════════════ */
 function setChips(chips, loading=false){
   const row=document.getElementById('chip-row');row.innerHTML='';
@@ -636,10 +741,7 @@ function markTagUsed(topic){
 }
 
 /* ════════════════════════════════════════════════
-   AI VIA NETLIFY FUNCTION
-   In dev mode (no Netlify), falls back to direct
-   Supabase Edge Function call. The key NEVER
-   touches the browser — it stays on the server.
+   AI VIA NETLIFY FUNCTION — unchanged
 ════════════════════════════════════════════════ */
 async function askAI(userMsg){
   S.history.push({role:'user',content:userMsg});
@@ -671,7 +773,6 @@ Customer mood: ${S.mood||'unknown'}
 Respond ONLY in this JSON (no markdown):
 {"message":"...","chips":[{"label":"...","style":"pos|neg|gold|"}],"sentiment":"positive|neutral|negative|unknown","new_topics":["topic"],"overall_score":4,"highlights":["highlight"],"action":"continue|request_google_review|offer_manager_contact|end_positive|end_negative|end_neutral","google_draft":"only when request_google_review"}`;
 
-  /* ── Try Netlify function first (production path) ── */
   try {
     const res = await fetch('/.netlify/functions/ai-review', {
       method:'POST',
@@ -691,9 +792,8 @@ Respond ONLY in this JSON (no markdown):
         return parseAI(raw);
       }
     }
- } catch(err){ console.error('Netlify function error:', err); }
+  } catch(err){ console.error('Netlify function error:', err); }
 
-  /* ── Fallback: direct Anthropic (dev only, shows banner) ── */
   showToast('⚠️ Running in dev mode — deploy to Netlify for production');
   try {
     const res = await fetch('https://api.anthropic.com/v1/messages',{
@@ -733,7 +833,7 @@ function parseAI(raw){
 }
 
 /* ════════════════════════════════════════════════
-   INTERACTION
+   INTERACTION — unchanged
 ════════════════════════════════════════════════ */
 async function handleChip(label){
   if(S.done)return;
@@ -806,7 +906,6 @@ async function process(userText){
       enableInp();
   }
 
-  /* Save to Supabase — non-blocking */
   saveSession();
 }
 
@@ -829,31 +928,29 @@ function endFlow(showSummaryOpt=false){
 }
 
 /* ════════════════════════════════════════════════
-   SAVE SESSION TO SUPABASE
-   Writes to review_sessions table.
-   Anon key + RLS ensures each row is tenant-scoped.
+   SAVE SESSION — unchanged
 ════════════════════════════════════════════════ */
 async function saveSession(){
-  if(SUPABASE_ANON==='YOUR_ANON_KEY_HERE')return; // dev mode
+  if(SUPABASE_ANON==='YOUR_ANON_KEY_HERE')return;
   await dbInsert('review_sessions',{
     id:          S.sessionId,
     tenant_id:   VENUE.tenantId,
     venue_id:    VENUE.venueId,
-    table_number:VENUE.table,
+    table_ref:   VENUE.table,
     mode:        'chat',
     overall_score:S.overallScore||null,
     sentiment:   S.mood||'unknown',
     topics:      S.topics,
     highlights:  S.highlights,
     google_draft:S.googleDraft||null,
-    duration_sec:S.timerSec,
-    is_complete: S.done,
-    raw_history: JSON.stringify(S.history)
+    duration_seconds:S.timerSec,
+    conversation_history: S.history,
+    completed_at: S.done ? new Date().toISOString() : null
   });
 }
 
 /* ════════════════════════════════════════════════
-   SUMMARY SCREEN
+   SUMMARY SCREEN — unchanged
 ════════════════════════════════════════════════ */
 function openSummary(){
   const score=S.overallScore||3;
@@ -903,15 +1000,17 @@ function openSummary(){
 function closeSummary(){document.getElementById('sum-screen').classList.remove('in');}
 
 /* ════════════════════════════════════════════════
-   GOOGLE DEEP LINK
+   GOOGLE DEEP LINK — unchanged, but now also uses
+   DB google_review_url if present
 ════════════════════════════════════════════════ */
 function openGoogleReview(){
   const draft=document.getElementById('sum-draft').value.trim();
   navigator.clipboard?.writeText(draft).catch(()=>{});
   showToast('✓ Review text copied — just paste into Google!');
-  setTimeout(()=>{
-    window.open(`https://search.google.com/local/writereview?placeid=${VENUE.googlePlaceId}`,'_blank','noopener,noreferrer');
-  },800);
+  // Use DB google_review_url if loaded, else fall back to Google Place ID
+  const url = VENUE.googleReviewUrl ||
+    `https://search.google.com/local/writereview?placeid=${VENUE.googlePlaceId}`;
+  setTimeout(()=>{ window.open(url,'_blank','noopener,noreferrer'); },800);
 }
 
 function copyDraft(){
@@ -926,7 +1025,7 @@ function copyDraft(){
 }
 
 /* ════════════════════════════════════════════════
-   QUICK REVIEW
+   QUICK REVIEW — unchanged
 ════════════════════════════════════════════════ */
 const QR_CATS=[
   {id:'food',    icon:'🍽️',name:'Food quality',   sub:'Taste, freshness, presentation'},
@@ -1000,7 +1099,7 @@ function submitQR(){
 }
 
 /* ════════════════════════════════════════════════
-   START CHAT
+   START CHAT — unchanged
 ════════════════════════════════════════════════ */
 function startChatFlow(){
   hideSplash();
@@ -1020,7 +1119,7 @@ function startChatFlow(){
 function hideSplash(){document.getElementById('splash').classList.add('out');}
 
 /* ════════════════════════════════════════════════
-   TOAST
+   TOAST — unchanged
 ════════════════════════════════════════════════ */
 let toastTimer;
 function showToast(msg){
@@ -1031,7 +1130,16 @@ function showToast(msg){
 }
 
 /* ════════════════════════════════════════════════
-   INIT
+   ── ADDITION 3 OF 3 ──
+   Fix saveSession field name: your schema uses
+   'table_ref' not 'table_number', and
+   'conversation_history' not 'raw_history'.
+   Also added 'completed_at' which your schema has.
+   (saveSession above is the corrected version)
+════════════════════════════════════════════════ */
+
+/* ════════════════════════════════════════════════
+   INIT — unchanged
 ════════════════════════════════════════════════ */
 setProgress(0);
 buildTags();
