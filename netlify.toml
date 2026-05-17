@@ -1,7 +1,9 @@
 [build]
-  base    = ""
-  publish = ""
+  publish = "."
   functions = "netlify/functions"
+
+[functions]
+  node_bundler = "esbuild"
 
 [[headers]]
   for = "/*"
@@ -9,8 +11,3 @@
     X-Frame-Options = "DENY"
     X-Content-Type-Options = "nosniff"
     Referrer-Policy = "strict-origin-when-cross-origin"
-
-[[redirects]]
-  from = "/api/ai-review"
-  to   = "/.netlify/functions/ai-review"
-  status = 200

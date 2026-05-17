@@ -231,7 +231,7 @@ exports.handler = async (event) => {
       state:          body.venue?.address?.state,
       postcode:       body.venue?.address?.postcode,
       country:        'AU',
-      google_place_id: body.venue?.googlePlaceId || null,
+      google_review_url: body.venue?.googlePlaceId || null,
       display_name:   body.displayName || body.bizName,
       venue_type:     body.venue?.type,
       specialties:    body.venue?.specialties || [],
