@@ -6,6 +6,7 @@
 <title>XPscore360 — Venue Settings</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;1,400&family=Geist:wght@300;400;500&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 :root{
@@ -288,6 +289,83 @@ body{font-family:'Geist',sans-serif;font-size:15px;line-height:1.6;color:var(--t
 .empty{text-align:center;padding:40px 20px;color:var(--muted)}
 .empty p{font-size:13px;margin-top:6px}
 
+/* Venue selector bar */
+.venue-bar{
+  display:flex;align-items:center;justify-content:space-between;
+  gap:12px;margin-bottom:24px;flex-wrap:wrap;
+  padding:14px 18px;background:var(--bg);
+  border:1px solid var(--border);border-radius:12px;
+}
+.venue-bar-left{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.venue-select-wrap{display:flex;align-items:center;gap:8px}
+.venue-select-lbl{font-size:12px;font-weight:500;color:var(--muted)}
+.venue-picker{
+  background:var(--surface);border:1px solid var(--border-d);border-radius:8px;
+  padding:8px 14px;font-size:13px;font-weight:500;color:var(--text);
+  font-family:'Geist',sans-serif;outline:none;cursor:pointer;
+  appearance:none;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='7' viewBox='0 0 12 7'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%23888880' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+  background-repeat:no-repeat;background-position:right 12px center;padding-right:32px;
+  min-width:200px;
+}
+.venue-picker:focus{border-color:var(--accent)}
+.add-venue-btn{
+  display:flex;align-items:center;gap:6px;padding:8px 16px;
+  background:var(--accent);color:#fff;border:none;border-radius:8px;
+  font-family:'Geist',sans-serif;font-size:13px;font-weight:500;
+  cursor:pointer;transition:opacity .15s;white-space:nowrap;
+}
+.add-venue-btn:hover{opacity:.85}
+
+/* Add venue modal */
+.modal-overlay{
+  position:fixed;inset:0;background:rgba(15,15,13,.5);
+  display:none;align-items:center;justify-content:center;z-index:999;
+  backdrop-filter:blur(4px);
+}
+.modal-overlay.show{display:flex}
+.modal{
+  background:var(--bg);border:1px solid var(--border);border-radius:16px;
+  padding:28px;width:90%;max-width:480px;
+  animation:up .25s cubic-bezier(.32,1,.5,1) both;
+}
+@keyframes up{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:none}}
+.modal-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px}
+.modal-title{font-size:17px;font-weight:500;letter-spacing:-.01em}
+.modal-close{width:28px;height:28px;border-radius:6px;border:1px solid var(--border);
+  background:transparent;cursor:pointer;font-size:14px;color:var(--muted);
+  display:flex;align-items:center;justify-content:center;transition:all .15s}
+.modal-close:hover{border-color:var(--red);color:var(--red)}
+.modal-field{margin-bottom:16px}
+.modal-label{font-size:12px;font-weight:500;color:var(--muted);margin-bottom:6px;display:block;letter-spacing:.02em}
+.modal-inp{
+  width:100%;background:var(--surface);border:1px solid var(--border);
+  border-radius:8px;padding:10px 14px;font-size:14px;color:var(--text);
+  font-family:'Geist',sans-serif;outline:none;transition:border-color .15s;
+}
+.modal-inp:focus{border-color:var(--accent)}
+.modal-inp::placeholder{color:var(--muted);opacity:.5}
+.modal-select{
+  width:100%;background:var(--surface);border:1px solid var(--border);
+  border-radius:8px;padding:10px 14px;font-size:14px;color:var(--text);
+  font-family:'Geist',sans-serif;outline:none;cursor:pointer;appearance:none;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='7' viewBox='0 0 12 7'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%23888880' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+  background-repeat:no-repeat;background-position:right 14px center;padding-right:36px;
+}
+.modal-select:focus{border-color:var(--accent)}
+.modal-row{display:flex;gap:10px}
+.modal-row .modal-field{flex:1}
+.modal-foot{display:flex;gap:10px;justify-content:flex-end;margin-top:20px;padding-top:16px;border-top:1px solid var(--border)}
+.modal-cancel{padding:10px 20px;border:1px solid var(--border);border-radius:8px;
+  background:transparent;font-family:'Geist',sans-serif;font-size:14px;
+  color:var(--muted);cursor:pointer;transition:all .15s}
+.modal-cancel:hover{border-color:var(--border-d);color:var(--text)}
+.modal-submit{padding:10px 20px;background:var(--accent);color:#fff;border:none;
+  border-radius:8px;font-family:'Geist',sans-serif;font-size:14px;font-weight:500;
+  cursor:pointer;transition:opacity .15s;display:flex;align-items:center;gap:6px}
+.modal-submit:hover{opacity:.85}
+.modal-submit:disabled{opacity:.4;cursor:default}
+
 /* NFC URL row */
 .nfc-url-row{
   display:flex;align-items:center;gap:8px;
@@ -314,15 +392,64 @@ body{font-family:'Geist',sans-serif;font-size:15px;line-height:1.6;color:var(--t
 <body>
 <div class="shell">
 
+  <!-- Add venue modal -->
+  <div class="modal-overlay" id="add-venue-modal">
+    <div class="modal">
+      <div class="modal-head">
+        <div class="modal-title">Add new venue</div>
+        <button class="modal-close" onclick="closeModal()">✕</button>
+      </div>
+      <div class="modal-field">
+        <label class="modal-label">Venue name *</label>
+        <input class="modal-inp" id="nv-name" placeholder="e.g. Castle Hill Green Cafe — Level 2"/>
+      </div>
+      <div class="modal-field">
+        <label class="modal-label">Venue type</label>
+        <select class="modal-select" id="nv-type">
+          <option value="restaurant">Restaurant</option>
+          <option value="cafe">Cafe</option>
+          <option value="bar">Bar / Pub</option>
+          <option value="hotel">Hotel / Accommodation</option>
+          <option value="retail">Retail store</option>
+          <option value="health">Health & Beauty</option>
+          <option value="other">Other</option>
+        </select>
+      </div>
+      <div class="modal-row">
+        <div class="modal-field">
+          <label class="modal-label">Suburb</label>
+          <input class="modal-inp" id="nv-suburb" placeholder="Castle Hill"/>
+        </div>
+        <div class="modal-field">
+          <label class="modal-label">State</label>
+          <select class="modal-select" id="nv-state">
+            <option>NSW</option><option>VIC</option><option>QLD</option>
+            <option>WA</option><option>SA</option><option>TAS</option>
+            <option>ACT</option><option>NT</option>
+          </select>
+        </div>
+      </div>
+      <div class="modal-field">
+        <label class="modal-label">Google Review Link</label>
+        <input class="modal-inp" id="nv-review-url" placeholder="https://g.page/r/xxx/review"/>
+      </div>
+      <div class="modal-foot">
+        <button class="modal-cancel" onclick="closeModal()">Cancel</button>
+        <button class="modal-submit" id="add-venue-submit" onclick="createVenue()">
+          Create venue →
+        </button>
+      </div>
+    </div>
+  </div>
+
   <!-- Page header -->
   <div class="page-header">
     <div class="page-title-group">
+      <a href="/xpscore360-app/dashboard.html" style="display:inline-flex;align-items:center;gap:5px;font-size:12px;color:var(--muted);text-decoration:none;margin-bottom:10px;transition:color .15s" onmouseover="this.style.color='var(--text)'" onmouseout="this.style.color='var(--muted)'">
+        ← Back to dashboard
+      </a>
       <div class="page-eyebrow">Venue configuration</div>
       <h1 class="page-title">Experience<br><em>settings</em></h1>
-      <div class="venue-badge">
-        <div class="venue-dot"></div>
-        <span id="venue-name-badge">Loading venue...</span>
-      </div>
     </div>
     <div style="display:flex;flex-direction:column;align-items:flex-end">
       <button class="save-btn" id="save-btn" onclick="saveAll()">
@@ -330,6 +457,25 @@ body{font-family:'Geist',sans-serif;font-size:15px;line-height:1.6;color:var(--t
       </button>
       <div class="save-status" id="save-status">✓ Saved successfully</div>
     </div>
+  </div>
+
+  <!-- Venue selector bar -->
+  <div class="venue-bar">
+    <div class="venue-bar-left">
+      <div class="venue-select-wrap">
+        <span class="venue-select-lbl">Venue:</span>
+        <select class="venue-picker" id="venue-picker" onchange="onVenuePick()">
+          <option value="">Loading...</option>
+        </select>
+      </div>
+      <div class="venue-badge" style="margin:0">
+        <div class="venue-dot"></div>
+        <span id="venue-name-badge">Loading...</span>
+      </div>
+    </div>
+    <button class="add-venue-btn" onclick="openModal()">
+      + Add new venue
+    </button>
   </div>
 
   <!-- Tabs -->
@@ -494,21 +640,94 @@ body{font-family:'Geist',sans-serif;font-size:15px;line-height:1.6;color:var(--t
 
 <script>
 // ── Config ─────────────────────────────────────────────
-const TENANT_ID  = '67549aad-9d63-4204-8b4a-4c82e3f806ba';
-const VENUE_ID   = 'faa2aa93-768e-4da9-8f4b-1b697cfe34c8';
-const API_BASE   = '/.netlify/functions/venue-config';
+const SUPABASE_URL = 'https://iroseywidzacqinmjtdc.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imlyb3NleXdpZHphY3Fpbm1qdGRjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg5MTgwMTQsImV4cCI6MjA5NDQ5NDAxNH0.x66R6jOUcU8eaXxxXL2OtUX9rJ3ddntQTYLrOdnpzOk';
+const API_BASE    = '/.netlify/functions/venue-config';
 const WIDGET_BASE = 'https://aiflow360.com/XPscore360/';
-let VENUE_SLUG   = 'j-m-fashions'; // updated from DB on load
+
+// Dynamic — loaded from auth session
+let TENANT_ID  = '';
+let VENUE_ID   = '';
+let VENUE_SLUG = '';
+let ALL_VENUES = [];
 
 // ── State ──────────────────────────────────────────────
 let state = {
-  tables:      [],   // venue_tables rows
-  questions:   [],   // venue_ai_config.icebreaker_questions
-  tags:        [],   // tag_bank rows
-  actions:     [],   // recovery_actions rows
-  aiConfig:    {},   // venue_ai_config row
+  tables:      [],
+  questions:   [],
+  tags:        [],
+  actions:     [],
+  aiConfig:    {},
   dirty:       false,
 };
+
+// ── Bootstrap — load tenant from session ──────────────
+async function bootstrap() {
+  try {
+    const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+    const { data: { session } } = await sb.auth.getSession();
+
+    if (!session) {
+      window.location.href = '/xpscore360-app/dashboard.html';
+      return;
+    }
+
+    // Get tenant + venues via get-tenant function
+    const res = await fetch(`/.netlify/functions/get-tenant?user_id=${session.user.id}&email=${encodeURIComponent(session.user.email)}`);
+    if (!res.ok) throw new Error('Failed to load account');
+    const data = await res.json();
+
+    if (!data.tenant) {
+      window.location.href = '/xpscore360-app/dashboard.html';
+      return;
+    }
+
+    TENANT_ID  = data.tenant.id;
+    ALL_VENUES = data.venues || [];
+
+    console.log('Tenant loaded:', TENANT_ID);
+    console.log('Venues:', ALL_VENUES.length, ALL_VENUES.map(v=>v.name));
+
+    // Populate venue picker
+    const picker = document.getElementById('venue-picker');
+    if (ALL_VENUES.length === 0) {
+      picker.innerHTML = '<option value="">No venues found</option>';
+      document.getElementById('venue-name-badge').textContent = 'No venues — add one below';
+      toast('No venues found for this account. Add a venue to get started.', 'ok');
+      return;
+    }
+
+    picker.innerHTML = ALL_VENUES.map(v =>
+      `<option value="${v.id}">${v.display_name || v.name}</option>`
+    ).join('');
+
+    // Select first venue
+    VENUE_ID   = ALL_VENUES[0].id;
+    VENUE_SLUG = ALL_VENUES[0].slug || '';
+    picker.value = VENUE_ID;
+
+    await loadAll();
+  } catch(err) {
+    console.error('Bootstrap error:', err);
+    toast('Failed to load: ' + err.message, 'err');
+    // Show fallback with hardcoded IDs for testing
+    document.getElementById('venue-name-badge').textContent = 'Auth error — check console';
+  }
+}
+
+function onVenuePick() {
+  const id = document.getElementById('venue-picker').value;
+  const v  = ALL_VENUES.find(v => v.id === id);
+  if (!v) return;
+  VENUE_ID   = v.id;
+  VENUE_SLUG = v.slug || '';
+  if (state.dirty && !confirm('You have unsaved changes. Switch venue anyway?')) {
+    document.getElementById('venue-picker').value = VENUE_ID;
+    return;
+  }
+  state.dirty = false;
+  loadAll();
+}
 
 // ── API helper — routes through Netlify function ───────
 async function api(method, body) {
@@ -523,6 +742,67 @@ async function api(method, body) {
     throw new Error(err.error || `API error ${res.status}`);
   }
   return res.json();
+}
+
+// ── Add venue modal ────────────────────────────────────
+function openModal()  { document.getElementById('add-venue-modal').classList.add('show'); }
+function closeModal() { document.getElementById('add-venue-modal').classList.remove('show'); }
+
+async function createVenue() {
+  const name = document.getElementById('nv-name').value.trim();
+  if (!name) { toast('Venue name is required', 'err'); return; }
+  if (!TENANT_ID) { toast('Session not loaded yet — please wait and try again', 'err'); return; }
+
+  const btn = document.getElementById('add-venue-submit');
+  btn.disabled = true; btn.textContent = 'Creating...';
+
+  try {
+    const slug = name.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'');
+    const type = document.getElementById('nv-type').value;
+    const suburb = document.getElementById('nv-suburb').value.trim();
+    const state2 = document.getElementById('nv-state').value;
+    const reviewUrl = document.getElementById('nv-review-url').value.trim();
+
+    // Create venue via Netlify function
+    const res = await fetch('/.netlify/functions/add-venue', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        tenant_id: TENANT_ID,
+        name, slug, venue_type: type,
+        suburb, state: state2,
+        google_review_url: reviewUrl || null,
+      }),
+    });
+    if (!res.ok) {
+      const e = await res.json();
+      throw new Error(e.error || 'Failed to create venue');
+    }
+    const { venue } = await res.json();
+
+    // Add to local list + picker
+    ALL_VENUES.push(venue);
+    const picker = document.getElementById('venue-picker');
+    picker.insertAdjacentHTML('beforeend',
+      `<option value="${venue.id}">${venue.display_name || venue.name}</option>`
+    );
+
+    // Switch to new venue
+    VENUE_ID   = venue.id;
+    VENUE_SLUG = venue.slug || '';
+    picker.value = VENUE_ID;
+
+    closeModal();
+    document.getElementById('nv-name').value = '';
+    document.getElementById('nv-suburb').value = '';
+    document.getElementById('nv-review-url').value = '';
+    toast('Venue created — loading config...', 'ok');
+    await loadAll();
+  } catch(err) {
+    toast(err.message, 'err');
+  } finally {
+    btn.disabled = false; btn.textContent = 'Create venue →';
+  }
 }
 
 // ── Toast ──────────────────────────────────────────────

@@ -1,0 +1,458 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>XPscore360 — Account & Profile</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;1,400&family=Geist:wght@300;400;500&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#FFFFFF;--surface:#F7F7F5;--border:rgba(0,0,0,0.08);--border-d:rgba(0,0,0,0.14);
+  --text:#0F0F0D;--muted:#888880;--faint:#F0F0EC;--accent:#0F0F0D;
+  --green:#1A7A4A;--green-bg:#EAF3DE;--green-t:#3B6D11;
+  --red:#C94C4C;--red-bg:#FCEBEB;--red-t:#A32D2D;
+  --amber:#BA7517;--amber-bg:#FAEEDA;--amber-t:#633806;
+  --teal:#00C2A8;--r:10px;--rl:14px;--pill:999px;
+}
+html,body{min-height:100vh;background:var(--surface)}
+body{font-family:'Geist',sans-serif;font-size:14px;color:var(--text);line-height:1.5}
+.shell{max-width:760px;margin:0 auto;padding:40px 24px 80px}
+.back{display:inline-flex;align-items:center;gap:5px;font-size:12px;color:var(--muted);text-decoration:none;margin-bottom:20px;transition:color .15s}
+.back:hover{color:var(--text)}
+.page-eyebrow{font-size:11px;font-weight:500;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:6px}
+.page-title{font-family:'Playfair Display',serif;font-size:32px;line-height:1.1;letter-spacing:-.02em;margin-bottom:28px}
+.page-title em{font-style:italic;color:var(--muted)}
+
+/* Sections */
+.section{margin-bottom:24px}
+.section-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
+.section-title{font-size:14px;font-weight:500}
+.section-sub{font-size:12px;color:var(--muted);margin-top:2px}
+
+.card{background:var(--bg);border:1px solid var(--border);border-radius:var(--rl);padding:20px;margin-bottom:16px}
+
+/* Form */
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px}
+@media(max-width:560px){.grid2{grid-template-columns:1fr}}
+.grid1{margin-bottom:16px}
+.field{display:flex;flex-direction:column;gap:6px}
+.field label{font-size:12px;font-weight:500;color:var(--muted);letter-spacing:.02em}
+.inp{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:10px 14px;font-size:14px;color:var(--text);font-family:'Geist',sans-serif;outline:none;transition:border-color .15s;width:100%}
+.inp:focus{border-color:var(--accent)}
+.inp::placeholder{color:var(--muted);opacity:.5}
+.inp:disabled{opacity:.5;cursor:default}
+.inp-hint{font-size:11px;color:var(--muted);margin-top:-2px}
+
+/* Buttons */
+.btn-row{display:flex;gap:10px;align-items:center;margin-top:4px;flex-wrap:wrap}
+.btn-primary{padding:10px 22px;background:var(--accent);color:#fff;border:none;border-radius:var(--r);font-family:'Geist',sans-serif;font-size:13px;font-weight:500;cursor:pointer;transition:opacity .15s;display:flex;align-items:center;gap:6px}
+.btn-primary:hover{opacity:.85}
+.btn-primary:disabled{opacity:.35;cursor:default}
+.btn-ghost{padding:10px 18px;background:transparent;color:var(--muted);border:1px solid var(--border);border-radius:var(--r);font-family:'Geist',sans-serif;font-size:13px;cursor:pointer;transition:all .15s}
+.btn-ghost:hover{color:var(--text);border-color:var(--border-d)}
+.btn-danger{padding:10px 18px;background:var(--red-bg);color:var(--red);border:1px solid rgba(201,76,76,.2);border-radius:var(--r);font-family:'Geist',sans-serif;font-size:13px;font-weight:500;cursor:pointer;transition:all .15s}
+.btn-danger:hover{background:var(--red);color:#fff}
+
+/* Plan card */
+.plan-row{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:16px}
+@media(max-width:560px){.plan-row{grid-template-columns:1fr}}
+.plan-card{border:1.5px solid var(--border);border-radius:var(--r);padding:16px;cursor:pointer;transition:all .2s;position:relative}
+.plan-card.current{border-color:var(--accent);border-width:1.5px}
+.plan-card:hover:not(.current){border-color:var(--border-d);transform:translateY(-1px)}
+.plan-badge{font-size:10px;font-weight:600;padding:2px 8px;border-radius:var(--pill);background:var(--accent);color:#fff;margin-bottom:10px;display:inline-block}
+.plan-name{font-size:15px;font-weight:500;margin-bottom:3px}
+.plan-price{font-size:22px;font-weight:500;margin-bottom:3px}
+.plan-price span{font-size:12px;font-weight:400;color:var(--muted)}
+.plan-desc{font-size:11px;color:var(--muted);line-height:1.5}
+
+/* Usage bars */
+.usage-row{display:flex;align-items:center;gap:10px;margin-bottom:8px}
+.usage-lbl{font-size:12px;color:var(--muted);width:72px;flex-shrink:0}
+.usage-track{flex:1;background:var(--surface);border-radius:3px;height:6px;overflow:hidden}
+.usage-fill{height:100%;border-radius:3px;background:var(--accent);transition:width 1s ease}
+.usage-val{font-size:12px;color:var(--muted);width:64px;text-align:right;flex-shrink:0}
+
+/* Danger zone */
+.danger-card{background:var(--red-bg);border:1px solid rgba(201,76,76,.2);border-radius:var(--rl);padding:20px}
+.danger-title{font-size:14px;font-weight:500;color:var(--red);margin-bottom:6px}
+.danger-sub{font-size:12px;color:var(--muted);margin-bottom:14px;line-height:1.5}
+
+/* Tags */
+.pill{font-size:10px;font-weight:500;padding:3px 8px;border-radius:var(--pill)}
+.pg{background:var(--green-bg);color:var(--green-t)}
+.pa{background:var(--amber-bg);color:var(--amber-t)}
+.pr{background:var(--red-bg);color:var(--red-t)}
+
+/* Toast */
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(12px);background:var(--text);color:#fff;padding:11px 20px;border-radius:8px;font-size:13px;z-index:999;white-space:nowrap;opacity:0;pointer-events:none;transition:all .25s}
+.toast.ok{background:var(--green)}.toast.err{background:var(--red)}.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+.spinner{width:14px;height:14px;border:2px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite;display:inline-block}
+@keyframes spin{to{transform:rotate(360deg)}}
+</style>
+</head>
+<body>
+<div class="shell">
+
+  <a href="/xpscore360-app/dashboard.html" class="back">← Back to dashboard</a>
+  <div class="page-eyebrow">Account</div>
+  <h1 class="page-title">Profile &amp;<br><em>settings</em></h1>
+
+  <!-- ── Personal details ──────────────────────────── -->
+  <div class="section">
+    <div class="section-head">
+      <div>
+        <div class="section-title">Personal details</div>
+        <div class="section-sub">Your name and contact information</div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="grid2">
+        <div class="field"><label>Full name</label><input class="inp" id="p-name" placeholder="Your name"/></div>
+        <div class="field"><label>Phone</label><input class="inp" id="p-phone" placeholder="+61 4XX XXX XXX" type="tel"/></div>
+      </div>
+      <div class="grid2">
+        <div class="field"><label>Job title</label><input class="inp" id="p-title" placeholder="Owner / Manager"/></div>
+        <div class="field"><label>Email <span style="color:var(--muted);font-weight:400">(login)</span></label><input class="inp" id="p-email" placeholder="your@email.com" type="email"/><span class="inp-hint">Changing email sends a verification link</span></div>
+      </div>
+      <div class="btn-row">
+        <button class="btn-primary" id="save-personal-btn" onclick="savePersonal()">Save personal details</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Business details ──────────────────────────── -->
+  <div class="section">
+    <div class="section-head">
+      <div>
+        <div class="section-title">Business details</div>
+        <div class="section-sub">Your company information and billing address</div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="grid1">
+        <div class="field"><label>Business name</label><input class="inp" id="b-name" placeholder="Your business name"/></div>
+      </div>
+      <div class="grid2">
+        <div class="field"><label>ABN</label><input class="inp" id="b-abn" placeholder="XX XXX XXX XXX"/></div>
+        <div class="field"><label>Business type</label>
+          <select class="inp" id="b-type">
+            <option value="">Select...</option>
+            <option>Restaurant</option><option>Cafe</option><option>Bar / Pub</option>
+            <option>Hotel</option><option>Retail</option><option>Health & Beauty</option>
+            <option>Healthcare</option><option>Professional Services</option><option>Other</option>
+          </select>
+        </div>
+      </div>
+      <div class="grid2">
+        <div class="field"><label>Website</label><input class="inp" id="b-website" placeholder="https://yourbusiness.com.au" type="url"/></div>
+        <div class="field"><label>Contact email</label><input class="inp" id="b-email" placeholder="hello@business.com.au" type="email"/></div>
+      </div>
+      <div class="grid1">
+        <div class="field"><label>Street address</label><input class="inp" id="b-addr" placeholder="123 Main Street"/></div>
+      </div>
+      <div class="grid2">
+        <div class="field"><label>Suburb</label><input class="inp" id="b-suburb" placeholder="Sydney"/></div>
+        <div class="field"><label>State</label>
+          <select class="inp" id="b-state">
+            <option value="">State</option>
+            <option>NSW</option><option>VIC</option><option>QLD</option>
+            <option>WA</option><option>SA</option><option>TAS</option><option>ACT</option><option>NT</option>
+          </select>
+        </div>
+      </div>
+      <div class="btn-row">
+        <button class="btn-primary" id="save-business-btn" onclick="saveBusiness()">Save business details</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Plan & usage ──────────────────────────────── -->
+  <div class="section">
+    <div class="section-head">
+      <div>
+        <div class="section-title">Plan &amp; usage</div>
+        <div class="section-sub" id="plan-sub">Loading...</div>
+      </div>
+      <span class="pill pg" id="plan-badge">—</span>
+    </div>
+    <div class="card">
+      <div class="plan-row" id="plan-cards">
+        <!-- injected -->
+      </div>
+      <div style="margin-bottom:16px">
+        <div class="usage-row"><div class="usage-lbl">Sessions</div><div class="usage-track"><div class="usage-fill" id="u1" style="width:0%"></div></div><div class="usage-val" id="uv1">—</div></div>
+        <div class="usage-row"><div class="usage-lbl">Tokens</div><div class="usage-track"><div class="usage-fill" id="u2" style="width:0%"></div></div><div class="usage-val" id="uv2">—</div></div>
+        <div class="usage-row"><div class="usage-lbl">Venues</div><div class="usage-track"><div class="usage-fill" id="u3" style="width:0%"></div></div><div class="usage-val" id="uv3">—</div></div>
+      </div>
+      <div class="btn-row">
+        <button class="btn-primary" onclick="window.location.href='/onboarding.html?product=xpscore360&step=plan'">Upgrade plan →</button>
+        <button class="btn-ghost" id="cancel-btn" onclick="cancelSubscription()">Cancel subscription</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Payment ───────────────────────────────────── -->
+  <div class="section">
+    <div class="section-head">
+      <div>
+        <div class="section-title">Payment method</div>
+        <div class="section-sub">Managed securely via Stripe</div>
+      </div>
+    </div>
+    <div class="card">
+      <div id="payment-info" style="font-size:13px;color:var(--muted);margin-bottom:16px">Loading payment details...</div>
+      <div class="btn-row">
+        <button class="btn-primary" onclick="openStripePortal()">Manage payment →</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Danger zone ───────────────────────────────── -->
+  <div class="section">
+    <div class="section-head">
+      <div>
+        <div class="section-title">Danger zone</div>
+        <div class="section-sub">Irreversible actions</div>
+      </div>
+    </div>
+    <div class="danger-card">
+      <div class="danger-title">Delete account</div>
+      <div class="danger-sub">Permanently delete your account, all venues, all review data, and cancel your subscription. This cannot be undone.</div>
+      <button class="btn-danger" onclick="deleteAccount()">Delete my account</button>
+    </div>
+  </div>
+
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+const SUPABASE_URL = 'https://iroseywidzacqinmjtdc.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imlyb3NleXdpZHphY3Fpbm1qdGRjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg5MTgwMTQsImV4cCI6MjA5NDQ5NDAxNH0.x66R6jOUcU8eaXxxXL2OtUX9rJ3ddntQTYLrOdnpzOk';
+
+let SESSION = null, TENANT = null, USER_ROW = null, VENUES = [];
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+// ── Toast ──────────────────────────────────────────
+let tT;
+function toast(msg, type='ok'){
+  const el=document.getElementById('toast');
+  el.textContent=msg; el.className=`toast ${type} show`;
+  clearTimeout(tT); tT=setTimeout(()=>el.classList.remove('show'),3500);
+}
+
+// ── Init ───────────────────────────────────────────
+async function init() {
+  const { data: { session } } = await sb.auth.getSession();
+  if (!session) { window.location.href='/xpscore360-app/dashboard.html'; return; }
+  SESSION = session;
+
+  const res = await fetch(`/.netlify/functions/get-tenant?user_id=${session.user.id}&email=${encodeURIComponent(session.user.email)}`);
+  const data = await res.json();
+  if (!data.tenant) { window.location.href='/xpscore360-app/dashboard.html'; return; }
+
+  TENANT  = data.tenant;
+  VENUES  = data.venues || [];
+
+  // Also get user row
+  const { data: userRow } = await sb.from('users').select('*').eq('id', session.user.id).maybeSingle();
+  USER_ROW = userRow;
+
+  populatePersonal();
+  populateBusiness();
+  populatePlan();
+  loadPayment();
+}
+
+function populatePersonal() {
+  document.getElementById('p-name').value  = USER_ROW?.full_name || SESSION.user.user_metadata?.full_name || '';
+  document.getElementById('p-phone').value = USER_ROW?.phone     || '';
+  document.getElementById('p-title').value = USER_ROW?.job_title || '';
+  document.getElementById('p-email').value = SESSION.user.email  || '';
+}
+
+function populateBusiness() {
+  if (!TENANT) return;
+  document.getElementById('b-name').value   = TENANT.name          || '';
+  document.getElementById('b-abn').value    = TENANT.abn           || '';
+  document.getElementById('b-type').value   = TENANT.business_type || '';
+  document.getElementById('b-website').value= TENANT.website_url   || '';
+  document.getElementById('b-email').value  = TENANT.contact_email || '';
+  document.getElementById('b-addr').value   = TENANT.address_line1 || '';
+  document.getElementById('b-suburb').value = TENANT.suburb        || '';
+  document.getElementById('b-state').value  = TENANT.state         || '';
+}
+
+function populatePlan() {
+  const plan = TENANT?.current_plan || 'free';
+  const planLabel = plan.charAt(0).toUpperCase() + plan.slice(1);
+  document.getElementById('plan-badge').textContent = planLabel + ' plan';
+  document.getElementById('plan-badge').className = `pill ${plan==='business'?'pg':plan==='pro'?'pa':'pr'}`;
+
+  const month = new Date().toLocaleString('default',{month:'long',year:'numeric'});
+  document.getElementById('plan-sub').textContent = `${planLabel} plan · ${month}`;
+
+  const PLANS = [
+    { id:'free',     name:'Free',     price:'$0',   per:'/mo',     desc:'1 venue · 100 sessions' },
+    { id:'pro',      name:'Pro',      price:'$49',  per:'/mo AUD', desc:'3 venues · 1,000 sessions' },
+    { id:'business', name:'Business', price:'$149', per:'/mo AUD', desc:'Unlimited venues & sessions' },
+  ];
+
+  document.getElementById('plan-cards').innerHTML = PLANS.map(p => `
+    <div class="plan-card ${plan===p.id?'current':''}">
+      ${plan===p.id?'<div class="plan-badge">Current</div>':''}
+      <div class="plan-name">${p.name}</div>
+      <div class="plan-price">${p.price}<span> ${p.per}</span></div>
+      <div class="plan-desc">${p.desc}</div>
+    </div>`).join('');
+
+  // Usage bars
+  const sess    = TENANT?.sessions_this_month || 0;
+  const maxSess = TENANT?.plan_sessions_pm    || 100;
+  const tok     = TENANT?.tokens_this_month   || 0;
+  const maxTok  = TENANT?.plan_tokens_pm      || 50000;
+  const ven     = VENUES.length;
+  const maxVen  = TENANT?.plan_venues         || 1;
+
+  const fmtTok = n => n>=1000 ? Math.round(n/1000)+'k' : String(n);
+  setTimeout(()=>{
+    document.getElementById('u1').style.width = Math.min(sess/maxSess*100,100)+'%';
+    document.getElementById('u2').style.width = Math.min(tok/maxTok*100,100)+'%';
+    document.getElementById('u3').style.width = Math.min(ven/maxVen*100,100)+'%';
+  }, 200);
+  document.getElementById('uv1').textContent = `${sess} / ${maxSess}`;
+  document.getElementById('uv2').textContent = `${fmtTok(tok)} / ${fmtTok(maxTok)}`;
+  document.getElementById('uv3').textContent = `${ven} / ${maxVen}`;
+}
+
+async function loadPayment() {
+  const el = document.getElementById('payment-info');
+  if (!TENANT?.stripe_customer_id) {
+    el.textContent = 'No payment method on file — free plan.';
+    return;
+  }
+  try {
+    const res = await fetch(`/.netlify/functions/account?action=payment&tenant_id=${TENANT.id}`);
+    if (res.ok) {
+      const d = await res.json();
+      if (d.card) {
+        el.innerHTML = `<strong>${d.card.brand.toUpperCase()}</strong> ending in ${d.card.last4} · expires ${d.card.exp_month}/${d.card.exp_year}`;
+      } else {
+        el.textContent = 'No payment method on file.';
+      }
+    }
+  } catch { el.textContent = 'Payment info unavailable.'; }
+}
+
+// ── Save personal ──────────────────────────────────
+async function savePersonal() {
+  const btn = document.getElementById('save-personal-btn');
+  btn.disabled = true; btn.innerHTML = '<div class="spinner"></div> Saving...';
+
+  try {
+    const name  = document.getElementById('p-name').value.trim();
+    const phone = document.getElementById('p-phone').value.trim();
+    const title = document.getElementById('p-title').value.trim();
+    const email = document.getElementById('p-email').value.trim();
+
+    // Update auth email if changed
+    if (email && email !== SESSION.user.email) {
+      const { error } = await sb.auth.updateUser({ email });
+      if (error) throw new Error('Email update failed: ' + error.message);
+      toast('Verification email sent to ' + email, 'ok');
+    }
+
+    // Update users table via account function
+    const res = await fetch('/.netlify/functions/account', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        action: 'update_user',
+        user_id: SESSION.user.id,
+        full_name: name, phone, job_title: title,
+      }),
+    });
+    if (!res.ok) throw new Error('Save failed');
+
+    toast('Personal details saved', 'ok');
+  } catch(e) { toast(e.message, 'err'); }
+  finally { btn.disabled=false; btn.textContent='Save personal details'; }
+}
+
+// ── Save business ──────────────────────────────────
+async function saveBusiness() {
+  const btn = document.getElementById('save-business-btn');
+  btn.disabled = true; btn.innerHTML = '<div class="spinner"></div> Saving...';
+
+  try {
+    const res = await fetch('/.netlify/functions/account', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        action:       'update_tenant',
+        tenant_id:    TENANT.id,
+        name:         document.getElementById('b-name').value.trim(),
+        abn:          document.getElementById('b-abn').value.trim(),
+        business_type:document.getElementById('b-type').value,
+        website_url:  document.getElementById('b-website').value.trim(),
+        contact_email:document.getElementById('b-email').value.trim(),
+        address_line1:document.getElementById('b-addr').value.trim(),
+        suburb:       document.getElementById('b-suburb').value.trim(),
+        state:        document.getElementById('b-state').value,
+      }),
+    });
+    if (!res.ok) throw new Error('Save failed');
+    toast('Business details saved', 'ok');
+  } catch(e) { toast(e.message, 'err'); }
+  finally { btn.disabled=false; btn.textContent='Save business details'; }
+}
+
+// ── Stripe portal ──────────────────────────────────
+async function openStripePortal() {
+  try {
+    const res = await fetch(`/.netlify/functions/account?action=billing_portal&tenant_id=${TENANT.id}`);
+    const d   = await res.json();
+    if (d.url) window.location.href = d.url;
+    else toast('Payment portal unavailable — Stripe not yet configured', 'err');
+  } catch { toast('Could not open payment portal', 'err'); }
+}
+
+// ── Cancel subscription ────────────────────────────
+async function cancelSubscription() {
+  if (!confirm('Cancel your subscription? You will keep access until the end of your billing period.')) return;
+  try {
+    const res = await fetch('/.netlify/functions/account', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'cancel', tenant_id: TENANT.id }),
+    });
+    const d = await res.json();
+    if (d.success) toast('Subscription cancelled. Access continues until billing period ends.', 'ok');
+    else toast(d.error || 'Cancellation failed', 'err');
+  } catch { toast('Cancellation failed — please contact support', 'err'); }
+}
+
+// ── Delete account ─────────────────────────────────
+async function deleteAccount() {
+  const confirmed = prompt('Type DELETE to permanently delete your account:');
+  if (confirmed !== 'DELETE') { toast('Account not deleted', 'ok'); return; }
+  try {
+    const res = await fetch('/.netlify/functions/account', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'delete_account', tenant_id: TENANT.id, user_id: SESSION.user.id }),
+    });
+    const d = await res.json();
+    if (d.success) {
+      await sb.auth.signOut();
+      window.location.href = '/';
+    } else toast(d.error || 'Deletion failed', 'err');
+  } catch { toast('Deletion failed — please contact support', 'err'); }
+}
+
+init();
+</script>
+</body>
+</html>

@@ -390,7 +390,24 @@ canvas{display:block;width:100%!important}
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M3 21v-5h5"/></svg>
         Refresh AI
       </button>
-      <div class="avatar" id="user-avatar" onclick="signOut()" title="Sign out">?</div>
+      <div style="position:relative;display:inline-block" id="avatar-wrap">
+        <div class="avatar" id="user-avatar" onclick="toggleAvatarMenu()" title="Account" style="cursor:pointer">?</div>
+        <div id="avatar-menu" style="display:none;position:absolute;right:0;top:36px;background:var(--bg);border:1px solid var(--border);border-radius:10px;min-width:180px;box-shadow:0 8px 24px rgba(0,0,0,.08);z-index:200;overflow:hidden">
+          <a href="/xpscore360-app/profile.html" style="display:flex;align-items:center;gap:8px;padding:11px 14px;font-size:13px;color:var(--text);text-decoration:none;transition:background .15s" onmouseover="this.style.background='var(--surface)'" onmouseout="this.style.background='transparent'">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+            Profile &amp; account
+          </a>
+          <a href="/xpscore360-app/profile.html#plan" style="display:flex;align-items:center;gap:8px;padding:11px 14px;font-size:13px;color:var(--text);text-decoration:none;transition:background .15s" onmouseover="this.style.background='var(--surface)'" onmouseout="this.style.background='transparent'">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
+            Plan &amp; billing
+          </a>
+          <div style="border-top:1px solid var(--border);margin:4px 0"></div>
+          <button onclick="signOut()" style="display:flex;align-items:center;gap:8px;padding:11px 14px;font-size:13px;color:var(--red);background:transparent;border:none;cursor:pointer;width:100%;text-align:left;transition:background .15s" onmouseover="this.style.background='var(--surface)'" onmouseout="this.style.background='transparent'">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+            Sign out
+          </button>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -402,7 +419,7 @@ canvas{display:block;width:100%!important}
     <div class="tab" onclick="showTab('analytics',this)">Analytics</div>
     <div class="tab" id="alerts-tab" onclick="showTab('alerts',this)">Alerts <span class="tbadge" id="alert-count">0</span></div>
     <div class="tab" onclick="showTab('ai',this)">AI insights</div>
-    <div class="tab" onclick="window.location.href='/settings.html'">Settings ↗</div>
+    <div class="tab" onclick="window.location.href='/xpscore360-app/settings.html'">Settings ↗</div>
   </div>
 
   <!-- ══ OVERVIEW TAB ══════════════════════════════ -->
@@ -662,14 +679,42 @@ async function init() {
   const name = session.user.user_metadata?.full_name || session.user.email || '?';
   document.getElementById('user-avatar').textContent = name.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
 
-  // Load tenant
-  const { data: tenant } = await sb
-    .from('tenants')
-    .select('*')
-    .eq('contact_email', session.user.email)
-    .single();
+  // Load tenant via Netlify function (service key — bypasses RLS)
+  let tenant = null;
+  let prefetchedVenues = [];
+  try {
+    const res = await fetch(`/.netlify/functions/get-tenant?user_id=${session.user.id}&email=${encodeURIComponent(session.user.email)}`);
+    if (res.ok) {
+      const d = await res.json();
+      tenant = d.tenant || null;
+      prefetchedVenues = d.venues || [];
+    }
+  } catch(e) {
+    console.warn('Tenant lookup failed:', e);
+  }
 
-  if (!tenant) { alert('No account found for this email. Please complete onboarding.'); return; }
+  if (!tenant) {
+    document.getElementById('auth-overlay').style.display = 'none';
+    document.getElementById('app').style.display = 'block';
+    document.body.innerHTML = `
+      <div style="display:flex;align-items:center;justify-content:center;min-height:100vh;background:#F7F7F5;font-family:Geist,sans-serif">
+        <div style="background:#fff;border:1px solid #E8E8E4;border-radius:16px;padding:48px 40px;text-align:center;max-width:400px">
+          <div style="font-size:32px;margin-bottom:16px">👋</div>
+          <h2 style="font-size:20px;font-weight:500;margin-bottom:8px">No account found</h2>
+          <p style="font-size:13px;color:#888880;margin-bottom:24px">
+            We couldn't find an XPscore360 account linked to <strong>${session.user.email}</strong>.<br><br>
+            Please complete onboarding to set up your account.
+          </p>
+          <a href="/onboarding.html?product=xpscore360" style="display:inline-flex;align-items:center;gap:6px;padding:11px 24px;background:#0F0F0D;color:#fff;border-radius:8px;font-size:14px;font-weight:500;text-decoration:none">
+            Complete onboarding →
+          </a>
+          <div style="margin-top:16px;font-size:12px;color:#888880">
+            Signed in as ${session.user.email} · <a href="#" onclick="supabase.createClient('https://iroseywidzacqinmjtdc.supabase.co','${SUPABASE_KEY}').auth.signOut().then(()=>location.reload())" style="color:#0F0F0D">Sign out</a>
+          </div>
+        </div>
+      </div>`;
+    return;
+  }
   TENANT = tenant;
 
   // Check plan — free plan gets upgrade wall
@@ -679,15 +724,18 @@ async function init() {
   //   return;
   // }
 
-  // Load venues
-  const { data: venues } = await sb
-    .from('venues')
-    .select('*')
-    .eq('tenant_id', tenant.id)
-    .eq('is_active', true)
-    .order('name');
-
-  VENUES = venues || [];
+  // Load venues — use prefetched if available, else fetch
+  if (prefetchedVenues.length > 0) {
+    VENUES = prefetchedVenues;
+  } else {
+    const { data: venues } = await sb
+      .from('venues')
+      .select('*')
+      .eq('tenant_id', tenant.id)
+      .eq('is_active', true)
+      .order('name');
+    VENUES = venues || [];
+  }
 
   // Populate venue selects
   const venueSelect = document.getElementById('venue-select');
@@ -706,6 +754,22 @@ async function init() {
 }
 
 // ── Sign out ────────────────────────────────────────
+function toggleAvatarMenu() {
+  const menu = document.getElementById('avatar-menu');
+  menu.style.display = menu.style.display === 'none' ? 'block' : 'none';
+  // Close on outside click
+  if (menu.style.display === 'block') {
+    setTimeout(() => document.addEventListener('click', closeAvatarMenu), 0);
+  }
+}
+function closeAvatarMenu(e) {
+  const wrap = document.getElementById('avatar-wrap');
+  if (!wrap.contains(e.target)) {
+    document.getElementById('avatar-menu').style.display = 'none';
+    document.removeEventListener('click', closeAvatarMenu);
+  }
+}
+
 async function signOut() {
   if (!confirm('Sign out?')) return;
   await sb.auth.signOut();
@@ -966,11 +1030,11 @@ function buildVenueCards(rows) {
       ? 'Score needs attention — check the AI insights tab for specific recommendations.'
       : i===0 ? 'Top performing venue. Keep the consistency going — guests notice it.'
       : 'Stable performance. Monitor for any emerging trends.';
-    const starsStr = avg ? '★'.repeat(Math.round(avg))+'☆'.repeat(5-Math.round(avg)) : '—';
+    const starsStr = c.avg ? '★'.repeat(Math.round(c.avg))+'☆'.repeat(5-Math.round(c.avg)) : '—';
     return `
       <div class="vc ${cls}" onclick="filterByVenue('${c.v.id}')">
         <div class="vc-top"><div class="vc-name">${c.v.display_name||c.v.name}</div>${tag}</div>
-        <div class="vc-score">${avg ? avg.toFixed(1) : '—'}</div>
+        <div class="vc-score">${c.avg ? c.avg.toFixed(1) : '—'}</div>
         <div class="vc-stars">${starsStr}</div>
         <div class="vc-rows">
           <div class="vc-row"><span>Sessions</span><span>${c.total}</span></div>

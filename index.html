@@ -35,9 +35,12 @@ body::before{content:'';position:fixed;inset:0;background-image:url("data:image/
 .nav-link{font-family:var(--font-mono);font-size:11px;font-weight:400;color:rgba(255,255,255,0.5);text-decoration:none;padding:6px 14px;border-radius:9999px;transition:color .3s,background .3s;letter-spacing:.04em}
 .nav-link:hover{color:rgba(255,255,255,0.9)}
 .nav-link.active{background:rgba(141,89,255,0.12);color:var(--purple)}
-.nav-cta{background:var(--bg-7);color:var(--bg-5);font-family:var(--font-mono);font-size:11px;font-weight:500;letter-spacing:.04em;padding:9px 20px;border-radius:9999px;border:none;cursor:pointer;text-decoration:none;display:inline-flex;align-items:center;gap:6px;transition:opacity .2s;white-space:nowrap}
-.nav-cta:hover{opacity:.85}
-@media(max-width:640px){.nav-links{display:none}.nav{width:calc(100% - 32px)}}
+.nav-cta{background:#1DB87A;color:#fff;font-family:var(--font-mono);font-size:11px;font-weight:600;letter-spacing:.04em;padding:9px 20px;border-radius:9999px;border:none;cursor:pointer;text-decoration:none;display:inline-flex;align-items:center;gap:6px;transition:all .2s;white-space:nowrap;box-shadow:0 0 16px rgba(29,184,122,0.35)}
+.nav-cta:hover{background:#22C97F;box-shadow:0 0 24px rgba(29,184,122,0.55);transform:scale(1.02)}
+.nav-login{font-family:var(--font-mono);font-size:11px;font-weight:600;color:#0D1017;text-decoration:none;padding:9px 20px;border-radius:9999px;border:none;background:#D4A843;letter-spacing:.04em;white-space:nowrap;transition:all .2s;display:inline-flex;align-items:center;gap:6px;box-shadow:0 0 16px rgba(212,168,67,0.4)}
+.nav-login:hover{background:#E8BC50;box-shadow:0 0 24px rgba(212,168,67,0.6);transform:scale(1.02)}
+.nav-right{display:flex;align-items:center;gap:4px}
+@media(max-width:640px){.nav-links{display:none}.nav{width:calc(100% - 32px)}.nav-login{display:none}}
 
 /* HERO */
 .hero{padding:160px 24px 100px;text-align:center;position:relative;overflow:hidden}
@@ -228,7 +231,10 @@ footer{background:var(--bg-5);border-top:1px solid var(--stroke-light);padding:6
     <li><a href="#how" class="nav-link">How it works</a></li>
     <li><a href="https://aitechnic.com.au" target="_blank" class="nav-link">AITECHNIC</a></li>
   </ul>
-  <a href="/onboarding.html" class="nav-cta">Start free trial →</a>
+  <div class="nav-right">
+    <a href="/xpscore360-app/dashboard.html" class="nav-login">Sign in</a>
+    <a href="/onboarding.html" class="nav-cta">Start free trial →</a>
+  </div>
 </nav>
 
 <section class="hero">
