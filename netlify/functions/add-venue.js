@@ -80,6 +80,8 @@ exports.handler = async function(event) {
         slug:             finalSlug,
         display_name:     name,
         venue_type:       venue_type || 'restaurant',
+        industry_code:    body.industry_code || null,
+        business_type_code: body.business_type_code || null,
         suburb:           suburb || null,
         state:            state  || null,
         google_review_url: google_review_url || null,
@@ -102,6 +104,26 @@ exports.handler = async function(event) {
       });
     } catch(seedErr) {
       console.warn('Seed defaults failed (non-fatal):', seedErr.message);
+    }
+
+    // 4b. Seed KPI tiles for this industry/business type
+    const { industry_code, business_type_code } = body;
+    if (industry_code && business_type_code) {
+      try {
+        await sb('rpc/seed_venue_kpis', {
+          method: 'POST',
+          prefer: 'return=minimal',
+          body: JSON.stringify({
+            p_tenant_id: tenant_id,
+            p_venue_id:  venue.id,
+            p_industry:  industry_code,
+            p_biz_type:  business_type_code,
+          }),
+        });
+        console.log(`KPI tiles seeded: ${industry_code}/${business_type_code}`);
+      } catch(kpiErr) {
+        console.warn('KPI seed non-fatal:', kpiErr.message);
+      }
     }
 
     return {

@@ -1,0 +1,15 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git add *)",
+      "Bash(git commit *)",
+      "PowerShell(Get-Command *)",
+      "PowerShell(npx supabase db execute --file \"C:\\\\Users\\\\raghu\\\\Downloads\\\\kpi-migration.sql\" --linked)",
+      "Read(//mnt/c/Users/raghu/Downloads/**)",
+      "PowerShell(Get-Content *)",
+      "PowerShell($lines = Get-Content \"C:\\\\Users\\\\raghu\\\\Downloads\\\\kpi-migration.sql\"; $i = 0; $lines | ForEach-Object { $i++; if \\($_ -match \"^-- |^CREATE |^INSERT |^ALTER |^DROP |^TRUNCATE \" -and $i -lt 100\\) { \"$i`: $_\" } })",
+      "PowerShell($lines = Get-Content \"C:\\\\Users\\\\raghu\\\\Downloads\\\\kpi-migration.sql\"; $i = 0; $lines | ForEach-Object { $i++; if \\($_ -match \"^-- |^CREATE |^INSERT |^ALTER |^DROP |^COMMIT|^BEGIN\" \\) { \"$i`: $_\" } })",
+      "PowerShell(Test-Path \"C:\\\\Users\\\\raghu\\\\Downloads\\\\kpi-migration.sql\"; \\(Get-Content \"C:\\\\Users\\\\raghu\\\\Downloads\\\\kpi-migration.sql\"\\).Count)"
+    ]
+  }
+}

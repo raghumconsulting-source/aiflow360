@@ -31,7 +31,6 @@ async function sb(path) {
   }
   if (!text || text === 'null') return [];
   const parsed = JSON.parse(text);
-  // Supabase returns array for SELECT, object for errors
   return Array.isArray(parsed) ? parsed : [];
 }
 
@@ -97,18 +96,16 @@ exports.handler = async function(event) {
 
     console.log('Fetching venues for tenant_id:', tenant.id);
 
-    // ── Fetch venues — safe query without optional columns ─
-    // Filter deleted_at and status client-side to avoid
-    // column-not-found errors if migration hasn't run yet
+    // ── FIX: Query venues without status filter ───────────
+    // The status column filter was causing venues=[] for tenants
+    // whose venues don't have status set. Filter client-side only.
     let venues = [];
     try {
-      venues = await sb(
-        `venues?tenant_id=eq.${tenant.id}&status=neq.deleted&order=name`
-      );
+      venues = await sb(`venues?tenant_id=eq.${tenant.id}&is_active=eq.true&order=name`);
       console.log('Venues raw count:', venues.length);
     } catch (venueErr) {
-      // status column query failed — fall back to unfiltered
-      console.warn('venues query with status filter failed, trying without:', venueErr.message);
+      // is_active filter failed — fall back to unfiltered
+      console.warn('venues query with is_active filter failed, trying without:', venueErr.message);
       try {
         venues = await sb(`venues?tenant_id=eq.${tenant.id}&order=name`);
         console.log('Venues fallback count:', venues.length);
@@ -118,7 +115,7 @@ exports.handler = async function(event) {
       }
     }
 
-    // Client-side safety filters — remove hard-deleted rows
+    // Client-side safety filters
     venues = venues.filter(v => !v.deleted_at);
     console.log('Venues after filter:', venues.length, venues.map(v => v.name));
 

@@ -9,132 +9,333 @@
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
 :root{
-  --bg:#FFFFFF;--surface:#F7F7F5;--card:#FAFAF8;--border:#E8E8E4;--border-d:#D0D0CA;
-  --text:#0F0F0D;--muted:#888880;--faint:#F0F0EC;--accent:#0F0F0D;--accent-t:#FFFFFF;
-  --green:#1A7A4A;--green-bg:rgba(26,122,74,.06);--red:#C94C4C;--red-bg:rgba(201,76,76,.06);
-  --r:10px;--pill:999px;--ease:cubic-bezier(.32,1,.5,1);
-  --p-accent:#0F0F0D;--p-light:#F0F0EC;
+  --bg:       #FFFFFF;
+  --surface:  #F7F7F5;
+  --card:     #FAFAF8;
+  --border:   #E8E8E4;
+  --border-d: #D0D0CA;
+  --text:     #0F0F0D;
+  --muted:    #888880;
+  --faint:    #F0F0EC;
+  --accent:   #0F0F0D;     /* black CTA — switches per product */
+  --accent-t: #FFFFFF;
+  --green:    #1A7A4A;
+  --green-bg: rgba(26,122,74,.06);
+  --red:      #C94C4C;
+  --red-bg:   rgba(201,76,76,.06);
+  --r:        10px;
+  --pill:     999px;
+  --ease:     cubic-bezier(.32,1,.5,1);
+  /* product accent — overridden by JS */
+  --p-accent: #0F0F0D;
+  --p-light:  #F0F0EC;
 }
 html{height:100%;background:#fff}
-body{min-height:100vh;font-family:'Geist',sans-serif;font-size:15px;line-height:1.6;color:var(--text);background:var(--bg);display:flex;}
+body{
+  min-height:100vh;font-family:'Geist',sans-serif;
+  font-size:15px;line-height:1.6;color:var(--text);
+  background:var(--bg);display:flex;
+}
 
+/* ── Layout ──────────────────────────────────────────── */
 .layout{display:flex;width:100%;min-height:100vh}
-.sidebar{width:360px;flex-shrink:0;border-right:1px solid var(--border);display:flex;flex-direction:column;padding:48px 40px;position:sticky;top:0;height:100vh;background:var(--surface);}
+
+/* Sidebar */
+.sidebar{
+  width:360px;flex-shrink:0;
+  border-right:1px solid var(--border);
+  display:flex;flex-direction:column;
+  padding:48px 40px;
+  position:sticky;top:0;height:100vh;
+  background:var(--surface);
+}
 @media(max-width:860px){.sidebar{display:none}}
+
 .sb-product{display:flex;align-items:center;gap:10px;margin-bottom:56px}
-.sb-icon{width:34px;height:34px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:600;background:var(--p-accent);color:var(--p-light);letter-spacing:-.02em;transition:background .3s;}
+.sb-icon{
+  width:34px;height:34px;border-radius:8px;
+  display:flex;align-items:center;justify-content:center;
+  font-size:13px;font-weight:600;
+  background:var(--p-accent);color:var(--p-light);
+  letter-spacing:-.02em;transition:background .3s;
+}
 .sb-name{font-size:15px;font-weight:500;letter-spacing:-.02em}
-.sb-heading{font-family:'Playfair Display',serif;font-size:26px;line-height:1.2;margin-bottom:8px;letter-spacing:-.02em;}
+
+.sb-heading{
+  font-family:'Playfair Display',serif;
+  font-size:26px;line-height:1.2;margin-bottom:8px;
+  letter-spacing:-.02em;
+}
 .sb-sub{font-size:13px;color:var(--muted);line-height:1.6;margin-bottom:48px}
+
+/* Step list */
 .steps{display:flex;flex-direction:column;gap:2px;flex:1}
-.step{display:flex;align-items:flex-start;gap:16px;padding:14px 0;border-bottom:1px solid var(--border);transition:all .2s;}
+.step{
+  display:flex;align-items:flex-start;gap:16px;
+  padding:14px 0;border-bottom:1px solid var(--border);
+  transition:all .2s;
+}
 .step:last-child{border:none}
-.step-num{width:24px;height:24px;border-radius:50%;flex-shrink:0;border:1px solid var(--border-d);display:flex;align-items:center;justify-content:center;font-size:11px;color:var(--muted);font-weight:500;transition:all .3s;margin-top:1px;}
-.step.active .step-num{background:var(--p-accent);border-color:var(--p-accent);color:var(--p-light);}
-.step.done .step-num{background:var(--green);border-color:var(--green);color:#fff;font-size:10px;}
-.step.done .step-num::after{content:'✓'}.step.done .step-num span{display:none}
-.step-info .step-label{font-size:13px;font-weight:500;color:var(--muted);transition:color .2s;line-height:1.3;}
-.step.active .step-label{color:var(--text)}.step.done .step-label{color:var(--muted)}
+.step-num{
+  width:24px;height:24px;border-radius:50%;flex-shrink:0;
+  border:1px solid var(--border-d);
+  display:flex;align-items:center;justify-content:center;
+  font-size:11px;color:var(--muted);font-weight:500;
+  transition:all .3s;margin-top:1px;
+}
+.step.active .step-num{
+  background:var(--p-accent);border-color:var(--p-accent);
+  color:var(--p-light);
+}
+.step.done .step-num{
+  background:var(--green);border-color:var(--green);color:#fff;
+  font-size:10px;
+}
+.step.done .step-num::after{content:'✓'}
+.step.done .step-num span{display:none}
+.step-info .step-label{
+  font-size:13px;font-weight:500;color:var(--muted);
+  transition:color .2s;line-height:1.3;
+}
+.step.active .step-label{color:var(--text)}
+.step.done .step-label{color:var(--muted)}
 .step-desc{font-size:11px;color:var(--muted);opacity:.6;margin-top:2px}
+
 .sb-foot{margin-top:auto;padding-top:24px;border-top:1px solid var(--border)}
 .sb-foot p{font-size:12px;color:var(--muted);margin-bottom:4px}
 .sb-foot a{color:var(--text);text-decoration:underline;text-underline-offset:2px}
 
+/* Main */
 .main{flex:1;display:flex;flex-direction:column;min-height:100vh;overflow-x:hidden}
+
+/* Progress line */
 .progress-line{height:2px;background:var(--border);flex-shrink:0}
 .progress-fill{height:100%;background:var(--p-accent);transition:width .5s var(--ease)}
-.mob-header{display:none;padding:20px 28px;border-bottom:1px solid var(--border);align-items:center;justify-content:space-between;}
+
+/* Mobile header */
+.mob-header{
+  display:none;padding:20px 28px;
+  border-bottom:1px solid var(--border);
+  align-items:center;justify-content:space-between;
+}
 @media(max-width:860px){.mob-header{display:flex}}
 .mob-product{display:flex;align-items:center;gap:8px}
-.mob-icon{width:28px;height:28px;border-radius:7px;background:var(--p-accent);display:flex;align-items:center;justify-content:center;font-size:11px;color:#fff;font-weight:600}
+.mob-icon{width:28px;height:28px;border-radius:7px;background:var(--p-accent);
+  display:flex;align-items:center;justify-content:center;font-size:11px;color:#fff;font-weight:600}
 .mob-name{font-size:14px;font-weight:500}
 .mob-step{font-size:12px;color:var(--muted)}
+
+/* Content */
 .content{flex:1;padding:64px 72px;max-width:680px}
 @media(max-width:860px){.content{padding:40px 28px}}
 
+/* Panels */
 .panel{width:100%;animation:up .3s var(--ease) both}
 .panel.out{animation:down .2s var(--ease) both;pointer-events:none}
 @keyframes up{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:none}}
 @keyframes down{from{opacity:1;transform:none}to{opacity:0;transform:translateY(-10px)}}
-.eyebrow{font-size:11px;font-weight:500;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:14px;}
-.heading{font-family:'Playfair Display',serif;font-size:40px;line-height:1.1;letter-spacing:-.02em;color:var(--text);margin-bottom:8px;}
+
+.eyebrow{
+  font-size:11px;font-weight:500;letter-spacing:.08em;text-transform:uppercase;
+  color:var(--muted);margin-bottom:14px;
+}
+.heading{
+  font-family:'Playfair Display',serif;
+  font-size:40px;line-height:1.1;letter-spacing:-.02em;
+  color:var(--text);margin-bottom:8px;
+}
 .subhead{font-size:15px;color:var(--muted);margin-bottom:44px;line-height:1.6;max-width:480px}
 
+/* Product selector (step 0) */
 .product-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:32px}
 @media(max-width:500px){.product-grid{grid-template-columns:1fr}}
-.product-card{border:1.5px solid var(--border);border-radius:14px;padding:28px 24px;cursor:pointer;transition:all .2s;position:relative;background:var(--bg);text-align:left;}
+
+.product-card{
+  border:1.5px solid var(--border);border-radius:14px;
+  padding:28px 24px;cursor:pointer;transition:all .2s;
+  position:relative;background:var(--bg);text-align:left;
+}
 .product-card:hover{border-color:var(--border-d);transform:translateY(-2px);box-shadow:0 8px 32px rgba(0,0,0,.06)}
 .product-card.selected{border-color:var(--p-accent);box-shadow:0 0 0 1px var(--p-accent)}
-.pc-badge{display:inline-flex;align-items:center;gap:6px;padding:5px 12px;border-radius:var(--pill);font-size:11px;font-weight:500;margin-bottom:16px;background:var(--faint);color:var(--muted);}
+.pc-badge{
+  display:inline-flex;align-items:center;gap:6px;
+  padding:5px 12px;border-radius:var(--pill);
+  font-size:11px;font-weight:500;margin-bottom:16px;
+  background:var(--faint);color:var(--muted);
+}
 .pc-badge.active{background:var(--p-light);color:var(--p-accent)}
 .pc-name{font-size:18px;font-weight:500;letter-spacing:-.02em;margin-bottom:6px}
 .pc-desc{font-size:13px;color:var(--muted);line-height:1.5}
-.pc-check{position:absolute;top:16px;right:16px;width:20px;height:20px;border-radius:50%;border:1.5px solid var(--border-d);display:flex;align-items:center;justify-content:center;font-size:10px;color:transparent;transition:all .2s;}
-.product-card.selected .pc-check{background:var(--p-accent);border-color:var(--p-accent);color:#fff;}
+.pc-check{
+  position:absolute;top:16px;right:16px;
+  width:20px;height:20px;border-radius:50%;
+  border:1.5px solid var(--border-d);
+  display:flex;align-items:center;justify-content:center;
+  font-size:10px;color:transparent;transition:all .2s;
+}
+.product-card.selected .pc-check{
+  background:var(--p-accent);border-color:var(--p-accent);color:#fff;
+}
 
+/* ── Form elements ────────────────────────────────────── */
 .grid{display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:24px}
-.grid.one{grid-template-columns:1fr}.grid.three{grid-template-columns:1fr 1fr 1fr}
+.grid.one{grid-template-columns:1fr}
+.grid.three{grid-template-columns:1fr 1fr 1fr}
 @media(max-width:580px){.grid,.grid.three{grid-template-columns:1fr}}
-.field{display:flex;flex-direction:column;gap:7px}.field.s2{grid-column:span 2}
+
+.field{display:flex;flex-direction:column;gap:7px}
+.field.s2{grid-column:span 2}
 @media(max-width:580px){.field.s2{grid-column:span 1}}
+
 label{font-size:12px;font-weight:500;color:var(--muted);letter-spacing:.02em}
 label .req{color:var(--p-accent);margin-left:2px}
-input,select,textarea{background:var(--bg);border:1.5px solid var(--border);border-radius:var(--r);padding:12px 16px;font-size:14px;color:var(--text);font-family:'Geist',sans-serif;outline:none;transition:border-color .2s,box-shadow .2s;width:100%;-webkit-appearance:none;}
-input:focus,select:focus,textarea:focus{border-color:var(--p-accent);box-shadow:0 0 0 3px rgba(15,15,13,.06);}
+
+input,select,textarea{
+  background:var(--bg);border:1.5px solid var(--border);
+  border-radius:var(--r);padding:12px 16px;
+  font-size:14px;color:var(--text);font-family:'Geist',sans-serif;
+  outline:none;transition:border-color .2s,box-shadow .2s;width:100%;
+  -webkit-appearance:none;
+}
+input:focus,select:focus,textarea:focus{
+  border-color:var(--p-accent);
+  box-shadow:0 0 0 3px rgba(15,15,13,.06);
+}
 input::placeholder,textarea::placeholder{color:var(--muted);opacity:.5}
-select{cursor:pointer;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='7' viewBox='0 0 12 7'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%23888880' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 16px center;padding-right:40px;}
-textarea{resize:vertical;min-height:80px}
+select{
+  cursor:pointer;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='7' viewBox='0 0 12 7'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%23888880' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+  background-repeat:no-repeat;background-position:right 16px center;padding-right:40px;
+}
+@media(max-width:580px){
+  #ind-cols{flex-direction:column !important}
+  #f-biz{width:100% !important}
+}
+
 .hint{font-size:11px;color:var(--muted);opacity:.7;margin-top:-2px}
 .err-msg{font-size:11px;color:var(--red);margin-top:-2px;display:none}
-.field.err input,.field.err select{border-color:var(--red)}.field.err .err-msg{display:block}.field.ok input{border-color:var(--green)}
+.field.err input,.field.err select{border-color:var(--red)}
+.field.err .err-msg{display:block}
+.field.ok input{border-color:var(--green)}
 
+/* ABN */
 .abn-wrap{position:relative}
-.abn-tag{position:absolute;right:12px;top:50%;transform:translateY(-50%);font-size:10px;font-weight:500;padding:3px 8px;border-radius:var(--pill);display:none;}
-.abn-tag.ok{display:block;background:var(--green-bg);color:var(--green)}.abn-tag.bad{display:block;background:var(--red-bg);color:var(--red)}
+.abn-tag{
+  position:absolute;right:12px;top:50%;transform:translateY(-50%);
+  font-size:10px;font-weight:500;padding:3px 8px;border-radius:var(--pill);display:none;
+}
+.abn-tag.ok{display:block;background:var(--green-bg);color:var(--green)}
+.abn-tag.bad{display:block;background:var(--red-bg);color:var(--red)}
 
-.upload-zone{border:1.5px dashed var(--border-d);border-radius:12px;padding:28px;text-align:center;cursor:pointer;transition:all .2s;background:var(--surface);position:relative;overflow:hidden;}
+/* Logo upload */
+.upload-zone{
+  border:1.5px dashed var(--border-d);border-radius:12px;
+  padding:28px;text-align:center;cursor:pointer;
+  transition:all .2s;background:var(--surface);position:relative;overflow:hidden;
+}
 .upload-zone:hover{border-color:var(--p-accent);background:var(--faint)}
 .upload-zone input{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%}
-.upload-icon{font-size:28px;margin-bottom:8px}.upload-label{font-size:13px;color:var(--muted)}.upload-label strong{color:var(--text)}
-.logo-prev{display:none;width:72px;height:72px;border-radius:10px;object-fit:contain;border:1px solid var(--border);padding:8px;margin:0 auto 8px;background:#fff}
+.upload-icon{font-size:28px;margin-bottom:8px}
+.upload-label{font-size:13px;color:var(--muted)}
+.upload-label strong{color:var(--text)}
+.logo-prev{display:none;width:72px;height:72px;border-radius:10px;
+  object-fit:contain;border:1px solid var(--border);padding:8px;
+  margin:0 auto 8px;background:#fff}
 .logo-prev.show{display:block}
 
+/* Colour swatches */
 .swatches{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px}
-.swatch{width:32px;height:32px;border-radius:6px;cursor:pointer;border:2px solid transparent;transition:all .15s;}
-.swatch.on{border-color:var(--text);transform:scale(1.1)}.swatch:hover{transform:scale(1.05)}
-.swatch-custom{width:32px;height:32px;border-radius:6px;border:1.5px solid var(--border-d);cursor:pointer;background:var(--faint);position:relative;overflow:hidden;display:flex;align-items:center;justify-content:center;font-size:13px;color:var(--muted);}
-.swatch-custom input{position:absolute;inset:-4px;width:calc(100%+8px);height:calc(100%+8px);opacity:0;cursor:pointer;}
+.swatch{width:32px;height:32px;border-radius:6px;cursor:pointer;
+  border:2px solid transparent;transition:all .15s;}
+.swatch.on{border-color:var(--text);transform:scale(1.1)}
+.swatch:hover{transform:scale(1.05)}
+.swatch-custom{width:32px;height:32px;border-radius:6px;
+  border:1.5px solid var(--border-d);cursor:pointer;
+  background:var(--faint);position:relative;overflow:hidden;
+  display:flex;align-items:center;justify-content:center;
+  font-size:13px;color:var(--muted);}
+.swatch-custom input{position:absolute;inset:-4px;width:calc(100%+8px);
+  height:calc(100%+8px);opacity:0;cursor:pointer;}
 
+/* Theme toggle */
+.theme-row{display:flex;gap:12px;margin-bottom:28px}
+.theme-opt{
+  flex:1;border:1.5px solid var(--border);border-radius:10px;
+  padding:14px 16px;cursor:pointer;transition:all .2s;
+  display:flex;align-items:center;gap:10px;
+}
+.theme-opt.on{border-color:var(--p-accent)}
+.theme-preview{width:28px;height:28px;border-radius:5px;flex-shrink:0;border:1px solid var(--border)}
+.theme-preview.dark{background:linear-gradient(135deg,#111 50%,#222 50%)}
+.theme-preview.light{background:linear-gradient(135deg,#f5f5f5 50%,#e8e8e8 50%)}
+.theme-name{font-size:13px;font-weight:500}
+.theme-desc{font-size:11px;color:var(--muted);margin-top:1px}
+
+/* Specialty chips */
 .spec-wrap{display:flex;flex-wrap:wrap;gap:7px;margin-bottom:8px}
-.spec{padding:6px 13px;border:1px solid var(--border);border-radius:var(--pill);font-size:12px;color:var(--muted);cursor:pointer;transition:all .15s;user-select:none;}
-.spec:hover{border-color:var(--border-d);color:var(--text)}.spec.on{border-color:var(--p-accent);color:var(--p-accent);background:var(--p-light)}
+.spec{
+  padding:6px 13px;border:1px solid var(--border);border-radius:var(--pill);
+  font-size:12px;color:var(--muted);cursor:pointer;transition:all .15s;user-select:none;
+}
+.spec:hover{border-color:var(--border-d);color:var(--text)}
+.spec.on{border-color:var(--p-accent);color:var(--p-accent);background:var(--p-light)}
 
+/* Plan cards */
 .plans{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:32px}
 @media(max-width:560px){.plans{grid-template-columns:1fr}}
-.plan{border:1.5px solid var(--border);border-radius:14px;padding:24px 20px;cursor:pointer;transition:all .2s;position:relative;background:var(--bg);}
-.plan:hover{border-color:var(--border-d);transform:translateY(-2px)}.plan.on{border-color:var(--p-accent);box-shadow:0 0 0 1px var(--p-accent)}
-.plan-tag{display:inline-block;font-size:10px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;padding:3px 10px;border-radius:var(--pill);background:var(--p-accent);color:var(--p-light);margin-bottom:16px;}
+
+.plan{
+  border:1.5px solid var(--border);border-radius:14px;
+  padding:24px 20px;cursor:pointer;transition:all .2s;
+  position:relative;background:var(--bg);
+}
+.plan:hover{border-color:var(--border-d);transform:translateY(-2px)}
+.plan.on{border-color:var(--p-accent);box-shadow:0 0 0 1px var(--p-accent)}
+.plan-tag{
+  display:inline-block;font-size:10px;font-weight:600;letter-spacing:.05em;
+  text-transform:uppercase;padding:3px 10px;border-radius:var(--pill);
+  background:var(--p-accent);color:var(--p-light);margin-bottom:16px;
+}
 .plan-name{font-size:16px;font-weight:500;letter-spacing:-.02em;margin-bottom:4px}
 .plan-price{font-size:26px;font-weight:500;letter-spacing:-.03em;margin-bottom:4px}
 .plan-price span{font-size:13px;font-weight:400;color:var(--muted)}
 .plan-desc{font-size:12px;color:var(--muted);margin-bottom:16px;line-height:1.5}
 .plan-feats{list-style:none;display:flex;flex-direction:column;gap:6px}
 .plan-feats li{font-size:12px;color:var(--muted);display:flex;align-items:center;gap:7px}
-.plan-feats li::before{content:'—';color:var(--border-d);flex-shrink:0}.plan-feats li.y::before{content:'✓';color:var(--green);font-weight:600}
+.plan-feats li::before{content:'—';color:var(--border-d);flex-shrink:0}
+.plan-feats li.y::before{content:'✓';color:var(--green);font-weight:600}
 
+/* Payment */
 .pay-box{border:1.5px solid var(--border);border-radius:12px;padding:24px;margin-bottom:24px}
 .pay-box h3{font-size:13px;font-weight:500;margin-bottom:18px;letter-spacing:-.01em}
-.card-wrap{position:relative}.card-icons{position:absolute;right:12px;top:50%;transform:translateY(-50%);display:flex;gap:4px}
-.card-ico{width:28px;height:18px;border-radius:3px;border:1px solid var(--border);background:var(--surface);display:flex;align-items:center;justify-content:center;font-size:7px;font-weight:700;color:var(--muted);letter-spacing:.02em;}
+.card-wrap{position:relative}
+.card-icons{position:absolute;right:12px;top:50%;transform:translateY(-50%);display:flex;gap:4px}
+.card-ico{
+  width:28px;height:18px;border-radius:3px;border:1px solid var(--border);
+  background:var(--surface);display:flex;align-items:center;justify-content:center;
+  font-size:7px;font-weight:700;color:var(--muted);letter-spacing:.02em;
+}
 .card-row{display:grid;grid-template-columns:1fr 1fr;gap:14px}
 @media(max-width:480px){.card-row{grid-template-columns:1fr}}
-.free-notice{background:var(--green-bg);border:1px solid rgba(26,122,74,.15);border-radius:10px;padding:18px 20px;margin-bottom:24px;}
-.free-notice p:first-child{font-size:14px;font-weight:500;color:var(--green);margin-bottom:3px}.free-notice p:last-child{font-size:13px;color:var(--muted)}
-.order-summary{background:var(--surface);border-radius:10px;padding:16px 18px;margin-bottom:24px;}
-.order-row{display:flex;justify-content:space-between;font-size:13px;padding:5px 0}.order-row:first-child{font-weight:500}.order-row span:last-child{color:var(--muted)}
+
+.free-notice{
+  background:var(--green-bg);border:1px solid rgba(26,122,74,.15);
+  border-radius:10px;padding:18px 20px;margin-bottom:24px;
+}
+.free-notice p:first-child{font-size:14px;font-weight:500;color:var(--green);margin-bottom:3px}
+.free-notice p:last-child{font-size:13px;color:var(--muted)}
+
+.order-summary{
+  background:var(--surface);border-radius:10px;padding:16px 18px;margin-bottom:24px;
+}
+.order-row{display:flex;justify-content:space-between;font-size:13px;padding:5px 0}
+.order-row:first-child{font-weight:500}
+.order-row span:last-child{color:var(--muted)}
+
 .sec-row{display:flex;gap:20px;flex-wrap:wrap;margin-top:10px}
 .sec-item{font-size:11px;color:var(--muted);display:flex;align-items:center;gap:5px}
 
+/* Checkbox */
 .check-row{display:flex;align-items:flex-start;gap:10px;margin-bottom:20px}
 .check-row input[type=checkbox]{width:18px;height:18px;flex-shrink:0;margin-top:2px;cursor:pointer;appearance:none;-webkit-appearance:none;border:1.5px solid #D0D0CA;border-radius:4px;background:#fff;position:relative;transition:all .15s;}
 .check-row input[type=checkbox]:checked{background:#0F0F0D;border-color:#0F0F0D;}
@@ -142,72 +343,65 @@ textarea{resize:vertical;min-height:80px}
 .check-row label{font-size:13px;color:var(--muted);cursor:pointer;font-weight:400}
 .check-row a{color:var(--text);text-decoration:underline;text-underline-offset:2px}
 
+/* Buttons */
 .btn-row{display:flex;gap:10px;align-items:center;margin-top:4px}
-.btn{padding:13px 28px;border-radius:var(--r);font-size:14px;font-weight:500;font-family:'Geist',sans-serif;cursor:pointer;transition:all .15s;border:1.5px solid transparent;display:inline-flex;align-items:center;gap:8px;letter-spacing:-.01em;}
+.btn{
+  padding:13px 28px;border-radius:var(--r);font-size:14px;font-weight:500;
+  font-family:'Geist',sans-serif;cursor:pointer;transition:all .15s;
+  border:1.5px solid transparent;display:inline-flex;align-items:center;gap:8px;
+  letter-spacing:-.01em;
+}
 .btn-primary{background:var(--p-accent);color:var(--p-light);border-color:var(--p-accent)}
-.btn-primary:hover{opacity:.88}.btn-primary:active{transform:scale(.98)}.btn-primary:disabled{opacity:.3;cursor:default}
+.btn-primary:hover{opacity:.88}
+.btn-primary:active{transform:scale(.98)}
+.btn-primary:disabled{opacity:.3;cursor:default}
 .btn-ghost{background:transparent;color:var(--muted);border-color:var(--border)}
 .btn-ghost:hover{color:var(--text);border-color:var(--border-d)}
-.spin{display:none;width:14px;height:14px;border:2px solid rgba(255,255,255,.25);border-top-color:currentColor;border-radius:50%;animation:rot .6s linear infinite}
-@keyframes rot{to{transform:rotate(360deg)}}.btn.loading .spin{display:block}.btn.loading .btn-txt{opacity:.5}
+.spin{display:none;width:14px;height:14px;border:2px solid rgba(255,255,255,.25);
+  border-top-color:currentColor;border-radius:50%;animation:rot .6s linear infinite}
+@keyframes rot{to{transform:rotate(360deg)}}
+.btn.loading .spin{display:block}
+.btn.loading .btn-txt{opacity:.5}
 
+/* Success */
 .success{text-align:left;padding:8px 0}
-.success-mark{width:56px;height:56px;border-radius:50%;border:1.5px solid rgba(26,122,74,.2);background:var(--green-bg);display:flex;align-items:center;justify-content:center;font-size:22px;margin-bottom:28px;animation:pop .5s var(--ease) both;}
+.success-mark{
+  width:56px;height:56px;border-radius:50%;
+  border:1.5px solid rgba(26,122,74,.2);background:var(--green-bg);
+  display:flex;align-items:center;justify-content:center;
+  font-size:22px;margin-bottom:28px;
+  animation:pop .5s var(--ease) both;
+}
 @keyframes pop{from{transform:scale(.5);opacity:0}to{transform:scale(1);opacity:1}}
-.success-summary{border:1.5px solid var(--border);border-radius:12px;overflow:hidden;margin-bottom:32px;}
-.sum-row{display:flex;justify-content:space-between;padding:14px 20px;border-bottom:1px solid var(--border);font-size:13px;}
-.sum-row:last-child{border:none}.sum-row span:first-child{color:var(--muted)}.sum-row span:last-child{font-weight:500}
+.success-summary{
+  border:1.5px solid var(--border);border-radius:12px;
+  overflow:hidden;margin-bottom:32px;
+}
+.sum-row{
+  display:flex;justify-content:space-between;padding:14px 20px;
+  border-bottom:1px solid var(--border);font-size:13px;
+}
+.sum-row:last-child{border:none}
+.sum-row span:first-child{color:var(--muted)}
+.sum-row span:last-child{font-weight:500}
 
-.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(12px);background:var(--text);color:#fff;padding:11px 20px;border-radius:8px;font-size:13px;z-index:999;white-space:nowrap;opacity:0;pointer-events:none;transition:all .25s var(--ease);}
-.toast.err{background:var(--red)}.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
-
-/* ── STEP 3: SKIN PICKER (NEW) ───────────────────────── */
-.section-title{font-size:12px;font-weight:500;color:var(--muted);letter-spacing:.02em;margin-bottom:12px}
-
-.skin-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:28px}
-@media(max-width:520px){.skin-grid{grid-template-columns:repeat(2,1fr)}}
-
-.skin-card{border:1.5px solid var(--border);border-radius:12px;padding:14px 12px;cursor:pointer;transition:all .18s;position:relative;background:var(--bg);}
-.skin-card:hover{border-color:var(--border-d);transform:translateY(-2px);box-shadow:0 6px 20px rgba(0,0,0,.06)}
-.skin-card.selected{border-color:var(--p-accent);box-shadow:0 0 0 1px var(--p-accent)}
-.skin-dots{display:flex;gap:4px;margin-bottom:10px}
-.skin-dot{width:14px;height:14px;border-radius:4px;border:1px solid rgba(0,0,0,.07);flex-shrink:0}
-.skin-card-name{font-size:13px;font-weight:500;color:var(--text);margin-bottom:2px}
-.skin-card-desc{font-size:11px;color:var(--muted)}
-.skin-check{position:absolute;top:10px;right:10px;width:18px;height:18px;border-radius:50%;border:1.5px solid var(--border-d);display:flex;align-items:center;justify-content:center;font-size:9px;color:transparent;transition:all .18s;}
-.skin-card.selected .skin-check{background:var(--p-accent);border-color:var(--p-accent);color:#fff;}
-
-/* Mini preview panel */
-.branding-wrap{display:grid;grid-template-columns:1fr 220px;gap:28px;align-items:flex-start}
-@media(max-width:680px){.branding-wrap{grid-template-columns:1fr}}
-
-.preview-sticky{position:sticky;top:24px}
-@media(max-width:680px){.preview-sticky{display:none}}
-.preview-label{font-size:10px;font-weight:500;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin-bottom:10px}
-
-.mini-phone{border-radius:18px;overflow:hidden;border:1px solid var(--border);background:#fff;font-family:'Geist',sans-serif;box-shadow:0 8px 28px rgba(0,0,0,.1)}
-.mp-header{padding:10px 12px;border-bottom:1px solid;display:flex;align-items:center;gap:8px}
-.mp-logo-box{width:28px;height:28px;border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
-.mp-logo-box span{font-size:11px;font-weight:700}
-.mp-biz{font-size:11px;font-weight:600;line-height:1.2}
-.mp-biz-sub{font-size:9px;opacity:.5;margin-top:1px}
-.mp-score{margin:8px 10px;border-radius:12px;padding:10px 12px;display:flex;align-items:center;justify-content:space-between}
-.mp-score-num{font-size:28px;font-weight:700;line-height:1}
-.mp-score-label{font-size:8px;opacity:.4;text-transform:uppercase;letter-spacing:.5px;margin-bottom:2px}
-.mp-stars-big{font-size:13px;letter-spacing:1px}
-.mp-cats{display:grid;grid-template-columns:1fr 1fr;gap:5px;padding:0 8px;margin-bottom:8px}
-.mp-cat{border-radius:8px;padding:7px 8px;border:1px solid}
-.mp-cat-name{font-size:9px;font-weight:600;margin-bottom:3px}
-.mp-cat-stars{font-size:9px}
-.mp-btn{margin:0 8px 8px;border-radius:8px;padding:8px;font-size:10px;font-weight:600;text-align:center}
-.mp-chat{padding:6px 8px 8px;border-top:1px solid}
-.mp-bubble{font-size:9px;padding:5px 8px;border-radius:8px;border-bottom-left-radius:2px;width:fit-content;max-width:80%;margin-bottom:4px;line-height:1.4}
-/* ── END SKIN STYLES ── */
+/* Toast */
+.toast{
+  position:fixed;bottom:24px;left:50%;
+  transform:translateX(-50%) translateY(12px);
+  background:var(--text);color:#fff;padding:11px 20px;
+  border-radius:8px;font-size:13px;z-index:999;
+  white-space:nowrap;opacity:0;pointer-events:none;
+  transition:all .25s var(--ease);
+}
+.toast.err{background:var(--red)}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
 </style>
 </head>
 <body>
 <div class="layout">
 
+  <!-- ── Sidebar ──────────────────────────────────── -->
   <aside class="sidebar">
     <div class="sb-product">
       <div class="sb-icon" id="sb-icon">X</div>
@@ -215,220 +409,531 @@ textarea{resize:vertical;min-height:80px}
     </div>
     <div class="sb-heading" id="sb-heading">Set up your<br><em>account</em></div>
     <div class="sb-sub" id="sb-sub">Get your platform live in minutes. No credit card required to start.</div>
+
     <div class="steps" id="steps">
-      <div class="step active" data-s="1"><div class="step-num"><span>1</span></div><div class="step-info"><div class="step-label">Your account</div><div class="step-desc">Name & login details</div></div></div>
-      <div class="step" data-s="2"><div class="step-num"><span>2</span></div><div class="step-info"><div class="step-label">Business details</div><div class="step-desc">ABN, type, contact</div></div></div>
-      <div class="step" data-s="3"><div class="step-num"><span>3</span></div><div class="step-info"><div class="step-label">Branding</div><div class="step-desc">Skin, logo & colour</div></div></div>
-      <div class="step" data-s="4"><div class="step-num"><span>4</span></div><div class="step-info"><div class="step-label">First venue</div><div class="step-desc">Location & AI config</div></div></div>
-      <div class="step" data-s="5"><div class="step-num"><span>5</span></div><div class="step-info"><div class="step-label">Choose plan</div><div class="step-desc">Free, Pro or Business</div></div></div>
-      <div class="step" data-s="6"><div class="step-num"><span>6</span></div><div class="step-info"><div class="step-label">Payment</div><div class="step-desc">Card details</div></div></div>
+      <div class="step active" data-s="1">
+        <div class="step-num"><span>1</span></div>
+        <div class="step-info">
+          <div class="step-label">Your account</div>
+          <div class="step-desc">Name & login details</div>
+        </div>
+      </div>
+      <div class="step" data-s="2">
+        <div class="step-num"><span>2</span></div>
+        <div class="step-info">
+          <div class="step-label">Business details</div>
+          <div class="step-desc">ABN, type, contact</div>
+        </div>
+      </div>
+      <div class="step" data-s="3">
+        <div class="step-num"><span>3</span></div>
+        <div class="step-info">
+          <div class="step-label">Industry</div>
+          <div class="step-desc">Type & category</div>
+        </div>
+      </div>
+      <div class="step" data-s="4">
+        <div class="step-num"><span>4</span></div>
+        <div class="step-info">
+          <div class="step-label">Branding</div>
+          <div class="step-desc">Logo & colours</div>
+        </div>
+      </div>
+      <div class="step" data-s="5">
+        <div class="step-num"><span>5</span></div>
+        <div class="step-info">
+          <div class="step-label">First venue</div>
+          <div class="step-desc">Location & AI config</div>
+        </div>
+      </div>
+      <div class="step" data-s="6">
+        <div class="step-num"><span>6</span></div>
+        <div class="step-info">
+          <div class="step-label">Choose plan</div>
+          <div class="step-desc">Free, Pro or Business</div>
+        </div>
+      </div>
+      <div class="step" data-s="7">
+        <div class="step-num"><span>7</span></div>
+        <div class="step-info">
+          <div class="step-label">Payment</div>
+          <div class="step-desc">Card details</div>
+        </div>
+      </div>
     </div>
+
     <div class="sb-foot">
       <p>Already have an account? <a href="/login">Sign in</a></p>
       <p style="margin-top:5px">Questions? <a href="mailto:support@xpscore360.com">Contact us</a></p>
     </div>
   </aside>
 
+  <!-- ── Main ────────────────────────────────────── -->
   <main class="main">
     <div class="progress-line"><div class="progress-fill" id="prog" style="width:16%"></div></div>
+
     <div class="mob-header">
-      <div class="mob-product"><div class="mob-icon" id="mob-icon">X</div><div class="mob-name" id="mob-name">XPscore360</div></div>
+      <div class="mob-product">
+        <div class="mob-icon" id="mob-icon">X</div>
+        <div class="mob-name" id="mob-name">XPscore360</div>
+      </div>
       <div class="mob-step" id="mob-step">Step 1 of 6</div>
     </div>
 
     <div class="content">
 
-      <!-- ══ STEP 1 ══ -->
+      <!-- ══ STEP 1: Account ════════════════════════ -->
       <div class="panel" id="p1">
-        <div class="eyebrow">Step 1 of 6 · Account</div>
+        <div class="eyebrow" id="p1-eyebrow">Step 1 of 6 · Account</div>
         <h1 class="heading">Create your<br><em>account</em></h1>
         <p class="subhead">You'll use this email to log in and manage your platform.</p>
+
+        <!-- Product selector shown only if no ?product= param -->
         <div id="product-selector" style="display:none;margin-bottom:36px">
           <p style="font-size:13px;font-weight:500;margin-bottom:14px">Which product are you signing up for?</p>
           <div class="product-grid">
-            <div class="product-card" id="pc-xpscore360" onclick="pickProduct('xpscore360',this)"><div class="pc-check">✓</div><div class="pc-badge" id="pcb-xpscore360">⭐ Guest Feedback</div><div class="pc-name">XPscore360</div><div class="pc-desc">AI-powered guest review platform for hospitality & retail</div></div>
-            <div class="product-card" id="pc-aiflow360" onclick="pickProduct('aiflow360',this)"><div class="pc-check">✓</div><div class="pc-badge" id="pcb-aiflow360">⚡ Automation</div><div class="pc-name">AIflow360</div><div class="pc-desc">AI workflow automation for small and medium businesses</div></div>
+            <div class="product-card" id="pc-xpscore360" onclick="pickProduct('xpscore360',this)">
+              <div class="pc-check">✓</div>
+              <div class="pc-badge" id="pcb-xpscore360">⭐ Guest Feedback</div>
+              <div class="pc-name">XPscore360</div>
+              <div class="pc-desc">AI-powered guest review platform for hospitality & retail</div>
+            </div>
+            <div class="product-card" id="pc-aiflow360" onclick="pickProduct('aiflow360',this)">
+              <div class="pc-check">✓</div>
+              <div class="pc-badge" id="pcb-aiflow360">⚡ Automation</div>
+              <div class="pc-name">AIflow360</div>
+              <div class="pc-desc">AI workflow automation for small and medium businesses</div>
+            </div>
           </div>
         </div>
-        <div class="grid one"><div class="field" id="f-fn"><label>Full name <span class="req">*</span></label><input type="text" id="fn" placeholder="Alex Johnson" autocomplete="name"/><span class="err-msg">Please enter your full name</span></div></div>
-        <div class="grid">
-          <div class="field" id="f-em"><label>Work email <span class="req">*</span></label><input type="email" id="em" placeholder="alex@business.com.au" autocomplete="email"/><span class="err-msg">Please enter a valid email</span></div>
-          <div class="field"><label>Phone</label><input type="tel" id="ph" placeholder="+61 4XX XXX XXX" autocomplete="tel"/></div>
+
+        <div class="grid one">
+          <div class="field" id="f-fn">
+            <label>Full name <span class="req">*</span></label>
+            <input type="text" id="fn" placeholder="Alex Johnson" autocomplete="name"/>
+            <span class="err-msg">Please enter your full name</span>
+          </div>
         </div>
         <div class="grid">
-          <div class="field"><label>Job title</label><input type="text" id="jt" placeholder="Owner / Manager"/></div>
-          <div class="field" id="f-pw"><label>Password <span class="req">*</span></label><input type="password" id="pw" placeholder="Min. 8 characters" autocomplete="new-password"/><span class="hint">At least 8 characters</span><span class="err-msg">Password must be at least 8 characters</span></div>
+          <div class="field" id="f-em">
+            <label>Work email <span class="req">*</span></label>
+            <input type="email" id="em" placeholder="alex@business.com.au" autocomplete="email"/>
+            <span class="err-msg">Please enter a valid email</span>
+          </div>
+          <div class="field">
+            <label>Phone</label>
+            <input type="tel" id="ph" placeholder="+61 4XX XXX XXX" autocomplete="tel"/>
+          </div>
         </div>
-        <div class="check-row"><input type="checkbox" id="terms"/><label for="terms">I agree to the <a href="/terms" target="_blank">Terms of Service</a> and <a href="/privacy" target="_blank">Privacy Policy</a> <span class="req">*</span></label></div>
-        <div class="btn-row"><button class="btn btn-primary" onclick="go1()"><span class="btn-txt">Continue</span><div class="spin"></div></button></div>
+        <div class="grid">
+          <div class="field">
+            <label>Job title</label>
+            <input type="text" id="jt" placeholder="Owner / Manager"/>
+          </div>
+          <div class="field" id="f-pw">
+            <label>Password <span class="req">*</span></label>
+            <input type="password" id="pw" placeholder="Min. 8 characters" autocomplete="new-password"/>
+            <span class="hint">At least 8 characters</span>
+            <span class="err-msg">Password must be at least 8 characters</span>
+          </div>
+        </div>
+        <div class="check-row">
+          <input type="checkbox" id="terms"/>
+          <label for="terms">I agree to the <a href="/terms" target="_blank">Terms of Service</a> and <a href="/privacy" target="_blank">Privacy Policy</a> <span class="req">*</span></label>
+        </div>
+        <div class="btn-row">
+          <button class="btn btn-primary" onclick="go1()">
+            <span class="btn-txt">Continue</span><div class="spin"></div>
+          </button>
+        </div>
       </div>
 
-      <!-- ══ STEP 2 ══ -->
+      <!-- ══ STEP 2: Business ════════════════════════ -->
       <div class="panel" id="p2" style="display:none">
-        <div class="eyebrow">Step 2 of 6 · Business</div>
+        <div class="eyebrow">Step 2 of 7 · Business</div>
         <h1 class="heading">Your business</h1>
         <p class="subhead">We use this to configure your platform and for billing.</p>
-        <div class="grid one"><div class="field" id="f-bn"><label>Business name <span class="req">*</span></label><input type="text" id="bn" placeholder="Ember & Oak Restaurant Group"/><span class="err-msg">Business name is required</span></div></div>
-        <div class="grid">
-          <div class="field" id="f-abn"><label>ABN <span class="req">*</span></label><div class="abn-wrap"><input type="text" id="abn" placeholder="XX XXX XXX XXX" maxlength="14" oninput="fmtABN(this)"/><div class="abn-tag" id="abn-tag"></div></div><span class="hint">11-digit Australian Business Number</span><span class="err-msg">Valid ABN required</span></div>
-          <div class="field" id="f-bt"><label>Business type <span class="req">*</span></label><select id="bt"><option value="">Select type...</option><option>Restaurant</option><option>Cafe</option><option>Bar / Pub</option><option>Hotel</option><option>Retail</option><option>Health & Beauty</option><option>Healthcare</option><option>Professional Services</option><option>Entertainment</option><option>Other</option></select><span class="err-msg">Please select a type</span></div>
+
+        <div class="grid one">
+          <div class="field" id="f-bn">
+            <label>Business name <span class="req">*</span></label>
+            <input type="text" id="bn" placeholder="Ember & Oak Restaurant Group"/>
+            <span class="err-msg">Business name is required</span>
+          </div>
         </div>
-        <div class="grid">
-          <div class="field"><label>Website</label><input type="url" id="ws" placeholder="https://yourbusiness.com.au"/></div>
-          <div class="field" id="f-be"><label>Business email <span class="req">*</span></label><input type="email" id="be" placeholder="hello@business.com.au"/><span class="err-msg">Valid email required</span></div>
+        <div class="grid one">
+          <div class="field" id="f-abn">
+            <label>ABN <span class="req">*</span></label>
+            <div class="abn-wrap">
+              <input type="text" id="abn" placeholder="XX XXX XXX XXX" maxlength="14" oninput="fmtABN(this)"/>
+              <div class="abn-tag" id="abn-tag"></div>
+            </div>
+            <span class="hint">11-digit Australian Business Number</span>
+            <span class="err-msg">Valid ABN required</span>
+          </div>
         </div>
-        <div class="grid one"><div class="field" id="f-a1"><label>Street address <span class="req">*</span></label><input type="text" id="a1" placeholder="123 Main Street"/><span class="err-msg">Address is required</span></div></div>
+        <input type="hidden" id="bt" value=""/>
+        <div class="grid">
+          <div class="field">
+            <label>Website</label>
+            <input type="url" id="ws" placeholder="https://yourbusiness.com.au"/>
+          </div>
+          <div class="field" id="f-be">
+            <label>Business email <span class="req">*</span></label>
+            <input type="email" id="be" placeholder="hello@business.com.au"/>
+            <span class="err-msg">Valid email required</span>
+          </div>
+        </div>
+        <div class="grid one">
+          <div class="field" id="f-a1">
+            <label>Street address <span class="req">*</span></label>
+            <input type="text" id="a1" placeholder="123 Main Street"/>
+            <span class="err-msg">Address is required</span>
+          </div>
+        </div>
         <div class="grid three">
-          <div class="field" id="f-sb"><label>Suburb <span class="req">*</span></label><input type="text" id="sb2" placeholder="Sydney"/><span class="err-msg">Required</span></div>
-          <div class="field" id="f-st"><label>State <span class="req">*</span></label><select id="st"><option value="">State</option><option>NSW</option><option>VIC</option><option>QLD</option><option>WA</option><option>SA</option><option>TAS</option><option>ACT</option><option>NT</option></select><span class="err-msg">Required</span></div>
-          <div class="field" id="f-pc"><label>Postcode <span class="req">*</span></label><input type="text" id="pc2" placeholder="2000" maxlength="4"/><span class="err-msg">Required</span></div>
+          <div class="field" id="f-sb">
+            <label>Suburb <span class="req">*</span></label>
+            <input type="text" id="sb2" placeholder="Sydney"/>
+            <span class="err-msg">Required</span>
+          </div>
+          <div class="field" id="f-st">
+            <label>State <span class="req">*</span></label>
+            <select id="st">
+              <option value="">State</option>
+              <option>NSW</option><option>VIC</option><option>QLD</option>
+              <option>WA</option><option>SA</option><option>TAS</option>
+              <option>ACT</option><option>NT</option>
+            </select>
+            <span class="err-msg">Required</span>
+          </div>
+          <div class="field" id="f-pc">
+            <label>Postcode <span class="req">*</span></label>
+            <input type="text" id="pc2" placeholder="2000" maxlength="4"/>
+            <span class="err-msg">Required</span>
+          </div>
         </div>
-        <div class="btn-row"><button class="btn btn-ghost" onclick="show(1)">← Back</button><button class="btn btn-primary" onclick="go2()"><span class="btn-txt">Continue</span><div class="spin"></div></button></div>
+        <div class="btn-row">
+          <button class="btn btn-ghost" onclick="show(1)">← Back</button>
+          <button class="btn btn-primary" onclick="go2()">
+            <span class="btn-txt">Continue</span><div class="spin"></div>
+          </button>
+        </div>
       </div>
 
-      <!-- ══ STEP 3: BRANDING + SKIN ══════════════════ -->
+      <!-- ══ STEP 3: Industry ═══════════════════════ -->
       <div class="panel" id="p3" style="display:none">
-        <div class="eyebrow">Step 3 of 6 · Branding</div>
-        <h1 class="heading">Brand your<br><em>widget</em></h1>
-        <p class="subhead">Choose a skin that matches your industry, then customise the colour.</p>
+        <div class="eyebrow">Step 3 of 7 · Industry</div>
+        <h1 class="heading">What type of<br><em>business?</em></h1>
+        <p class="subhead">We'll set up your KPI tiles and AI prompts based on your industry.</p>
 
-        <div class="branding-wrap">
+        <!-- Search bar -->
+        <div style="position:relative;margin-bottom:20px">
+          <span style="position:absolute;left:14px;top:50%;transform:translateY(-50%);font-size:15px;pointer-events:none">🔍</span>
+          <input type="text" id="ind-search" placeholder="Search industry or business type…"
+            oninput="filterIndustry(this.value)"
+            style="padding-left:40px;background:var(--surface);border:1.5px solid var(--border);border-radius:var(--r);padding-top:11px;padding-bottom:11px;font-size:14px;width:100%"/>
+        </div>
 
-          <!-- LEFT: all controls -->
-          <div>
+        <!-- Desktop: side by side | Mobile: stacked -->
+        <div id="ind-cols" style="display:flex;gap:24px;align-items:flex-start">
 
-            <!-- Display name -->
-            <div class="grid one" style="margin-bottom:20px">
-              <div class="field">
-                <label>Display name <span class="req">*</span></label>
-                <input type="text" id="dn" placeholder="Ember & Oak — The Rocks"/>
-                <span class="hint">Shown in the widget header</span>
-              </div>
-            </div>
-
-            <!-- Skin picker -->
-            <div class="section-title">Choose your industry skin</div>
-            <div class="skin-grid" id="skin-grid"><!-- filled by JS --></div>
-
-            <!-- Logo -->
-            <div class="field" style="margin-bottom:20px">
-              <label>Logo</label>
-              <div class="upload-zone" id="logo-zone">
-                <input type="file" id="logo-file" accept="image/*" onchange="handleLogo(this)"/>
-                <img class="logo-prev" id="logo-prev" src="" alt=""/>
-                <div class="upload-icon" id="upload-ico">🖼️</div>
-                <div class="upload-label" id="upload-lbl"><strong>Click to upload</strong> or drag & drop<br>PNG, JPG, SVG — max 2MB</div>
-              </div>
-            </div>
-
-            <!-- Colour override -->
-            <div class="field" style="margin-bottom:28px">
-              <label>Brand colour override <span style="color:var(--muted);font-weight:400">(optional)</span></label>
-              <div class="swatches" id="swatches">
-                <div class="swatch" style="background:#0F0F0D" data-c="#0F0F0D" onclick="pickColor(this)"></div>
-                <div class="swatch" style="background:#C9A84C" data-c="#C9A84C" onclick="pickColor(this)"></div>
-                <div class="swatch" style="background:#E74C3C" data-c="#E74C3C" onclick="pickColor(this)"></div>
-                <div class="swatch" style="background:#3498DB" data-c="#3498DB" onclick="pickColor(this)"></div>
-                <div class="swatch" style="background:#1A7A4A" data-c="#1A7A4A" onclick="pickColor(this)"></div>
-                <div class="swatch" style="background:#7F77DD" data-c="#7F77DD" onclick="pickColor(this)"></div>
-                <div class="swatch" style="background:#E67E22" data-c="#E67E22" onclick="pickColor(this)"></div>
-                <div class="swatch-custom" title="Custom colour"><span>+</span><input type="color" onchange="pickCustom(this)"/></div>
-              </div>
-              <span class="hint">Leave unset to use the skin's default colour</span>
-            </div>
-
-          </div><!-- end left -->
-
-          <!-- RIGHT: live mini preview -->
-          <div class="preview-sticky">
-            <div class="preview-label">Live preview</div>
-            <div class="mini-phone" id="mini-phone"><!-- rendered by JS --></div>
+          <!-- Industry column -->
+          <div style="flex:1;min-width:0">
+            <label style="font-size:12px;font-weight:500;color:var(--muted);letter-spacing:.02em;display:block;margin-bottom:8px">Industry <span class="req">*</span></label>
+            <div id="industry-grid" style="display:grid;grid-template-columns:repeat(2,1fr);gap:8px"></div>
+            <span id="ind-err" style="display:none;font-size:11px;color:var(--red);margin-top:6px;display:none">Please select your industry</span>
           </div>
 
-        </div><!-- end branding-wrap -->
+          <!-- Business type column — hidden until industry selected -->
+          <div id="f-biz" style="display:none;flex:1;min-width:0">
+            <label style="font-size:12px;font-weight:500;color:var(--muted);letter-spacing:.02em;display:block;margin-bottom:8px">Business type <span class="req">*</span></label>
+            <div id="biztype-grid" style="display:grid;grid-template-columns:repeat(2,1fr);gap:8px"></div>
+            <span id="biz-err" style="display:none;font-size:11px;color:var(--red);margin-top:6px">Please select your business type</span>
+          </div>
 
-        <div class="btn-row">
+        </div>
+
+        <div class="btn-row" style="margin-top:28px">
           <button class="btn btn-ghost" onclick="show(2)">← Back</button>
-          <button class="btn btn-primary" onclick="go3()"><span class="btn-txt">Continue</span><div class="spin"></div></button>
+          <button class="btn btn-primary" onclick="go3()">
+            <span class="btn-txt">Continue</span><div class="spin"></div>
+          </button>
         </div>
       </div>
-      <!-- ══ END STEP 3 ══ -->
 
-      <!-- ══ STEP 4 ══ -->
+      <!-- ══ STEP 4: Branding ════════════════════════ -->
       <div class="panel" id="p4" style="display:none">
-        <div class="eyebrow">Step 4 of 6 · Venue</div>
+        <div class="eyebrow">Step 4 of 7 · Branding</div>
+        <h1 class="heading">Brand your<br><em>widget</em></h1>
+        <p class="subhead">Your guests will see this when they scan the QR code.</p>
+
+        <div class="grid one" style="margin-bottom:8px">
+          <div class="field">
+            <label>Display name <span class="req">*</span></label>
+            <input type="text" id="dn" placeholder="Ember & Oak — The Rocks"/>
+            <span class="hint">Shown in the widget header</span>
+          </div>
+        </div>
+        <div class="field" style="margin-bottom:24px">
+          <label>Logo</label>
+          <div class="upload-zone" id="logo-zone">
+            <input type="file" id="logo-file" accept="image/*" onchange="handleLogo(this)"/>
+            <img class="logo-prev" id="logo-prev" src="" alt=""/>
+            <div class="upload-icon" id="upload-ico">🖼️</div>
+            <div class="upload-label" id="upload-lbl"><strong>Click to upload</strong> or drag & drop<br>PNG, JPG, SVG — max 2MB</div>
+          </div>
+        </div>
+        <div class="field" style="margin-bottom:24px">
+          <label>Brand colour</label>
+          <div class="swatches" id="swatches">
+            <div class="swatch on" style="background:#0F0F0D" data-c="#0F0F0D" onclick="pickColor(this)"></div>
+            <div class="swatch" style="background:#C9A84C" data-c="#C9A84C" onclick="pickColor(this)"></div>
+            <div class="swatch" style="background:#E74C3C" data-c="#E74C3C" onclick="pickColor(this)"></div>
+            <div class="swatch" style="background:#3498DB" data-c="#3498DB" onclick="pickColor(this)"></div>
+            <div class="swatch" style="background:#1A7A4A" data-c="#1A7A4A" onclick="pickColor(this)"></div>
+            <div class="swatch" style="background:#7F77DD" data-c="#7F77DD" onclick="pickColor(this)"></div>
+            <div class="swatch" style="background:#E67E22" data-c="#E67E22" onclick="pickColor(this)"></div>
+            <div class="swatch-custom" title="Custom colour">
+              <span>+</span>
+              <input type="color" onchange="pickCustom(this)"/>
+            </div>
+          </div>
+          <span class="hint">Used for buttons and highlights in your widget</span>
+        </div>
+        <div class="field" style="margin-bottom:8px"><label>Widget theme</label></div>
+        <div class="theme-row">
+          <div class="theme-opt on" data-t="dark" onclick="pickTheme(this)">
+            <div class="theme-preview dark"></div>
+            <div><div class="theme-name">Dark</div><div class="theme-desc">Premium feel</div></div>
+          </div>
+          <div class="theme-opt" data-t="light" onclick="pickTheme(this)">
+            <div class="theme-preview light"></div>
+            <div><div class="theme-name">Light</div><div class="theme-desc">Clean & minimal</div></div>
+          </div>
+        </div>
+        <div class="btn-row">
+          <button class="btn btn-ghost" onclick="show(3)">← Back</button>
+          <button class="btn btn-primary" onclick="go4()">
+            <span class="btn-txt">Continue</span><div class="spin"></div>
+          </button>
+        </div>
+      </div>
+
+      <!-- ══ STEP 6: Venue ══════════════════════════ -->
+      <div class="panel" id="p5" style="display:none">
+        <div class="eyebrow">Step 5 of 7 · Venue</div>
         <h1 class="heading">Add your first<br><em>venue</em></h1>
         <p class="subhead">This creates your first QR code location. Add more venues later.</p>
-        <div class="grid"><div class="field s2" id="f-vn"><label>Venue name <span class="req">*</span></label><input type="text" id="vn" placeholder="Ember & Oak — The Rocks"/><span class="err-msg">Venue name is required</span></div></div>
+
         <div class="grid">
-          <div class="field" id="f-va"><label>Street address <span class="req">*</span></label><input type="text" id="va" placeholder="12 Argyle Street"/><span class="err-msg">Address is required</span></div>
-          <div class="field"><label>Suburb</label><input type="text" id="vsb" placeholder="The Rocks"/></div>
+          <div class="field s2" id="f-vn">
+            <label>Venue name <span class="req">*</span></label>
+            <input type="text" id="vn" placeholder="Ember & Oak — The Rocks"/>
+            <span class="err-msg">Venue name is required</span>
+          </div>
+        </div>
+        <div class="grid">
+          <div class="field" id="f-va">
+            <label>Street address <span class="req">*</span></label>
+            <input type="text" id="va" placeholder="12 Argyle Street"/>
+            <span class="err-msg">Address is required</span>
+          </div>
+          <div class="field">
+            <label>Suburb</label>
+            <input type="text" id="vsb" placeholder="The Rocks"/>
+          </div>
         </div>
         <div class="grid three">
-          <div class="field"><label>State</label><select id="vst"><option value="">State</option><option>NSW</option><option>VIC</option><option>QLD</option><option>WA</option><option>SA</option><option>TAS</option><option>ACT</option><option>NT</option></select></div>
-          <div class="field"><label>Postcode</label><input type="text" id="vpc" placeholder="2000" maxlength="4"/></div>
-          <div class="field"><label>Venue type</label><select id="vt" onchange="buildSpecs(this.value)"><option value="">Select...</option><option>Fine dining restaurant</option><option>Casual dining restaurant</option><option>Cafe</option><option>Bar / Pub</option><option>Hotel / Accommodation</option><option>Retail store</option><option>Health & Beauty salon</option><option>Other</option></select></div>
+          <div class="field">
+            <label>State</label>
+            <select id="vst">
+              <option value="">State</option>
+              <option>NSW</option><option>VIC</option><option>QLD</option>
+              <option>WA</option><option>SA</option><option>TAS</option>
+              <option>ACT</option><option>NT</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>Postcode</label>
+            <input type="text" id="vpc" placeholder="2000" maxlength="4"/>
+          </div>
+          <div class="field">
+            <label>Venue type</label>
+            <select id="vt" onchange="buildSpecs(this.value)">
+              <option value="">Select...</option>
+              <option>Fine dining restaurant</option>
+              <option>Casual dining restaurant</option>
+              <option>Cafe</option><option>Bar / Pub</option>
+              <option>Hotel / Accommodation</option>
+              <option>Retail store</option>
+              <option>Health & Beauty salon</option>
+              <option>Other</option>
+            </select>
+          </div>
         </div>
-        <div class="grid one"><div class="field"><label>Google Review Link</label><input type="url" id="gp" placeholder="https://g.page/r/CfW7qf3BQ7isEAE/review"/><span class="hint">Find yours in <strong>Google Business Profile</strong> → Ask for reviews → Copy link</span></div></div>
-        <div class="field" style="margin-bottom:8px"><label>Known for <span style="color:var(--muted);font-weight:400">(select all that apply)</span></label></div>
+        <div class="grid one">
+          <div class="field">
+            <label>Google Review Link</label>
+            <input type="url" id="gp" placeholder="https://g.page/r/CfW7qf3BQ7isEAE/review"/>
+            <span class="hint">Find yours in <strong>Google Business Profile</strong> → Ask for reviews → Copy link</span>
+          </div>
+        </div>
+        <div class="field" style="margin-bottom:8px">
+          <label>Known for <span style="color:var(--muted);font-weight:400">(select all that apply)</span></label>
+        </div>
         <div class="spec-wrap" id="specs"></div>
-        <div class="grid one" style="margin-top:16px"><div class="field"><label>One-line description</label><input type="text" id="kf" placeholder="Wood-fired cuisine and intimate atmosphere"/><span class="hint">AI uses this to personalise guest conversations</span></div></div>
-        <div class="btn-row"><button class="btn btn-ghost" onclick="show(3)">← Back</button><button class="btn btn-primary" onclick="go4()"><span class="btn-txt">Continue</span><div class="spin"></div></button></div>
+        <div class="grid one" style="margin-top:16px">
+          <div class="field">
+            <label>One-line description</label>
+            <input type="text" id="kf" placeholder="Wood-fired cuisine and intimate atmosphere"/>
+            <span class="hint">AI uses this to personalise guest conversations</span>
+          </div>
+        </div>
+        <div class="btn-row">
+          <button class="btn btn-ghost" onclick="show(4)">← Back</button>
+          <button class="btn btn-primary" onclick="go5()">
+            <span class="btn-txt">Continue</span><div class="spin"></div>
+          </button>
+        </div>
       </div>
 
-      <!-- ══ STEP 5 ══ -->
-      <div class="panel" id="p5" style="display:none">
-        <div class="eyebrow">Step 5 of 6 · Plan</div>
+      <!-- ══ STEP 6: Plan ════════════════════════════ -->
+      <div class="panel" id="p6" style="display:none">
+        <div class="eyebrow">Step 6 of 7 · Plan</div>
         <h1 class="heading">Choose your<br><em>plan</em></h1>
         <p class="subhead">Start free. Upgrade anytime. No lock-in contracts.</p>
-        <div class="plans" id="plan-grid"></div>
-        <div class="btn-row"><button class="btn btn-ghost" onclick="show(4)">← Back</button><button class="btn btn-primary" onclick="go5()"><span class="btn-txt" id="plan-btn">Continue with Pro</span><div class="spin"></div></button></div>
+
+        <div class="plans" id="plan-grid"><!-- filled by JS --></div>
+
+        <div class="btn-row">
+          <button class="btn btn-ghost" onclick="show(5)">← Back</button>
+          <button class="btn btn-primary" onclick="go6()">
+            <span class="btn-txt" id="plan-btn">Continue with Pro</span><div class="spin"></div>
+          </button>
+        </div>
       </div>
 
-      <!-- ══ STEP 6 ══ -->
-      <div class="panel" id="p6" style="display:none">
-        <div class="eyebrow">Step 6 of 6 · Payment</div>
+      <!-- ══ STEP 7: Payment ══════════════════════════ -->
+      <div class="panel" id="p7" style="display:none">
+        <div class="eyebrow">Step 7 of 7 · Payment</div>
         <h1 class="heading" id="pay-h">Payment<br><em>details</em></h1>
         <p class="subhead" id="pay-s">Your subscription starts today. Cancel anytime.</p>
-        <div id="pay-free" style="display:none"><div class="free-notice"><p>No payment required</p><p>Free plan — no credit card needed. Upgrade anytime from your dashboard.</p></div></div>
+
+        <div id="pay-free" style="display:none">
+          <div class="free-notice">
+            <p>No payment required</p>
+            <p>Free plan — no credit card needed. Upgrade anytime from your dashboard.</p>
+          </div>
+        </div>
+
         <div id="pay-paid">
           <div class="pay-box">
             <h3>Card details</h3>
-            <div class="grid one" style="margin-bottom:14px"><div class="field" id="f-cn"><label>Name on card <span class="req">*</span></label><input type="text" id="cn" placeholder="Alex Johnson" autocomplete="cc-name"/><span class="err-msg">Name on card required</span></div></div>
-            <div class="grid one" style="margin-bottom:14px"><div class="field card-wrap" id="f-cc"><label>Card number <span class="req">*</span></label><input type="text" id="cc" placeholder="1234 5678 9012 3456" maxlength="19" oninput="fmtCard(this)" autocomplete="cc-number" style="padding-right:76px"/><div class="card-icons"><div class="card-ico" id="ci-v">VISA</div><div class="card-ico" id="ci-m">MC</div></div><span class="err-msg">Valid card number required</span></div></div>
-            <div class="card-row">
-              <div class="field" id="f-ex"><label>Expiry <span class="req">*</span></label><input type="text" id="ex" placeholder="MM / YY" maxlength="7" oninput="fmtExp(this)" autocomplete="cc-exp"/><span class="err-msg">Valid expiry required</span></div>
-              <div class="field" id="f-cv"><label>CVV <span class="req">*</span></label><input type="text" id="cv" placeholder="•••" maxlength="4" autocomplete="cc-csc"/><span class="err-msg">CVV required</span></div>
+            <div class="grid one" style="margin-bottom:14px">
+              <div class="field" id="f-cn">
+                <label>Name on card <span class="req">*</span></label>
+                <input type="text" id="cn" placeholder="Alex Johnson" autocomplete="cc-name"/>
+                <span class="err-msg">Name on card required</span>
+              </div>
             </div>
-            <div class="sec-row"><div class="sec-item">🔒 256-bit SSL</div><div class="sec-item">✓ PCI-DSS compliant</div><div class="sec-item">⚡ Powered by Stripe</div></div>
+            <div class="grid one" style="margin-bottom:14px">
+              <div class="field card-wrap" id="f-cc">
+                <label>Card number <span class="req">*</span></label>
+                <input type="text" id="cc" placeholder="1234 5678 9012 3456"
+                  maxlength="19" oninput="fmtCard(this)" autocomplete="cc-number" style="padding-right:76px"/>
+                <div class="card-icons">
+                  <div class="card-ico" id="ci-v">VISA</div>
+                  <div class="card-ico" id="ci-m">MC</div>
+                </div>
+                <span class="err-msg">Valid card number required</span>
+              </div>
+            </div>
+            <div class="card-row">
+              <div class="field" id="f-ex">
+                <label>Expiry <span class="req">*</span></label>
+                <input type="text" id="ex" placeholder="MM / YY" maxlength="7" oninput="fmtExp(this)" autocomplete="cc-exp"/>
+                <span class="err-msg">Valid expiry required</span>
+              </div>
+              <div class="field" id="f-cv">
+                <label>CVV <span class="req">*</span></label>
+                <input type="text" id="cv" placeholder="•••" maxlength="4" autocomplete="cc-csc"/>
+                <span class="err-msg">CVV required</span>
+              </div>
+            </div>
+            <div class="sec-row">
+              <div class="sec-item">🔒 256-bit SSL</div>
+              <div class="sec-item">✓ PCI-DSS compliant</div>
+              <div class="sec-item">⚡ Powered by Stripe</div>
+            </div>
           </div>
+
           <div class="pay-box">
             <h3>Billing address</h3>
-            <div class="grid one" style="margin-bottom:14px"><div class="field"><label>Full name</label><input type="text" id="bln" autocomplete="billing name"/></div></div>
-            <div class="grid one" style="margin-bottom:14px"><div class="field"><label>Street address</label><input type="text" id="bla" autocomplete="billing street-address"/></div></div>
+            <div class="grid one" style="margin-bottom:14px">
+              <div class="field">
+                <label>Full name</label>
+                <input type="text" id="bln" autocomplete="billing name"/>
+              </div>
+            </div>
+            <div class="grid one" style="margin-bottom:14px">
+              <div class="field">
+                <label>Street address</label>
+                <input type="text" id="bla" autocomplete="billing street-address"/>
+              </div>
+            </div>
             <div class="grid three">
               <div class="field"><label>Suburb</label><input type="text" id="blsb"/></div>
-              <div class="field"><label>State</label><select id="blst"><option value="">State</option><option>NSW</option><option>VIC</option><option>QLD</option><option>WA</option><option>SA</option><option>TAS</option><option>ACT</option><option>NT</option></select></div>
+              <div class="field">
+                <label>State</label>
+                <select id="blst">
+                  <option value="">State</option>
+                  <option>NSW</option><option>VIC</option><option>QLD</option>
+                  <option>WA</option><option>SA</option><option>TAS</option>
+                  <option>ACT</option><option>NT</option>
+                </select>
+              </div>
               <div class="field"><label>Postcode</label><input type="text" id="blpc" maxlength="4"/></div>
             </div>
           </div>
+
           <div class="order-summary" id="order-summary">
-            <div class="order-row"><span id="order-label">XPscore360 Pro — Monthly</span><span id="order-price">$49.00 AUD</span></div>
-            <div class="order-row"><span>Billed monthly · cancel anytime</span><span>+ GST</span></div>
+            <div class="order-row">
+              <span id="order-label">XPscore360 Pro — Monthly</span>
+              <span id="order-price">$49.00 AUD</span>
+            </div>
+            <div class="order-row">
+              <span>Billed monthly · cancel anytime</span>
+              <span>+ GST</span>
+            </div>
           </div>
         </div>
-        <div class="check-row"><input type="checkbox" id="bill-terms"/><label for="bill-terms">I authorise <span id="auth-product">XPscore360</span> to charge this card for my subscription. I can cancel anytime from my dashboard. <span class="req">*</span></label></div>
-        <div class="btn-row"><button class="btn btn-ghost" onclick="show(5)">← Back</button><button class="btn btn-primary" id="complete-btn" onclick="go6()"><span class="btn-txt" id="complete-lbl">Complete setup</span><div class="spin"></div></button></div>
+
+        <div class="check-row">
+          <input type="checkbox" id="bill-terms"/>
+          <label for="bill-terms">I authorise <span id="auth-product">XPscore360</span> to charge this card for my subscription. I can cancel anytime from my dashboard. <span class="req">*</span></label>
+        </div>
+
+        <div class="btn-row">
+          <button class="btn btn-ghost" onclick="show(6)">← Back</button>
+          <button class="btn btn-primary" id="complete-btn" onclick="go7()">
+            <span class="btn-txt" id="complete-lbl">Complete setup</span><div class="spin"></div>
+          </button>
+        </div>
       </div>
 
-      <!-- ══ SUCCESS ══ -->
+      <!-- ══ SUCCESS ═══════════════════════════════ -->
       <div class="panel" id="p-ok" style="display:none">
         <div class="success-mark">✓</div>
-        <div class="eyebrow">You're all set</div>
+        <div class="eyebrow" id="ok-eyebrow">You're all set</div>
         <h1 class="heading" id="ok-heading">Welcome to<br><em id="ok-product">XPscore360</em></h1>
         <p class="subhead" id="ok-sub">Your account is live. Your first QR code is ready to print.</p>
         <div class="success-summary" id="ok-summary"></div>
-        <div class="btn-row"><button class="btn btn-primary" id="ok-btn" onclick="window.location.href='/dashboard'">Go to dashboard →</button></div>
+        <div class="btn-row">
+          <button class="btn btn-primary" id="ok-btn" onclick="window.location.href='/dashboard'">
+            Go to dashboard →
+          </button>
+        </div>
       </div>
 
     </div>
@@ -437,330 +942,600 @@ textarea{resize:vertical;min-height:80px}
 <div class="toast" id="toast"></div>
 
 <script>
-// ── Product configs — UNCHANGED ────────────────────────
+// ── Product configs ────────────────────────────────────
 const PRODUCTS = {
-  xpscore360:{name:'XPscore360',icon:'XP',accent:'#0F0F0D',light:'#FFFFFF',heading:'Set up your\naccount',sub:'Get your AI-powered guest feedback platform live in minutes.',dashboard:'/xpscore360-app/dashboard.html',plans:[{id:'free',name:'Free',price:'$0',per:'/mo',desc:'Perfect for testing before committing.',feats:['1 venue','100 sessions / mo','7-day analytics'],no:['Google review drafts','Manager alerts']},{id:'pro',name:'Pro',price:'$49',per:'/mo AUD',popular:true,desc:'For venues serious about Google Reviews.',feats:['3 venues','1,000 sessions / mo','90-day analytics','Google review drafts','Manager alerts'],no:['CSV export']},{id:'business',name:'Business',price:'$149',per:'/mo AUD',desc:'Multi-location groups at unlimited scale.',feats:['Unlimited venues','Unlimited sessions','Full analytics + export','Google review drafts','Manager alerts','API access'],no:[]}],defaultPlan:'pro'},
-  aiflow360:{name:'AIflow360',icon:'AF',accent:'#1A1A2E',light:'#FFFFFF',heading:'Set up your\nworkspace',sub:'Get your AI automation platform configured in minutes.',dashboard:'/aiflow360-app/dashboard.html',plans:[{id:'free',name:'Starter',price:'$0',per:'/mo',desc:'Explore automations with no commitment.',feats:['3 automations','500 runs / mo','Basic templates'],no:['Custom integrations','Priority support']},{id:'pro',name:'Growth',price:'$79',per:'/mo AUD',popular:true,desc:'For teams running real business workflows.',feats:['Unlimited automations','10,000 runs / mo','All integrations','Custom templates','Priority support'],no:[]},{id:'business',name:'Scale',price:'$199',per:'/mo AUD',desc:'Enterprise-grade automation at scale.',feats:['Unlimited everything','Dedicated support','SLA guarantee','Custom AI models','API access'],no:[]}],defaultPlan:'pro'},
+  xpscore360: {
+    name:       'XPscore360',
+    icon:       'XP',
+    accent:     '#0F0F0D',
+    light:      '#FFFFFF',
+    heading:    'Set up your\naccount',
+    sub:        'Get your AI-powered guest feedback platform live in minutes.',
+    dashboard:  '/xpscore360-app/dashboard.html',
+    plans: [
+      { id:'free',     name:'Free',     price:'$0',   per:'/mo',
+        desc:'Perfect for testing before committing.',
+        feats:['1 venue','100 sessions / mo','7-day analytics'],
+        no:['Google review drafts','Manager alerts'] },
+      { id:'pro',      name:'Pro',      price:'$49',  per:'/mo AUD', popular:true,
+        desc:'For venues serious about Google Reviews.',
+        feats:['3 venues','1,000 sessions / mo','90-day analytics','Google review drafts','Manager alerts'],
+        no:['CSV export'] },
+      { id:'business', name:'Business', price:'$149', per:'/mo AUD',
+        desc:'Multi-location groups at unlimited scale.',
+        feats:['Unlimited venues','Unlimited sessions','Full analytics + export','Google review drafts','Manager alerts','API access'],
+        no:[] },
+    ],
+    defaultPlan: 'pro',
+  },
+  aiflow360: {
+    name:       'AIflow360',
+    icon:       'AF',
+    accent:     '#1A1A2E',
+    light:      '#FFFFFF',
+    heading:    'Set up your\nworkspace',
+    sub:        'Get your AI automation platform configured in minutes.',
+    dashboard:  '/aiflow360-app/dashboard.html',
+    plans: [
+      { id:'free',     name:'Starter',  price:'$0',   per:'/mo',
+        desc:'Explore automations with no commitment.',
+        feats:['3 automations','500 runs / mo','Basic templates'],
+        no:['Custom integrations','Priority support'] },
+      { id:'pro',      name:'Growth',   price:'$79',  per:'/mo AUD', popular:true,
+        desc:'For teams running real business workflows.',
+        feats:['Unlimited automations','10,000 runs / mo','All integrations','Custom templates','Priority support'],
+        no:[] },
+      { id:'business', name:'Scale',    price:'$199', per:'/mo AUD',
+        desc:'Enterprise-grade automation at scale.',
+        feats:['Unlimited everything','Dedicated support','SLA guarantee','Custom AI models','API access'],
+        no:[] },
+    ],
+    defaultPlan: 'pro',
+  },
 };
 
-// ── Specialties — UNCHANGED ────────────────────────────
-const SPECS={default:['Food quality','Service','Ambience','Value','Wait time','Cleanliness'],restaurant:['Food quality','Menu variety','Wine list','Service','Ambience','Portion size','Dessert','Presentation'],cafe:['Coffee quality','Food quality','Service','Ambience','Seating','Wait time','Value'],bar:['Drink selection','Cocktails','Service','Ambience','Music','Prices','Seating'],hotel:['Room quality','Cleanliness','Service','Check-in','Breakfast','Location','Value'],retail:['Product range','Staff knowledge','Service','Store layout','Value','Stock','Returns']};
+// ── Specialties ────────────────────────────────────────
+const SPECS = {
+  default:    ['Food quality','Service','Ambience','Value','Wait time','Cleanliness'],
+  restaurant: ['Food quality','Menu variety','Wine list','Service','Ambience','Portion size','Dessert','Presentation'],
+  cafe:       ['Coffee quality','Food quality','Service','Ambience','Seating','Wait time','Value'],
+  bar:        ['Drink selection','Cocktails','Service','Ambience','Music','Prices','Seating'],
+  hotel:      ['Room quality','Cleanliness','Service','Check-in','Breakfast','Location','Value'],
+  retail:     ['Product range','Staff knowledge','Service','Store layout','Value','Stock','Returns'],
+};
 
-// ── NEW: Skin definitions ──────────────────────────────
-const SKINS = [
-  { id:'restaurant', name:'Restaurant',    desc:'Fine dining & casual',
-    brand:'#1C1612', fg:'#F5EDD8', bg:'#FDFBF7', tile:'#F5F0E8', border:'#E8E0D0', text:'#1C1612', muted:'#9B8E7A',
-    cardR:'18px', tileR:'14px', btnR:'10px',
-    dots:['#1C1612','#C9A84C','#F5EDD8'],
-    cats:['Cuisine','Wine list','Ambience','Value'] },
-  { id:'cafe',       name:'Café',          desc:'Coffee shops & bakeries',
-    brand:'#3D2314', fg:'#FFF8F0', bg:'#FFFDF9', tile:'#F5EFE6', border:'#E8DDD0', text:'#2A1A0E', muted:'#9A8070',
-    cardR:'20px', tileR:'16px', btnR:'14px',
-    dots:['#3D2314','#E8DDD0','#FFF8F0'],
-    cats:['Coffee','Food','Vibe','Wait time'] },
-  { id:'hotel',      name:'Hotel',         desc:'Accommodation & resorts',
-    brand:'#0D2137', fg:'#E8D9BC', bg:'#FFFFFF', tile:'#F4F6F8', border:'#DDE3E9', text:'#0D2137', muted:'#7A8C9A',
-    cardR:'16px', tileR:'12px', btnR:'8px',
-    dots:['#0D2137','#E8D9BC','#DDE3E9'],
-    cats:['Room','Cleanliness','Service','Location'] },
-  { id:'salon',      name:'Beauty & salon', desc:'Hair, nails & wellness',
-    brand:'#3D1A34', fg:'#F9EEF6', bg:'#FEFCFE', tile:'#F8F0F6', border:'#EAD8E8', text:'#2A0F24', muted:'#9A7090',
-    cardR:'22px', tileR:'18px', btnR:'99px',
-    dots:['#3D1A34','#EAD8E8','#F9EEF6'],
-    cats:['Styling','Result','Stylist','Value'] },
-  { id:'retail',     name:'Retail',        desc:'Shops & concept stores',
-    brand:'#111111', fg:'#FFFFFF', bg:'#FFFFFF', tile:'#F5F5F5', border:'#E5E5E5', text:'#111111', muted:'#888888',
-    cardR:'12px', tileR:'8px', btnR:'4px',
-    dots:['#111111','#E5E5E5','#F5F5F5'],
-    cats:['Range','Staff','Layout','Pricing'] },
-  { id:'health',     name:'Health & wellness', desc:'Clinics & allied health',
-    brand:'#0F4C3A', fg:'#E8F5F0', bg:'#FAFEFB', tile:'#EFF8F3', border:'#D4EDE2', text:'#0A2E24', muted:'#5A8A72',
-    cardR:'20px', tileR:'16px', btnR:'12px',
-    dots:['#0F4C3A','#D4EDE2','#E8F5F0'],
-    cats:['Practitioner','Punctuality','Outcome','Facilities'] },
-];
-
-// ── State — UNCHANGED + skin added ────────────────────
+// ── State ──────────────────────────────────────────────
 const S = {
   step:1, product:'xpscore360', plan:'pro',
   fn:'',em:'',ph:'',jt:'',pw:'',
   bn:'',abn:'',bt:'',ws:'',be:'',a1:'',sb:'',st:'',pc:'',
-  dn:'',logoFile:null,color:'',skin:'restaurant',theme:'dark',
+  dn:'',logoFile:null,color:'#0F0F0D',theme:'dark',
   vn:'',va:'',vsb:'',vst:'',vpc:'',vt:'',gp:'',specs:[],kf:'',
   tenantId:null,
+  industry_code:'', business_type_code:'',
 };
 
-// ── Init — UNCHANGED ───────────────────────────────────
-(function init(){
-  const params=new URLSearchParams(location.search);
-  const prod=params.get('product');
-  if(prod&&PRODUCTS[prod]){S.product=prod;applyProduct(prod);}
-  else{document.getElementById('product-selector').style.display='block';applyProduct('xpscore360');document.getElementById('pc-xpscore360').classList.add('selected');}
-  buildPlans();buildSpecs('');
-  buildSkinGrid();   // NEW
-  renderMiniPhone(); // NEW
+// ── Industry taxonomy ────────────────────────────────
+const INDUSTRIES = [
+  { code:'accommodation_food', name:'Food & Hospitality', icon:'🍽',
+    types:[{code:'cafe',label:'Cafe'},{code:'restaurant',label:'Restaurant'},
+           {code:'bar',label:'Pub / Bar'},{code:'hotel',label:'Hotel / Motel'},
+           {code:'takeaway',label:'Takeaway / Fast Food'},{code:'catering',label:'Catering'}] },
+  { code:'healthcare', name:'Healthcare', icon:'🏥',
+    types:[{code:'medical_clinic',label:'Medical Clinic'},{code:'dentist',label:'Dentist'},
+           {code:'physiotherapist',label:'Physiotherapist'},{code:'aged_care',label:'Aged Care'},
+           {code:'childcare',label:'Childcare Centre'},{code:'pharmacy',label:'Pharmacy'}] },
+  { code:'retail_trade', name:'Retail', icon:'🛍',
+    types:[{code:'clothing_store',label:'Clothing Store'},{code:'electronics_store',label:'Electronics Store'},
+           {code:'grocery_store',label:'Grocery Store'},{code:'hardware_store',label:'Hardware Store'},
+           {code:'furniture_store',label:'Furniture Store'}] },
+  { code:'construction_trade', name:'Trade & Construction', icon:'🔨',
+    types:[{code:'builder',label:'Builder'},{code:'electrician',label:'Electrician'},
+           {code:'plumber',label:'Plumber'},{code:'painter',label:'Painter'},
+           {code:'carpenter',label:'Carpenter'},{code:'landscaper',label:'Landscaper'}] },
+  { code:'beauty', name:'Beauty & Hair', icon:'✂',
+    types:[{code:'hair_salon',label:'Hair Salon'},{code:'beauty_salon',label:'Beauty Salon'}] },
+  { code:'automotive', name:'Automotive', icon:'🚗',
+    types:[{code:'auto_mechanic',label:'Auto Mechanic'},{code:'car_wash',label:'Car Wash'}] },
+  { code:'professional_technical', name:'Professional Services', icon:'⚖',
+    types:[{code:'lawyer',label:'Lawyer'},{code:'accountant',label:'Accountant'},
+           {code:'architect',label:'Architect'},{code:'marketing_agency',label:'Marketing Agency'},
+           {code:'photographer',label:'Photographer'},{code:'veterinarian',label:'Vet'}] },
+  { code:'education_training', name:'Education & Training', icon:'📚',
+    types:[{code:'tutoring',label:'Tutoring'},{code:'training_provider',label:'Training Provider'},
+           {code:'driving_school',label:'Driving School'}] },
+  { code:'financial_insurance', name:'Financial Services', icon:'💰',
+    types:[{code:'financial_planner',label:'Financial Planner'},{code:'accountant',label:'Accountant'},
+           {code:'insurance_broker',label:'Insurance Broker'}] },
+  { code:'arts_recreation', name:'Arts & Recreation', icon:'🎭',
+    types:[{code:'gym',label:'Gym / Fitness'},{code:'sports_club',label:'Sports Club'},
+           {code:'museum_gallery',label:'Museum / Gallery'},{code:'cinema_theatre',label:'Cinema / Theatre'},
+           {code:'amusement_park',label:'Amusement Park'}] },
+  { code:'tourism', name:'Tourism & Travel', icon:'✈',
+    types:[{code:'holiday_accommodation',label:'Holiday Accommodation'},{code:'tour_operator',label:'Tour Operator'},
+           {code:'travel_agent',label:'Travel Agent'}] },
+  { code:'transport', name:'Transport', icon:'🚛',
+    types:[{code:'courier',label:'Courier Service'},{code:'removalist',label:'Removalist'},
+           {code:'taxi_rideshare',label:'Taxi / Rideshare'}] },
+  { code:'real_estate', name:'Real Estate', icon:'🏘',
+    types:[{code:'real_estate_agent',label:'Real Estate Agent'},{code:'car_rental',label:'Car Rental'},
+           {code:'equipment_hire',label:'Equipment Hire'}] },
+  { code:'admin_support', name:'Admin & Support', icon:'🧹',
+    types:[{code:'cleaning',label:'Cleaning Service'},{code:'gardening',label:'Gardening'},
+           {code:'pest_control',label:'Pest Control'},{code:'employment_agency',label:'Employment Agency'}] },
+  { code:'personal_services', name:'Personal Services', icon:'🐾',
+    types:[{code:'laundry',label:'Laundry / Dry Cleaning'},{code:'pet_grooming',label:'Pet Grooming'}] },
+  { code:'ecommerce', name:'E-commerce', icon:'🛒',
+    types:[{code:'online_store',label:'Online Store'}] },
+  { code:'information_media', name:'IT & Media', icon:'💻',
+    types:[{code:'it_services',label:'IT Services'}] },
+  { code:'agriculture', name:'Agriculture', icon:'🌾',
+    types:[{code:'farm',label:'Farm'},{code:'nursery',label:'Nursery'}] },
+  { code:'manufacturing', name:'Manufacturing', icon:'🏭',
+    types:[{code:'manufacturer',label:'Manufacturer'}] },
+];
+
+// ── Init ───────────────────────────────────────────────
+(function init() {
+  const params = new URLSearchParams(location.search);
+  const prod = params.get('product');
+
+  if (prod && PRODUCTS[prod]) {
+    S.product = prod;
+    applyProduct(prod);
+  } else {
+    // Show product selector in step 1
+    document.getElementById('product-selector').style.display = 'block';
+    // Default to xpscore360
+    applyProduct('xpscore360');
+    document.getElementById('pc-xpscore360').classList.add('selected');
+  }
+
+  buildPlans();
+  buildSpecs('');
 })();
 
-// ── applyProduct — UNCHANGED ───────────────────────────
-function applyProduct(prod){
-  const cfg=PRODUCTS[prod];S.product=prod;S.plan=cfg.defaultPlan;
-  document.documentElement.style.setProperty('--p-accent',cfg.accent);
-  document.documentElement.style.setProperty('--p-light',cfg.light);
-  document.getElementById('sb-icon').textContent=cfg.icon;
-  document.getElementById('sb-name').textContent=cfg.name;
-  const[h1,h2]=cfg.heading.split('\n');
-  document.getElementById('sb-heading').innerHTML=`${h1}<br><em>${h2}</em>`;
-  document.getElementById('sb-sub').textContent=cfg.sub;
-  document.getElementById('mob-icon').textContent=cfg.icon;
-  document.getElementById('mob-name').textContent=cfg.name;
-  document.getElementById('auth-product').textContent=cfg.name;
-  document.getElementById('ok-product').textContent=cfg.name;
+function applyProduct(prod) {
+  const cfg = PRODUCTS[prod];
+  S.product = prod;
+  S.plan = cfg.defaultPlan;
+
+  // CSS vars
+  document.documentElement.style.setProperty('--p-accent', cfg.accent);
+  document.documentElement.style.setProperty('--p-light', cfg.light);
+
+  // Sidebar
+  document.getElementById('sb-icon').textContent = cfg.icon;
+  document.getElementById('sb-name').textContent = cfg.name;
+  const [h1, h2] = cfg.heading.split('\n');
+  document.getElementById('sb-heading').innerHTML = `${h1}<br><em>${h2}</em>`;
+  document.getElementById('sb-sub').textContent = cfg.sub;
+
+  // Mobile
+  document.getElementById('mob-icon').textContent = cfg.icon;
+  document.getElementById('mob-name').textContent = cfg.name;
+
+  // Payment auth label
+  document.getElementById('auth-product').textContent = cfg.name;
+
+  // Success
+  document.getElementById('ok-product').textContent = cfg.name;
+
+  // Plan grid
   buildPlans();
 }
-function pickProduct(prod,el){document.querySelectorAll('.product-card').forEach(c=>c.classList.remove('selected'));el.classList.add('selected');applyProduct(prod);}
 
-// ── NEW: Build skin grid ───────────────────────────────
-function buildSkinGrid(){
-  const grid=document.getElementById('skin-grid');
-  grid.innerHTML='';
-  SKINS.forEach(sk=>{
-    const isOn=sk.id===S.skin;
-    const card=document.createElement('div');
-    card.className='skin-card'+(isOn?' selected':'');
-    card.id='sk-'+sk.id;
-    card.innerHTML=`
-      <div class="skin-check">✓</div>
-      <div class="skin-dots">${sk.dots.map(c=>`<div class="skin-dot" style="background:${c}"></div>`).join('')}</div>
-      <div class="skin-card-name">${sk.name}</div>
-      <div class="skin-card-desc">${sk.desc}</div>`;
-    card.onclick=()=>selectSkin(sk.id);
-    grid.appendChild(card);
+function pickProduct(prod, el) {
+  document.querySelectorAll('.product-card').forEach(c => c.classList.remove('selected'));
+  el.classList.add('selected');
+  applyProduct(prod);
+}
+
+// ── Plan grid ──────────────────────────────────────────
+function buildPlans() {
+  const cfg = PRODUCTS[S.product];
+  const grid = document.getElementById('plan-grid');
+  grid.innerHTML = '';
+  cfg.plans.forEach(p => {
+    const isOn = p.id === S.plan;
+    const feats = p.feats.map(f => `<li class="y">${f}</li>`).join('');
+    const nope  = p.no.map(f => `<li>${f}</li>`).join('');
+    grid.innerHTML += `
+      <div class="plan${isOn?' on':''}" id="pl-${p.id}" onclick="pickPlan('${p.id}',this)">
+        ${p.popular ? `<div class="plan-tag">Most popular</div>` : ''}
+        <div class="plan-name">${p.name}</div>
+        <div class="plan-price">${p.price}<span>${p.per}</span></div>
+        <div class="plan-desc">${p.desc}</div>
+        <ul class="plan-feats">${feats}${nope}</ul>
+      </div>`;
   });
 }
 
-function selectSkin(id){
-  S.skin=id;
-  S.color=''; // reset colour override so skin default wins
-  document.querySelectorAll('.skin-card').forEach(c=>c.classList.toggle('selected',c.id==='sk-'+id));
-  document.querySelectorAll('.swatch').forEach(s=>s.classList.remove('on'));
-  renderMiniPhone();
+function pickPlan(id, el) {
+  S.plan = id;
+  document.querySelectorAll('.plan').forEach(c => c.classList.remove('on'));
+  el.classList.add('on');
+  const labels = {free:'Continue with Free',pro:'Continue with Pro',business:'Continue with Business'};
+  const cfg = PRODUCTS[S.product];
+  const p = cfg.plans.find(x => x.id === id);
+  // use product-specific plan name if available
+  document.getElementById('plan-btn').textContent = `Continue with ${p.name}`;
 }
 
-// ── NEW: Render mini phone preview ────────────────────
-function renderMiniPhone(){
-  const sk=SKINS.find(s=>s.id===S.skin)||SKINS[0];
-  const brand=S.color||sk.brand;
-  const name=document.getElementById('dn')?.value||S.bn||'Your venue';
-  const phone=document.getElementById('mini-phone');
-  if(!phone)return;
-
-  phone.style.background=sk.bg;
-  phone.innerHTML=`
-    <div class="mp-header" style="background:${sk.bg};border-color:${sk.border}">
-      <div class="mp-logo-box" style="background:${brand};border-radius:${sk.tileR}">
-        <span style="color:${sk.fg};font-size:10px;font-weight:700">${(name.slice(0,2)||'XP').toUpperCase()}</span>
-      </div>
-      <div>
-        <div class="mp-biz" style="color:${sk.text}">${name.slice(0,18)||'Your venue'}</div>
-        <div class="mp-biz-sub" style="color:${sk.muted}">Visited today</div>
-      </div>
-    </div>
-    <div class="mp-score" style="background:${brand};margin:8px 10px;border-radius:${sk.cardR}">
-      <div>
-        <div class="mp-score-label" style="color:${sk.fg}">Overall score</div>
-        <div class="mp-score-num" style="color:${sk.fg}">4.5</div>
-      </div>
-      <div class="mp-stars-big" style="color:#facc15">★★★★★</div>
-    </div>
-    <div class="mp-cats">
-      ${sk.cats.map(c=>`
-        <div class="mp-cat" style="background:${sk.tile};border-color:${sk.border}">
-          <div class="mp-cat-name" style="color:${sk.text}">${c}</div>
-          <div class="mp-cat-stars" style="color:#facc15">★★★★</div>
-        </div>`).join('')}
-    </div>
-    <div class="mp-btn" style="background:${brand};color:${sk.fg};border-radius:${sk.btnR}">Submit review</div>
-    <div class="mp-chat" style="border-color:${sk.border};background:${sk.bg}">
-      <div class="mp-bubble" style="background:${sk.tile};color:${sk.text}">How was your visit today?</div>
-    </div>`;
-}
-
-// Update preview when display name is typed
-document.addEventListener('DOMContentLoaded',()=>{
-  const dn=document.getElementById('dn');
-  if(dn) dn.addEventListener('input',renderMiniPhone);
-});
-
-// ── Plan grid — UNCHANGED ──────────────────────────────
-function buildPlans(){
-  const cfg=PRODUCTS[S.product];const grid=document.getElementById('plan-grid');grid.innerHTML='';
-  cfg.plans.forEach(p=>{
-    const isOn=p.id===S.plan;
-    const feats=p.feats.map(f=>`<li class="y">${f}</li>`).join('');
-    const nope=p.no.map(f=>`<li>${f}</li>`).join('');
-    grid.innerHTML+=`<div class="plan${isOn?' on':''}" id="pl-${p.id}" onclick="pickPlan('${p.id}',this)">${p.popular?`<div class="plan-tag">Most popular</div>`:''}<div class="plan-name">${p.name}</div><div class="plan-price">${p.price}<span>${p.per}</span></div><div class="plan-desc">${p.desc}</div><ul class="plan-feats">${feats}${nope}</ul></div>`;
-  });
-}
-function pickPlan(id,el){
-  S.plan=id;document.querySelectorAll('.plan').forEach(c=>c.classList.remove('on'));el.classList.add('on');
-  const cfg=PRODUCTS[S.product];const p=cfg.plans.find(x=>x.id===id);
-  document.getElementById('plan-btn').textContent=`Continue with ${p.name}`;
-}
-
-// ── Specialties — UNCHANGED ────────────────────────────
-function buildSpecs(type){
-  const t=type.toLowerCase();const key=Object.keys(SPECS).find(k=>t.includes(k))||'default';
-  const wrap=document.getElementById('specs');wrap.innerHTML='';
-  SPECS[key].forEach(s=>{
-    const chip=document.createElement('div');chip.className='spec'+(S.specs.includes(s)?' on':'');chip.textContent=s;
-    chip.onclick=()=>{if(S.specs.includes(s)){S.specs=S.specs.filter(x=>x!==s);chip.classList.remove('on');}else{S.specs.push(s);chip.classList.add('on');}};
+// ── Specialties ────────────────────────────────────────
+function buildSpecs(type) {
+  const t = type.toLowerCase();
+  const key = Object.keys(SPECS).find(k => t.includes(k)) || 'default';
+  const wrap = document.getElementById('specs');
+  wrap.innerHTML = '';
+  SPECS[key].forEach(s => {
+    const chip = document.createElement('div');
+    chip.className = 'spec' + (S.specs.includes(s) ? ' on' : '');
+    chip.textContent = s;
+    chip.onclick = () => {
+      if (S.specs.includes(s)) { S.specs = S.specs.filter(x => x !== s); chip.classList.remove('on'); }
+      else { S.specs.push(s); chip.classList.add('on'); }
+    };
     wrap.appendChild(chip);
   });
 }
 
-// ── Progress — UNCHANGED ───────────────────────────────
-const PROG={1:16,2:33,3:50,4:67,5:84,6:100};
-function show(n,animate=true){
-  const prev=document.getElementById(`p${S.step}`);
-  if(prev){if(animate){prev.classList.add('out');setTimeout(()=>{prev.style.display='none';prev.classList.remove('out');},220);}else prev.style.display='none';}
-  S.step=n;const next=document.getElementById(`p${n}`);if(next)next.style.display='block';
-  document.querySelectorAll('.step').forEach(el=>{const s=+el.dataset.s;el.className='step'+(s<n?' done':s===n?' active':'');});
-  document.getElementById('prog').style.width=(PROG[n]||100)+'%';
-  document.getElementById('mob-step').textContent=`Step ${n} of 6`;
+// ── Progress ───────────────────────────────────────────
+const PROG = {1:14,2:28,3:42,4:57,5:71,6:85,7:100};
+
+function show(n, animate=true) {
+  const prev = document.getElementById(`p${S.step}`);
+  if (prev) {
+    if (animate) { prev.classList.add('out'); setTimeout(()=>{prev.style.display='none';prev.classList.remove('out');},220); }
+    else prev.style.display='none';
+  }
+  S.step = n;
+  const next = document.getElementById(`p${n}`);
+  if (next) { next.style.display='block'; }
+  if (n === 3) buildIndustryGrid();
+
+  document.querySelectorAll('.step').forEach(el => {
+    const s = +el.dataset.s;
+    el.className = 'step' + (s < n ? ' done' : s === n ? ' active' : '');
+  });
+
+  document.getElementById('prog').style.width = (PROG[n]||100)+'%';
+  document.getElementById('mob-step').textContent = `Step ${n} of 7`;
   window.scrollTo({top:0,behavior:'smooth'});
-  if(n===3) setTimeout(renderMiniPhone,50); // refresh preview when entering step 3
 }
 
-// ── Toast — UNCHANGED ──────────────────────────────────
+// ── Toast ──────────────────────────────────────────────
 let tT;
-function toast(msg,type='ok'){const el=document.getElementById('toast');el.textContent=msg;el.className=`toast ${type==='err'?'err':''} show`;clearTimeout(tT);tT=setTimeout(()=>el.classList.remove('show'),3500);}
+function toast(msg, type='ok') {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.className = `toast ${type==='err'?'err':''} show`;
+  clearTimeout(tT); tT = setTimeout(()=>el.classList.remove('show'),3500);
+}
 
-// ── Validation — UNCHANGED ─────────────────────────────
-function v(id){const el=document.getElementById(id);return el?el.value.trim():'';}
-function setErr(fid,on){const f=document.getElementById(`f-${fid}`);if(f)f.classList.toggle('err',on);}
-function clearErrs(...ids){ids.forEach(id=>setErr(id,false));}
+// ── Validation ─────────────────────────────────────────
+function v(id){ const el=document.getElementById(id); return el?el.value.trim():''; }
+function setErr(fid,on){ const f=document.getElementById(`f-${fid}`); if(f) f.classList.toggle('err',on); }
+function clearErrs(...ids){ ids.forEach(id=>setErr(id,false)); }
 
-// ── ABN — UNCHANGED ────────────────────────────────────
-function fmtABN(el){let d=el.value.replace(/\D/g,'').slice(0,11);if(d.length>8)d=d.slice(0,2)+' '+d.slice(2,5)+' '+d.slice(5,8)+' '+d.slice(8,11);else if(d.length>5)d=d.slice(0,2)+' '+d.slice(2,5)+' '+d.slice(5);else if(d.length>2)d=d.slice(0,2)+' '+d.slice(2);el.value=d;const digits=d.replace(/\D/g,'');const tag=document.getElementById('abn-tag');if(digits.length===11){if(validABN(digits)){tag.textContent='✓ Valid';tag.className='abn-tag ok';setErr('abn',false);}else{tag.textContent='✗ Invalid';tag.className='abn-tag bad';}}else{tag.className='abn-tag';}}
-function validABN(n){const w=[10,1,3,5,7,9,11,13,15,17,19],d=n.split('').map(Number);d[0]-=1;return w.reduce((a,wt,i)=>a+wt*d[i],0)%89===0;}
+// ── ABN ────────────────────────────────────────────────
+function fmtABN(el) {
+  let d = el.value.replace(/\D/g,'').slice(0,11);
+  if(d.length>8) d=d.slice(0,2)+' '+d.slice(2,5)+' '+d.slice(5,8)+' '+d.slice(8,11);
+  else if(d.length>5) d=d.slice(0,2)+' '+d.slice(2,5)+' '+d.slice(5);
+  else if(d.length>2) d=d.slice(0,2)+' '+d.slice(2);
+  el.value=d;
+  const digits=d.replace(/\D/g,'');
+  const tag=document.getElementById('abn-tag');
+  if(digits.length===11){
+    if(validABN(digits)){tag.textContent='✓ Valid';tag.className='abn-tag ok';setErr('abn',false);}
+    else{tag.textContent='✗ Invalid';tag.className='abn-tag bad';}
+  } else { tag.className='abn-tag'; }
+}
+function validABN(n){
+  const w=[10,1,3,5,7,9,11,13,15,17,19],d=n.split('').map(Number);
+  d[0]-=1;
+  return w.reduce((a,wt,i)=>a+wt*d[i],0)%89===0;
+}
 
-// ── Card — UNCHANGED ───────────────────────────────────
-function fmtCard(el){let d=el.value.replace(/\D/g,'').slice(0,16);el.value=d.replace(/(.{4})/g,'$1 ').trim();const vi=document.getElementById('ci-v'),m=document.getElementById('ci-m');if(d.startsWith('4')){vi.style.opacity='1';m.style.opacity='.2';}else if(d.startsWith('5')||d.startsWith('2')){m.style.opacity='1';vi.style.opacity='.2';}else{vi.style.opacity='.4';m.style.opacity='.4';}}
-function fmtExp(el){let d=el.value.replace(/\D/g,'').slice(0,4);if(d.length>2)d=d.slice(0,2)+' / '+d.slice(2);el.value=d;}
+// ── Card ───────────────────────────────────────────────
+function fmtCard(el){
+  let d=el.value.replace(/\D/g,'').slice(0,16);
+  el.value=d.replace(/(.{4})/g,'$1 ').trim();
+  const v=document.getElementById('ci-v'),m=document.getElementById('ci-m');
+  if(d.startsWith('4')){v.style.opacity='1';m.style.opacity='.2';}
+  else if(d.startsWith('5')||d.startsWith('2')){m.style.opacity='1';v.style.opacity='.2';}
+  else{v.style.opacity='.4';m.style.opacity='.4';}
+}
+function fmtExp(el){
+  let d=el.value.replace(/\D/g,'').slice(0,4);
+  if(d.length>2) d=d.slice(0,2)+' / '+d.slice(2);
+  el.value=d;
+}
 
-// ── Logo — UNCHANGED ───────────────────────────────────
-function handleLogo(input){const file=input.files[0];if(!file)return;if(file.size>2*1024*1024){toast('Logo must be under 2MB','err');return;}S.logoFile=file;const r=new FileReader();r.onload=e=>{const p=document.getElementById('logo-prev');p.src=e.target.result;p.classList.add('show');document.getElementById('upload-ico').style.display='none';document.getElementById('upload-lbl').textContent='✓ '+file.name;};r.readAsDataURL(file);}
+// ── Logo ───────────────────────────────────────────────
+function handleLogo(input){
+  const file=input.files[0]; if(!file) return;
+  if(file.size>2*1024*1024){toast('Logo must be under 2MB','err');return;}
+  S.logoFile=file;
+  const r=new FileReader();
+  r.onload=e=>{
+    const p=document.getElementById('logo-prev');
+    p.src=e.target.result;p.classList.add('show');
+    document.getElementById('upload-ico').style.display='none';
+    document.getElementById('upload-lbl').textContent='✓ '+file.name;
+  };
+  r.readAsDataURL(file);
+}
 
-// ── Colour — UNCHANGED + preview update ───────────────
+// ── Colour & Theme ─────────────────────────────────────
 function pickColor(el){
   document.querySelectorAll('.swatch').forEach(s=>s.classList.remove('on'));
-  el.classList.add('on');S.color=el.dataset.c;
-  renderMiniPhone();
+  el.classList.add('on'); S.color=el.dataset.c;
 }
-function pickCustom(input){S.color=input.value;document.querySelectorAll('.swatch').forEach(s=>s.classList.remove('on'));renderMiniPhone();}
+function pickCustom(input){ S.color=input.value; document.querySelectorAll('.swatch').forEach(s=>s.classList.remove('on')); }
+function pickTheme(el){
+  document.querySelectorAll('.theme-opt').forEach(o=>o.classList.remove('on'));
+  el.classList.add('on'); S.theme=el.dataset.t;
+}
 
-// ── Steps 1-6 — UNCHANGED ─────────────────────────────
+// ── Loading ────────────────────────────────────────────
+function setLoad(btnId,on){ const b=document.getElementById(btnId)||document.querySelector('.btn-primary[onclick]');
+  if(!btnId){document.querySelectorAll('.btn-primary').forEach(b=>{ b.classList.toggle('loading',on);b.disabled=on; }); return;}
+  const el=document.getElementById(btnId); if(el){el.classList.toggle('loading',on);el.disabled=on;}}
+
+// ── Step 1 ─────────────────────────────────────────────
 function go1(){
-  clearErrs('fn','em','pw');let ok=true;
+  clearErrs('fn','em','pw');
+  let ok=true;
   if(!v('fn')){setErr('fn',true);ok=false;}
   if(!/\S+@\S+\.\S+/.test(v('em'))){setErr('em',true);ok=false;}
-  const pwVal=document.getElementById('pw').value;if(pwVal.length<8){setErr('pw',true);ok=false;}
+  const pwVal=document.getElementById('pw').value; if(pwVal.length<8){setErr('pw',true);ok=false;}
   if(!document.getElementById('terms').checked){toast('Please accept the Terms & Privacy Policy','err');ok=false;}
-  if(!ok)return;
-  S.fn=v('fn');S.em=v('em');S.ph=v('ph');S.jt=v('jt');S.pw=document.getElementById('pw').value;show(2);
+  if(!ok) return;
+  S.fn=v('fn');S.em=v('em');S.ph=v('ph');S.jt=v('jt');S.pw=document.getElementById('pw').value;
+  show(2);
 }
+
+// ── Step 2 ─────────────────────────────────────────────
 function go2(){
-  clearErrs('bn','abn','bt','be','a1','sb','st','pc');let ok=true;
+  clearErrs('bn','abn','be','a1','sb','st','pc');
+  let ok=true;
   if(!v('bn')){setErr('bn',true);ok=false;}
-  const adig=v('abn').replace(/\D/g,'');if(adig.length!==11||!validABN(adig)){setErr('abn',true);ok=false;}
-  if(!v('bt')){setErr('bt',true);ok=false;}
+  const adig=v('abn').replace(/\D/g,'');
+  if(adig.length!==11||!validABN(adig)){setErr('abn',true);ok=false;}
   if(!/\S+@\S+\.\S+/.test(v('be'))){setErr('be',true);ok=false;}
   if(!v('a1')){setErr('a1',true);ok=false;}
   if(!v('sb2')){setErr('sb',true);ok=false;}
   if(!v('st')){setErr('st',true);ok=false;}
   if(!v('pc2')){setErr('pc',true);ok=false;}
-  if(!ok)return;
-  S.bn=v('bn');S.abn=adig;S.bt=v('bt');S.ws=v('ws');S.be=v('be');S.a1=v('a1');S.sb=v('sb2');S.st=v('st');S.pc=v('pc2');
-
-  // Auto-suggest skin from business type
-  const bt=S.bt.toLowerCase();
-  if(bt.includes('restaurant')||bt.includes('dining')||bt.includes('bar')||bt.includes('pub')) selectSkin('restaurant');
-  else if(bt.includes('cafe')||bt.includes('coffee')) selectSkin('cafe');
-  else if(bt.includes('hotel')||bt.includes('accommodation')) selectSkin('hotel');
-  else if(bt.includes('health')||bt.includes('beauty')||bt.includes('salon')) selectSkin('salon');
-  else if(bt.includes('retail')) selectSkin('retail');
-  else if(bt.includes('healthcare')||bt.includes('clinic')) selectSkin('health');
-
-  if(!document.getElementById('dn').value)document.getElementById('dn').value=S.bn;
-  if(!document.getElementById('va').value){document.getElementById('va').value=S.a1;document.getElementById('vsb').value=S.sb;document.getElementById('vpc').value=S.pc;}
+  if(!ok) return;
+  S.bn=v('bn');S.abn=adig;S.bt=v('bt');S.ws=v('ws');S.be=v('be');
+  S.a1=v('a1');S.sb=v('sb2');S.st=v('st');S.pc=v('pc2');
+  if(!document.getElementById('dn').value) document.getElementById('dn').value=S.bn;
+  if(!document.getElementById('va').value){ document.getElementById('va').value=S.a1;
+    document.getElementById('vsb').value=S.sb; document.getElementById('vpc').value=S.pc; }
   show(3);
 }
+
+// ── Step 3 ─────────────────────────────────────────────
+// ── Industry grid builder ────────────────────────────
+function buildIndustryGrid() {
+  const grid = document.getElementById('industry-grid');
+  if (!grid || grid.children.length > 0) return;
+  INDUSTRIES.forEach(ind => {
+    const tile = document.createElement('div');
+    tile.style.cssText = 'padding:10px 6px;border:1px solid var(--border);border-radius:10px;text-align:center;cursor:pointer;transition:all .15s;background:var(--bg)';
+    tile.innerHTML = `<div style="font-size:22px;margin-bottom:4px">${ind.icon}</div><div style="font-weight:500;font-size:12px;color:var(--text)">${ind.name}</div>`;
+    tile.dataset.code = ind.code;
+    tile.onclick = () => {
+      document.querySelectorAll('#industry-grid > div').forEach(t => {
+        t.style.borderColor = 'var(--border)';
+        t.style.background = 'var(--bg)';
+      });
+      tile.style.borderColor = 'var(--p-accent)';
+      tile.style.background = 'rgba(15,15,13,0.04)';
+      S.industry_code = ind.code;
+      S.business_type_code = '';
+      buildBizTypeGrid(ind);
+      document.getElementById('f-biz').style.display = 'block';
+      document.getElementById('ind-err').style.display = 'none';
+    };
+    grid.appendChild(tile);
+  });
+}
+
+function buildBizTypeGrid(ind) {
+  const grid = document.getElementById('biztype-grid');
+  grid.innerHTML = '';
+  S.business_type_code = '';
+  ind.types.forEach(bt => {
+    const tile = document.createElement('div');
+    tile.style.cssText = 'padding:10px 8px;border:1px solid var(--border);border-radius:8px;text-align:center;cursor:pointer;transition:all .15s;font-size:12px;color:var(--text);background:var(--bg)';
+    tile.textContent = bt.label;
+    tile.dataset.code = bt.code;
+    tile.onclick = () => {
+      document.querySelectorAll('#biztype-grid > div').forEach(t => {
+        t.style.borderColor = 'var(--border)';
+        t.style.fontWeight = '400';
+        t.style.background = 'var(--bg)';
+      });
+      tile.style.borderColor = 'var(--p-accent)';
+      tile.style.fontWeight = '600';
+      tile.style.background = 'rgba(15,15,13,0.04)';
+      S.business_type_code = bt.code;
+      document.getElementById('biz-err').style.display = 'none';
+    };
+    grid.appendChild(tile);
+  });
+}
+
+
+function filterIndustry(q) {
+  q = q.trim().toLowerCase();
+  const indTiles = document.querySelectorAll('#industry-grid > div');
+
+  if (!q) {
+    // Reset — show all industries, hide biz type if nothing selected
+    indTiles.forEach(t => t.style.display = '');
+    if (!S.industry_code) document.getElementById('f-biz').style.display = 'none';
+    return;
+  }
+
+  // Check if query matches any business type label
+  let matchedIndustry = null;
+  INDUSTRIES.forEach(ind => {
+    ind.types.forEach(bt => {
+      if (bt.label.toLowerCase().includes(q) && !matchedIndustry) {
+        matchedIndustry = ind;
+      }
+    });
+  });
+
+  if (matchedIndustry) {
+    // Auto-select the matched industry and show filtered biz types
+    indTiles.forEach(t => {
+      const matches = t.dataset.code === matchedIndustry.code;
+      t.style.display = matches ? '' : 'none';
+      if (matches) {
+        t.style.borderColor = 'var(--p-accent)';
+        t.style.background = 'rgba(15,15,13,0.04)';
+        S.industry_code = matchedIndustry.code;
+      }
+    });
+    // Filter biz type tiles
+    buildBizTypeGrid(matchedIndustry);
+    document.getElementById('f-biz').style.display = 'block';
+    document.querySelectorAll('#biztype-grid > div').forEach(t => {
+      t.style.display = t.textContent.toLowerCase().includes(q) ? '' : 'none';
+    });
+  } else {
+    // Filter industries by name
+    indTiles.forEach(t => {
+      const ind = INDUSTRIES.find(i => i.code === t.dataset.code);
+      t.style.display = (ind && ind.name.toLowerCase().includes(q)) ? '' : 'none';
+    });
+  }
+}
+
 function go3(){
-  if(!v('dn')){toast('Please enter a display name','err');return;}
-  S.dn=v('dn');
-  // Save skin to state — already in S.skin via selectSkin()
+  let ok=true;
+  if(!S.industry_code){
+    document.getElementById('ind-err').style.display='block';
+    ok=false;
+  }
+  if(!S.business_type_code){
+    document.getElementById('biz-err').style.display='block';
+    ok=false;
+  }
+  if(!ok) return;
+  const bizLabel = document.querySelector(`#biztype-grid [data-code="${S.business_type_code}"]`);
+  if(bizLabel) document.getElementById('bt').value = bizLabel.textContent;
   show(4);
 }
+
+// ── Step 4 ─────────────────────────────────────────────
 function go4(){
-  clearErrs('vn','va');let ok=true;
+  if(!v('dn')){toast('Please enter a display name','err');return;}
+  S.dn=v('dn'); show(5);
+}
+
+// ── Step 5 ─────────────────────────────────────────────
+function go5(){
+  clearErrs('vn','va');
+  let ok=true;
   if(!v('vn')){setErr('vn',true);ok=false;}
   if(!v('va')){setErr('va',true);ok=false;}
-  if(!ok)return;
-  S.vn=v('vn');S.va=v('va');S.vsb=v('vsb');S.vst=v('vst');S.vpc=v('vpc');S.vt=v('vt');S.gp=v('gp');S.kf=v('kf');show(5);
+  if(!ok) return;
+  S.vn=v('vn');S.va=v('va');S.vsb=v('vsb');S.vst=v('vst');
+  S.vpc=v('vpc');S.vt=v('vt');S.gp=v('gp');S.kf=v('kf');
+  show(6);
 }
-function go5(){
+
+// ── Step 6 ─────────────────────────────────────────────
+function go6(){
   const isFree=S.plan==='free';
   document.getElementById('pay-free').style.display=isFree?'block':'none';
   document.getElementById('pay-paid').style.display=isFree?'none':'block';
   document.getElementById('pay-h').innerHTML=isFree?'Almost<br><em>done!</em>':'Payment<br><em>details</em>';
   document.getElementById('complete-lbl').textContent=isFree?'Launch my platform':'Start subscription';
-  const cfg=PRODUCTS[S.product];const p=cfg.plans.find(x=>x.id===S.plan);
+
+  const cfg=PRODUCTS[S.product];
+  const p=cfg.plans.find(x=>x.id===S.plan);
   document.getElementById('order-label').textContent=`${cfg.name} ${p.name} — Monthly`;
   document.getElementById('order-price').textContent=`${p.price} AUD`;
-  if(!document.getElementById('bln').value)document.getElementById('bln').value=S.fn;
-  show(6);
+  if(!document.getElementById('bln').value) document.getElementById('bln').value=S.fn;
+  show(7);
 }
-async function go6(){
+
+// ── Step 7 ─────────────────────────────────────────────
+async function go7(){
   if(!document.getElementById('bill-terms').checked){toast('Please accept the billing terms','err');return;}
   const isFree=S.plan==='free';
   if(!isFree){
-    clearErrs('cn','cc','ex','cv');let ok=true;
+    clearErrs('cn','cc','ex','cv');
+    let ok=true;
     if(!v('cn')){setErr('cn',true);ok=false;}
     if(v('cc').replace(/\s/g,'').length<13){setErr('cc',true);ok=false;}
     if(v('ex').replace(/\s/g,'').length<4){setErr('ex',true);ok=false;}
     if(!v('cv')){setErr('cv',true);ok=false;}
-    if(!ok)return;
+    if(!ok) return;
   }
-  const btn=document.getElementById('complete-btn');btn.classList.add('loading');btn.disabled=true;
-  try{
+
+  const btn=document.getElementById('complete-btn');
+  btn.classList.add('loading');btn.disabled=true;
+
+  try {
     const payload={
-      product:S.product,fullName:S.fn,email:S.em,phone:S.ph,jobTitle:S.jt,password:S.pw,
-      bizName:S.bn,abn:S.abn,bizType:S.bt,website:S.ws,contactEmail:S.be,
-      address:{line1:S.a1,suburb:S.sb,state:S.st,postcode:S.pc,country:'AU'},
-      displayName:S.dn,primaryColor:S.color,skin:S.skin,widgetTheme:S.theme,  // skin now included
-      hasLogo:!!S.logoFile,
-      venue:{name:S.vn,type:S.vt,address:{line1:S.va,suburb:S.vsb,state:S.vst,postcode:S.vpc},googlePlaceId:S.gp,specialties:S.specs,knownFor:S.kf},
-      plan:S.plan,termsAccepted:true,termsVersion:'v1.0',
+      product:    S.product,
+      fullName:   S.fn, email:S.em, phone:S.ph, jobTitle:S.jt, password:S.pw,
+      bizName:    S.bn, abn:S.abn, bizType:S.bt, website:S.ws, contactEmail:S.be,
+      address:    {line1:S.a1, suburb:S.sb, state:S.st, postcode:S.pc, country:'AU'},
+      displayName:S.dn, primaryColor:S.color, widgetTheme:S.theme,
+      hasLogo:    !!S.logoFile,
+      venue:{
+        name:S.vn, type:S.vt,
+        address:{line1:S.va, suburb:S.vsb, state:S.vst, postcode:S.vpc},
+        googlePlaceId:S.gp, specialties:S.specs, knownFor:S.kf,
+      },
+      plan:S.plan, termsAccepted:true, termsVersion:'v1.0',
     };
-    const res=await fetch('/.netlify/functions/onboarding-complete',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
+
+    const res=await fetch('/.netlify/functions/onboarding-complete',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify(payload),
+    });
     const data=await res.json();
-    if(!res.ok)throw new Error(data.error||'Something went wrong. Please try again.');
+    if(!res.ok) throw new Error(data.error||'Something went wrong. Please try again.');
+
     S.tenantId=data.tenantId;
-    if(S.logoFile&&data.logoUploadUrl){await fetch(data.logoUploadUrl,{method:'PUT',body:S.logoFile,headers:{'Content-Type':S.logoFile.type}});}
+
+    // Upload logo
+    if(S.logoFile&&data.logoUploadUrl){
+      await fetch(data.logoUploadUrl,{method:'PUT',body:S.logoFile,headers:{'Content-Type':S.logoFile.type}});
+    }
+
     showSuccess(data);
-  }catch(err){toast(err.message,'err');}
-  finally{btn.classList.remove('loading');btn.disabled=false;}
+  } catch(err){
+    toast(err.message,'err');
+  } finally {
+    btn.classList.remove('loading');btn.disabled=false;
+  }
 }
+
+// ── Success ────────────────────────────────────────────
 function showSuccess(data){
-  const cfg=PRODUCTS[S.product];const planName=cfg.plans.find(p=>p.id===S.plan)?.name||S.plan;
+  const cfg=PRODUCTS[S.product];
+  const planName=cfg.plans.find(p=>p.id===S.plan)?.name||S.plan;
   document.getElementById('ok-summary').innerHTML=`
     <div class="sum-row"><span>Business</span><span>${S.bn}</span></div>
     <div class="sum-row"><span>Product</span><span>${cfg.name}</span></div>
-    <div class="sum-row"><span>Skin</span><span>${SKINS.find(s=>s.id===S.skin)?.name||S.skin}</span></div>
     <div class="sum-row"><span>Plan</span><span>${planName}</span></div>
     <div class="sum-row"><span>First venue</span><span>${S.vn}</span></div>
     <div class="sum-row"><span>Login email</span><span>${S.em}</span></div>
-    <div class="sum-row"><span>Tenant ID</span><span style="font-family:monospace;font-size:11px">${data.tenantId||'—'}</span></div>`;
+    <div class="sum-row"><span>Tenant ID</span><span style="font-family:monospace;font-size:11px">${data.tenantId||'—'}</span></div>
+  `;
   document.getElementById('ok-btn').onclick=()=>window.location.href=cfg.dashboard;
   document.getElementById(`p${S.step}`).style.display='none';
   document.getElementById('p-ok').style.display='block';

@@ -157,6 +157,8 @@ exports.handler = async (event) => {
       display_name:         body.displayName || body.bizName,
       abn:                  body.abn,
       business_type:        body.bizType,
+      industry_code:        body.industry_code || null,
+      business_type_code:   body.business_type_code || null,
       contact_email:        body.contactEmail || body.email,
       contact_phone:        body.phone,
       website_url:          body.website,
@@ -234,6 +236,8 @@ exports.handler = async (event) => {
       google_review_url: body.venue?.googlePlaceId || null,
       display_name:   body.displayName || body.bizName,
       venue_type:     body.venue?.type,
+      industry_code:  body.industry_code || null,
+      business_type_code: body.business_type_code || null,
       specialties:    body.venue?.specialties || [],
       known_for:      body.venue?.knownFor,
       primary_color:  body.primaryColor || '#C9A84C',
@@ -245,6 +249,21 @@ exports.handler = async (event) => {
   if (venueError) {
     console.error('Venue create error:', venueError);
     // Non-fatal for onboarding
+  }
+
+  // ── 8b. Seed KPI tiles for this venue ───────────────
+  if (venue?.id && body.industry_code && body.business_type_code) {
+    try {
+      await supabase.rpc('seed_venue_kpis', {
+        p_tenant_id: tenantId,
+        p_venue_id:  venue.id,
+        p_industry:  body.industry_code,
+        p_biz_type:  body.business_type_code,
+      });
+      console.log(`Seeded KPI tiles for ${body.industry_code}/${body.business_type_code}`);
+    } catch (kpiErr) {
+      console.warn('KPI seed failed (non-fatal):', kpiErr.message);
+    }
   }
 
   // ── 9. Seed subscription_history ─────────────────────
