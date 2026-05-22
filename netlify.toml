@@ -1,14 +1,21 @@
 [build]
+  command = "node inject-env.js"
   publish = "."
-  functions = "netlify/functions"
-
-[functions]
-  node_bundler = "esbuild"
 
 [[headers]]
   for = "/*"
   [headers.values]
-    X-Frame-Options = "SAMEORIGIN"
+    X-Frame-Options = "DENY"
     X-Content-Type-Options = "nosniff"
     Referrer-Policy = "strict-origin-when-cross-origin"
-    Content-Security-Policy = "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; font-src 'self' https://fonts.gstatic.com https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; img-src 'self' data: blob: https://*.supabase.co https://www.google.com https://lh3.googleusercontent.com; connect-src 'self' https://*.supabase.co https://api.anthropic.com https://cdn.jsdelivr.net; frame-ancestors 'none'; object-src 'none';"
+
+[[headers]]
+  for = "/XPscore360/*"
+  [headers.values]
+    Content-Security-Policy = "default-src 'self' https://*.supabase.co https://api.anthropic.com https://fonts.googleapis.com https://fonts.gstatic.com; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; img-src 'self' data: https://*.supabase.co; connect-src 'self' https://*.supabase.co https://api.anthropic.com https://*.netlify.app https://aiflow360.com;"
+
+[[redirects]]
+  from = "/xpscore360/*"
+  to = "/XPscore360/:splat"
+  status = 200
+  force = false
