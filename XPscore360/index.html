@@ -445,7 +445,7 @@ body{display:flex;align-items:flex-start;justify-content:center;padding:20px 10p
    CONFIG
 ════════════════════════════════════════ */
 const SUPABASE_URL  = 'https://iroseywidzacqinmjtdc.supabase.co';
-const SUPABASE_ANON = '' + (window.__SUPABASE_ANON__ || '') + '';
+const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imlyb3NleXdpZHphY3Fpbm1qdGRjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg5MTgwMTQsImV4cCI6MjA5NDQ5NDAxNH0.x66R6jOUcU8eaXxxXL2OtUX9rJ3ddntQTYLrOdnpzOk';
 const AI_FN         = '/.netlify/functions/ai-review';
 
 const PARAMS     = new URLSearchParams(location.search);
@@ -466,6 +466,7 @@ const VENUE = {
    SESSION STATE
 ════════════════════════════════════════ */
 let S = {
+  extendedHelp: false,
   step: 0, mood: null, topics: [], usedTags: new Set(),
   timerSec: 0, timerRef: null, done: false,
   history: [], opener: null,
@@ -806,7 +807,9 @@ function buildSystemPrompt() {
     ? VENUE.recoveryActions.map(a=>`- ${a.label}${a.description?': '+a.description:''}`).join('\n')
     : '- Free dessert\n- Free drink on next visit\n- 10% discount\n- Manager will follow up';
 
-  const turnNote = S.step<=1
+  const turnNote = S.extendedHelp
+    ? `The guest needs more help. Keep assisting them — do NOT wrap up or use end_negative/end_neutral yet. Only use end_negative when the guest explicitly says they are satisfied or done.`
+    : S.step<=1
     ? `Turn ${S.step+1}: ask ONE follow-up about a different aspect not yet discussed.`
     : S.step===2
     ? `Turn 3: ask ONE final specific question then prepare to wrap up.`
@@ -903,6 +906,16 @@ async function handleChip(label, action) {
     return;
   }
 
+  if (action === 'neg_more') {
+    // Reset step so AI doesn't force a wrap-up
+    S.step = 2;
+    S.extendedHelp = true;
+    addBub('user', label); clearChips();
+    enableInp();
+    await process(label);
+    return;
+  }
+
   addBub('user',label); clearChips();
   document.getElementById('chatInput').value = '';
   if (S.step===0) startTimer();
@@ -985,7 +998,7 @@ async function process(userText) {
           setChips([
             {label:'Thank you, appreciated', style:'pos', action:'neg_done'},
             {label:'Rate my visit', style:'gold', action:'neg_rate'},
-            {label:'I need more help', style:'neg'},
+            {label:'I need more help', style:'neg', action:'neg_more'},
           ]);
           enableInp();
         }, 600);
