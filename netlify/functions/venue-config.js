@@ -37,7 +37,7 @@ exports.handler = async (event) => {
   if (event.httpMethod === 'GET') {
     try {
       const [venueRows, aiRows, tags, actions, tables] = await Promise.all([
-        supabase.from('venues').select('name,display_name').eq('id', venueId).limit(1),
+        supabase.from('venues').select('name,display_name,slug,logo_url,primary_color,skin,venue_type,known_for,specialties,suburb,state').eq('id', venueId).limit(1),
         supabase.from('venue_ai_config')
           .select('*')
           .eq('venue_id', venueId)
@@ -49,6 +49,7 @@ exports.handler = async (event) => {
         supabase.from('recovery_actions')
           .select('*')
           .eq('tenant_id', tenantId)
+          .or(`venue_id.eq.${venueId},venue_id.is.null`)
           .order('sort_order'),
         supabase.from('venue_tables')
           .select('*')
@@ -61,6 +62,12 @@ exports.handler = async (event) => {
         headers: HEADERS,
         body: JSON.stringify({
           venueName:       venueRows.data?.[0]?.display_name || venueRows.data?.[0]?.name || 'Your venue',
+          venueType:       venueRows.data?.[0]?.venue_type || '',
+          primaryColor:    venueRows.data?.[0]?.primary_color || null,
+          logoUrl:         venueRows.data?.[0]?.logo_url || null,
+          skin:            venueRows.data?.[0]?.skin || null,
+          knownFor:        venueRows.data?.[0]?.known_for || '',
+          specialties:     venueRows.data?.[0]?.specialties || [],
           venueSlug:       venueRows.data?.[0]?.slug || '',
           aiConfig:        aiRows.data?.[0] || null,
           tags:            tags.data        || [],
@@ -155,7 +162,7 @@ exports.handler = async (event) => {
           if (update.isNew) {
             const { error } = await supabase.from('recovery_actions').insert({
               tenant_id:   tenantId,
-              venue_id:    null,
+              venue_id:    venueId,
               label:       update.label,
               description: update.description,
               action_type: update.type,
@@ -166,7 +173,8 @@ exports.handler = async (event) => {
           } else {
             const { error } = await supabase.from('recovery_actions')
               .update({ is_active: update.active })
-              .eq('id', update.id);
+              .eq('id', update.id)
+              .or(`venue_id.eq.${venueId},venue_id.is.null`);
             if (error) throw error;
           }
         }
