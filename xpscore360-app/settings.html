@@ -387,22 +387,6 @@ body{font-family:'Geist',sans-serif;font-size:15px;line-height:1.6;color:var(--t
 }
 .copy-btn:hover{background:var(--accent);color:#fff;border-color:var(--accent)}
 .copy-btn.copied{background:var(--green);color:#fff;border-color:var(--green)}
-
-/* ── Logo upload ─────────────────────────────────── */
-.logo-upload-bar{display:flex;align-items:center;gap:14px;padding:14px 18px;background:var(--bg);border:1px solid var(--border);border-radius:12px;margin-bottom:20px;flex-wrap:wrap}
-.logo-current{width:48px;height:48px;border-radius:10px;background:var(--faint);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;overflow:hidden;flex-shrink:0}
-.logo-current img{width:100%;height:100%;object-fit:contain}
-.logo-current i{font-size:22px;color:var(--muted)}
-.logo-upload-info{flex:1;min-width:0}
-.logo-upload-title{font-size:13px;font-weight:500;margin-bottom:2px}
-.logo-upload-sub{font-size:11px;color:var(--muted)}
-.logo-upload-btn{position:relative;padding:8px 16px;background:var(--faint);border:1px solid var(--border-d);border-radius:8px;font-size:13px;font-weight:500;color:var(--text);cursor:pointer;font-family:'Geist',sans-serif;transition:all .15s;white-space:nowrap;flex-shrink:0}
-.logo-upload-btn:hover{background:var(--accent);color:#fff;border-color:var(--accent)}
-.logo-upload-btn input{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%}
-.logo-upload-btn.uploading{opacity:.5;pointer-events:none}
-.logo-remove-btn{padding:8px 12px;background:transparent;border:1px solid var(--border);border-radius:8px;font-size:12px;color:var(--muted);cursor:pointer;font-family:'Geist',sans-serif;transition:all .15s;white-space:nowrap;flex-shrink:0;display:none}
-.logo-remove-btn:hover{border-color:var(--red);color:var(--red)}
-.logo-remove-btn.show{display:block}
 </style>
 </head>
 <body>
@@ -492,23 +476,6 @@ body{font-family:'Geist',sans-serif;font-size:15px;line-height:1.6;color:var(--t
     <button class="add-venue-btn" onclick="openModal()">
       + Add new venue
     </button>
-  </div>
-
-
-  <!-- Logo upload bar -->
-  <div class="logo-upload-bar" id="logo-upload-bar">
-    <div class="logo-current" id="logo-preview">
-      <i class="ti ti-building-store"></i>
-    </div>
-    <div class="logo-upload-info">
-      <div class="logo-upload-title">Venue logo</div>
-      <div class="logo-upload-sub" id="logo-upload-sub">PNG, JPG or SVG · max 2MB · Shows on guest review widget</div>
-    </div>
-    <button class="logo-remove-btn" id="logo-remove-btn" onclick="removeLogo()">Remove</button>
-    <label class="logo-upload-btn" id="logo-upload-btn">
-      Upload logo
-      <input type="file" accept="image/png,image/jpeg,image/jpg,image/webp,image/svg+xml" onchange="handleLogoUpload(this)"/>
-    </label>
   </div>
 
   <!-- Tabs -->
@@ -674,7 +641,7 @@ body{font-family:'Geist',sans-serif;font-size:15px;line-height:1.6;color:var(--t
 <script>
 // ── Config ─────────────────────────────────────────────
 const SUPABASE_URL = 'https://iroseywidzacqinmjtdc.supabase.co';
-const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imlyb3NleXdpZHphY3Fpbm1qdGRjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg5MTgwMTQsImV4cCI6MjA5NDQ5NDAxNH0.x66R6jOUcU8eaXxxXL2OtUX9rJ3ddntQTYLrOdnpzOk';
+const SUPABASE_KEY = __SUPABASE_ANON_PLACEHOLDER__;
 const API_BASE    = '/.netlify/functions/venue-config';
 const WIDGET_BASE = 'https://aiflow360.com/XPscore360/';
 
@@ -830,7 +797,7 @@ async function createVenue() {
     document.getElementById('nv-suburb').value = '';
     document.getElementById('nv-review-url').value = '';
     toast('Venue created — loading config...', 'ok');
-    await bootstrap();
+    await loadAll();
   } catch(err) {
     toast(err.message, 'err');
   } finally {
@@ -1231,85 +1198,10 @@ function esc(str) {
   return String(str || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
 
-
-/* ── Logo upload ────────────────────────────────── */
-async function handleLogoUpload(input) {
-  const file = input.files[0];
-  if (!file) return;
-  if (file.size > 2 * 1024 * 1024) { toast('File too large — max 2MB', 'err'); return; }
-
-  const btn = document.getElementById('logo-upload-btn');
-  btn.classList.add('uploading');
-  btn.textContent = 'Uploading...';
-
-  try {
-    // Get signed upload URL
-    const res = await fetch('/.netlify/functions/logo-upload', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        tenant_id: TENANT_ID,
-        venue_id:  VENUE_ID,
-        file_type: file.type,
-      }),
-    });
-    if (!res.ok) throw new Error('Failed to get upload URL');
-    const { uploadUrl, publicUrl } = await res.json();
-
-    // Upload directly to Supabase Storage
-    const uploadRes = await fetch(uploadUrl, {
-      method: 'PUT',
-      headers: { 'Content-Type': file.type },
-      body: file,
-    });
-    if (!uploadRes.ok) throw new Error('Upload failed');
-
-    // Show preview
-    const preview = document.getElementById('logo-preview');
-    preview.innerHTML = `<img src="${publicUrl}?t=${Date.now()}" alt="Logo">`;
-    document.getElementById('logo-remove-btn').classList.add('show');
-    document.getElementById('logo-upload-sub').textContent = '✓ Logo uploaded — visible on widget immediately';
-    toast('Logo uploaded successfully', 'ok');
-
-  } catch (err) {
-    toast('Upload failed: ' + err.message, 'err');
-  } finally {
-    btn.classList.remove('uploading');
-    btn.innerHTML = 'Upload logo<input type="file" accept="image/png,image/jpeg,image/jpg,image/webp,image/svg+xml" onchange="handleLogoUpload(this)"/>';
-  }
-}
-
-async function removeLogo() {
-  if (!confirm('Remove the venue logo?')) return;
-  try {
-    // Clear logo_url in DB via venue-config save
-    const res = await fetch(`/.netlify/functions/venue-config?venue_id=${VENUE_ID}&tenant_id=${TENANT_ID}`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ logoUrl: null }),
-    });
-    // Reset preview
-    document.getElementById('logo-preview').innerHTML = '<i class="ti ti-building-store"></i>';
-    document.getElementById('logo-remove-btn').classList.remove('show');
-    document.getElementById('logo-upload-sub').textContent = 'PNG, JPG or SVG · max 2MB · Shows on guest review widget';
-    toast('Logo removed', 'ok');
-  } catch(err) {
-    toast('Failed to remove logo', 'err');
-  }
-}
-
-function applyLogoToBar(logoUrl) {
-  if (!logoUrl) return;
-  const preview = document.getElementById('logo-preview');
-  if (preview) {
-    preview.innerHTML = `<img src="${logoUrl}" alt="Logo">`;
-    document.getElementById('logo-remove-btn').classList.add('show');
-    document.getElementById('logo-upload-sub').textContent = '✓ Logo active — showing on widget';
-  }
-}
-
-// ── Init ──────────────────────────────────────────────
-bootstrap();
+// ── Init ───────────────────────────────────────────────
+loadAll();
 </script>
 </body>
 </html>
+
+
