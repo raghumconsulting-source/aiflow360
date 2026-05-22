@@ -54,7 +54,7 @@ exports.handler = async (event) => {
         tenant_id,
         venue_id,
         table_ref:            table_ref || null,
-        mode:                 mode || 'widget_v2',
+        mode:                 (mode === 'quick' ? 'quick' : 'chat'),
         overall_score:        overall_score || null,
         sentiment:            sentiment || 'unknown',
         topics:               topics || [],
