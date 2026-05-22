@@ -881,6 +881,28 @@ function parseAI(raw) {
 ════════════════════════════════════════ */
 async function handleChip(label, action) {
   if (S.done) return;
+
+  if (action === 'neg_done') {
+    addBub('user', label); clearChips();
+    S.done = true; stopTimer(); setProgress(4);
+    document.getElementById('chatInput').disabled = true;
+    document.getElementById('sendBtn').disabled = true;
+    saveSession();
+    setTimeout(() => { addBub('ok', '✓ Feedback saved · Thank you for letting us know'); }, 300);
+    setTimeout(() => openSummary(), 1000);
+    return;
+  }
+
+  if (action === 'neg_rate') {
+    addBub('user', label); clearChips();
+    S.done = true; stopTimer(); setProgress(4);
+    document.getElementById('chatInput').disabled = true;
+    document.getElementById('sendBtn').disabled = true;
+    saveSession();
+    setTimeout(() => openSummary(), 400);
+    return;
+  }
+
   addBub('user',label); clearChips();
   document.getElementById('chatInput').value = '';
   if (S.step===0) startTimer();
