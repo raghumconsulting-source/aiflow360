@@ -822,14 +822,14 @@ RULES:
 6. Active KPIs to reference: ${kpiNames}
 7. Available tags: ${tagList}
 8. POSITIVE → include google_draft (1st person, 2-3 sentences, specific, ready to publish)
-9. NEGATIVE → empathise, offer a remedy from the list below, NO Google review
+9. NEGATIVE → use action=end_negative. Empathise briefly in ONE sentence. Do NOT mention specific remedies — the system handles those automatically.
 10. NEUTRAL → offer manager contact, close gracefully
 ${turnNote}
 ${knownFor} ${specials}
 Opener: "${S.opener||'How was your visit?'}"
 Customer mood: ${S.mood||'unknown'}
 
-RECOVERY ACTIONS (offer one when negative):
+ESCALATION ACTIONS (auto-fire on negative — do NOT mention in your message):
 ${recoveryList}
 
 Respond ONLY in this JSON (no markdown):
@@ -932,8 +932,31 @@ async function process(userText) {
       setTimeout(()=>{addBub('ok','✓ Feedback saved · Thank you so much!');endFlow(true);},500);
       break;
     case 'end_negative':
-      addBub('ai',r.message);
-      setTimeout(()=>{addBub('bad','⚡ Manager alerted · We\'ll be in touch');endFlow(false);},500);
+      // Tier 1: AI empathy message
+      addBub('ai', r.message);
+
+      // Tier 1 parallel: Wave staff instruction to guest
+      setTimeout(() => {
+        addBub('ai', 'Please wave down any of our team right now — they'll help you immediately.');
+      }, 800);
+
+      // Tier 1 parallel: Silent manager alert
+      setTimeout(() => {
+        addBub('bad', '⚡ Manager alerted · We'll be in touch shortly');
+      }, 1400);
+
+      // Tier 2: Goodwill gesture from recovery actions
+      setTimeout(() => {
+        const actions = VENUE.recoveryActions || [];
+        const goodwill = actions.find(a => a.is_active !== false &&
+          (a.action_type === 'immediate' || a.action_type === 'discount_percent' || a.action_type === 'next_visit'));
+        if (goodwill) {
+          addBub('ai', `In the meantime — ${goodwill.description || goodwill.label}.`);
+        } else {
+          addBub('ai', 'We'd also like to offer you a complimentary item on your next visit as an apology.');
+        }
+        endFlow(false);
+      }, 2400);
       break;
     case 'end_neutral':
       addBub('ai',r.message);
