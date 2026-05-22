@@ -22,8 +22,44 @@ exports.handler = async (event) => {
   }
 
   const params = event.queryStringParameters || {};
-  const venueId  = params.venue_id;
-  const tenantId = params.tenant_id;
+  let venueId  = params.venue_id;
+  let tenantId = params.tenant_id;
+
+  // Slug-based lookup — used by widget bootVenue
+  if (!venueId && params.slug) {
+    try {
+      const { data, error } = await supabase
+        .from('venues')
+        .select('id,tenant_id,name,display_name,suburb,state,google_review_url,known_for,specialties,venue_type,primary_color,logo_url,google_place_id')
+        .eq('slug', params.slug)
+        .eq('status', 'active')
+        .limit(1);
+      if (error || !data?.length) {
+        return { statusCode: 404, headers: HEADERS, body: JSON.stringify({ error: 'Venue not found' }) };
+      }
+      const v = data[0];
+      return {
+        statusCode: 200,
+        headers: HEADERS,
+        body: JSON.stringify({
+          venueId:       v.id,
+          tenantId:      v.tenant_id,
+          venueName:     v.display_name || v.name,
+          venueType:     v.venue_type || '',
+          suburb:        v.suburb || '',
+          state:         v.state || '',
+          googleReviewUrl: v.google_review_url || null,
+          knownFor:      v.known_for || '',
+          specialties:   v.specialties || [],
+          primaryColor:  v.primary_color || null,
+          logoUrl:       v.logo_url || null,
+          googlePlaceId: v.google_place_id || null,
+        }),
+      };
+    } catch (err) {
+      return { statusCode: 500, headers: HEADERS, body: JSON.stringify({ error: err.message }) };
+    }
+  }
 
   if (!venueId || !tenantId) {
     return {
@@ -49,7 +85,6 @@ exports.handler = async (event) => {
         supabase.from('recovery_actions')
           .select('*')
           .eq('tenant_id', tenantId)
-          .or(`venue_id.eq.${venueId},venue_id.is.null`)
           .order('sort_order'),
         supabase.from('venue_tables')
           .select('*')
@@ -162,7 +197,7 @@ exports.handler = async (event) => {
           if (update.isNew) {
             const { error } = await supabase.from('recovery_actions').insert({
               tenant_id:   tenantId,
-              venue_id:    venueId,
+              venue_id:    null,
               label:       update.label,
               description: update.description,
               action_type: update.type,
@@ -173,8 +208,7 @@ exports.handler = async (event) => {
           } else {
             const { error } = await supabase.from('recovery_actions')
               .update({ is_active: update.active })
-              .eq('id', update.id)
-              .or(`venue_id.eq.${venueId},venue_id.is.null`);
+              .eq('id', update.id);
             if (error) throw error;
           }
         }

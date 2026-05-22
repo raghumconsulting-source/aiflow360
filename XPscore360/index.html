@@ -444,8 +444,7 @@ body{display:flex;align-items:flex-start;justify-content:center;padding:20px 10p
 /* ════════════════════════════════════════
    CONFIG
 ════════════════════════════════════════ */
-const SUPABASE_URL  = 'https://iroseywidzacqinmjtdc.supabase.co';
-const SUPABASE_ANON = '__SUPABASE_ANON_PLACEHOLDER__';
+// Supabase calls handled server-side via Netlify functions
 const AI_FN         = '/.netlify/functions/ai-review';
 
 const PARAMS     = new URLSearchParams(location.search);
@@ -501,28 +500,39 @@ const PROG_LABELS = [
    DB HELPERS
 ════════════════════════════════════════ */
 async function sbAnon(path) {
-  const res = await fetch(`${SUPABASE_URL}/rest/v1/${path}`, {
-    headers: { 'apikey': SUPABASE_ANON, 'Authorization': `Bearer ${SUPABASE_ANON}` },
-  });
-  if (!res.ok) return [];
-  const d = await res.json();
-  return Array.isArray(d) ? d : [];
+  // Legacy: only used by bootVenue for initial venue lookup via slug
+  // Routes through venue-config with slug param — no key in browser
+  const slugMatch = path.match(/slug=eq\.([^&]+)/);
+  if (slugMatch) {
+    const res = await fetch(`/.netlify/functions/venue-config?slug=${slugMatch[1]}`);
+    if (!res.ok) return [];
+    const d = await res.json();
+    // venue-config returns {venueName, venueType, ...} — wrap as array for bootVenue
+    if (d.venueId) return [{ 
+      id: d.venueId, tenant_id: d.tenantId,
+      name: d.venueName, display_name: d.venueName,
+      suburb: d.suburb, state: d.state,
+      google_review_url: d.googleReviewUrl,
+      known_for: d.knownFor, specialties: d.specialties,
+      venue_type: d.venueType, primary_color: d.primaryColor,
+      logo_url: d.logoUrl
+    }];
+  }
+  return [];
 }
 
 async function dbInsert(table, payload) {
+  // All writes go through Netlify functions — no key needed in browser
+  const fn = table === 'review_sessions' ? 'save-session' : null;
+  if (!fn) { console.warn('No function for table:', table); return; }
   try {
-    const res = await fetch(`${SUPABASE_URL}/rest/v1/${table}`, {
+    const res = await fetch(`/.netlify/functions/${fn}`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'apikey': SUPABASE_ANON,
-        'Authorization': `Bearer ${SUPABASE_ANON}`,
-        'Prefer': 'return=minimal',
-      },
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload),
     });
-    if (!res.ok) console.warn('DB insert failed:', res.status);
-  } catch(e) { console.warn('DB error:', e); }
+    if (!res.ok) console.warn('Save failed:', res.status, await res.text());
+  } catch(e) { console.warn('Save error:', e); }
 }
 
 /* ════════════════════════════════════════
