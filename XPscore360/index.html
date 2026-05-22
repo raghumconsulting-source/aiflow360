@@ -942,7 +942,7 @@ async function process(userText) {
 
       // Tier 1 parallel: Silent manager alert
       setTimeout(() => {
-        addBub('bad', '⚡ Manager alerted · We'll be in touch shortly');
+        addBub('bad', "⚡ Manager alerted · We'll be in touch shortly");
       }, 1400);
 
       // Tier 2: Goodwill gesture from recovery actions
@@ -953,7 +953,7 @@ async function process(userText) {
         if (goodwill) {
           addBub('ai', `In the meantime — ${goodwill.description || goodwill.label}.`);
         } else {
-          addBub('ai', 'We'd also like to offer you a complimentary item on your next visit as an apology.');
+          addBub('ai', "We'd also like to offer you a complimentary item on your next visit as an apology.");
         }
         endFlow(false);
       }, 2400);
