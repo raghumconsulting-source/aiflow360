@@ -445,7 +445,7 @@ body{display:flex;align-items:flex-start;justify-content:center;padding:20px 10p
    CONFIG
 ════════════════════════════════════════ */
 const SUPABASE_URL  = 'https://iroseywidzacqinmjtdc.supabase.co';
-const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imlyb3NleXdpZHphY3Fpbm1qdGRjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg5MTgwMTQsImV4cCI6MjA5NDQ5NDAxNH0.x66R6jOUcU8eaXxxXL2OtUX9rJ3ddntQTYLrOdnpzOk';
+const SUPABASE_ANON = '' + (window.__SUPABASE_ANON__ || '') + '';
 const AI_FN         = '/.netlify/functions/ai-review';
 
 const PARAMS     = new URLSearchParams(location.search);
@@ -1234,3 +1234,4 @@ bootVenue();
 </script>
 </body>
 </html>
+
