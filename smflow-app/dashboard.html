@@ -1,0 +1,1451 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SMflow — Dashboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#FFFFFF;--surface:#F7F7F5;--card:#FFFFFF;
+  --border:rgba(0,0,0,0.08);--border-d:rgba(0,0,0,0.14);
+  --text:#0F0F0D;--muted:#888880;--faint:#F0F0EC;
+  --green:#1D9E75;--green-bg:#EAF3DE;--green-t:#3B6D11;
+  --red:#E24B4A;--red-bg:#FCEBEB;--red-t:#A32D2D;
+  --amber:#BA7517;--amber-bg:#FAEEDA;--amber-t:#633806;
+  --blue-bg:#E6F1FB;--blue-t:#185FA5;
+  --teal:#00C2A8;
+  --violet:#7B2FFF;--violet-bg:#F0EBFF;--violet-t:#4A1A99;
+  --r:8px;--rl:12px;
+}
+html,body{min-height:100vh;background:var(--surface)}
+body{font-family:'Geist',sans-serif;font-size:14px;color:var(--text);line-height:1.5}
+
+/* ── Auth overlay ─────────────────────────────────── */
+#auth-overlay{
+  position:fixed;inset:0;background:var(--surface);
+  display:flex;align-items:center;justify-content:center;
+  z-index:999;transition:opacity .3s;
+}
+#auth-overlay.hide{opacity:0;pointer-events:none}
+.auth-card{
+  background:var(--bg);border:1px solid var(--border);
+  border-radius:16px;padding:48px 40px;text-align:center;
+  max-width:360px;width:90%;
+}
+.auth-logo{width:40px;height:40px;border-radius:10px;
+  background:var(--text);display:flex;align-items:center;
+  justify-content:center;font-size:14px;font-weight:500;
+  color:#fff;margin:0 auto 20px}
+.auth-title{font-size:22px;font-weight:500;margin-bottom:6px;letter-spacing:-.02em}
+.auth-sub{font-size:13px;color:var(--muted);margin-bottom:28px}
+.auth-btn{
+  display:flex;align-items:center;justify-content:center;gap:10px;
+  width:100%;padding:12px 20px;background:var(--text);color:#fff;
+  border:none;border-radius:var(--r);font-family:'Geist',sans-serif;
+  font-size:14px;font-weight:500;cursor:pointer;transition:opacity .15s;
+  text-decoration:none;
+}
+.auth-btn:hover{opacity:.85}
+.auth-btn svg{width:18px;height:18px;flex-shrink:0}
+.auth-foot{font-size:12px;color:var(--muted);margin-top:20px}
+.auth-foot a{color:var(--text);text-decoration:underline;text-underline-offset:2px}
+
+/* ── Top bar ──────────────────────────────────────── */
+.topbar{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:13px 20px;border-bottom:0.5px solid var(--border);
+  gap:12px;flex-wrap:wrap;background:var(--bg);
+  position:sticky;top:0;z-index:100;
+}
+.tl{display:flex;align-items:center;gap:10px}
+.logo{
+  width:28px;height:28px;border-radius:7px;background:var(--violet);
+  display:flex;align-items:center;justify-content:center;
+  font-size:10px;font-weight:500;color:#fff;flex-shrink:0;
+}
+.tl-name{font-size:14px;font-weight:500}
+.tl-badge{
+  font-size:11px;padding:2px 8px;border-radius:20px;
+  background:var(--violet-bg);color:var(--violet-t);
+  border:0.5px solid rgba(123,47,255,0.2);
+}
+.tr{display:flex;align-items:center;gap:8px}
+.tbtn{
+  display:flex;align-items:center;gap:5px;padding:6px 10px;
+  border:0.5px solid var(--border-d);border-radius:var(--r);
+  font-size:12px;color:var(--muted);cursor:pointer;
+  background:var(--bg);font-family:'Geist',sans-serif;transition:all .15s;
+}
+.tbtn:hover{border-color:var(--text);color:var(--text)}
+.tbtn.loading{opacity:.5;pointer-events:none}
+.avatar{
+  width:28px;height:28px;border-radius:50%;
+  background:var(--blue-bg);display:flex;align-items:center;
+  justify-content:center;font-size:10px;font-weight:500;
+  color:var(--blue-t);cursor:pointer;flex-shrink:0;
+}
+
+/* ── Tabs ─────────────────────────────────────────── */
+.tabs{
+  display:flex;padding:0 20px;
+  border-bottom:0.5px solid var(--border);
+  gap:2px;overflow-x:auto;background:var(--bg);
+}
+.tab{
+  padding:12px 14px;font-size:13px;color:var(--muted);
+  cursor:pointer;white-space:nowrap;border-bottom:2px solid transparent;
+  transition:all .15s;
+}
+.tab:hover{color:var(--text)}
+.tab.on{color:var(--text);font-weight:500;border-bottom-color:var(--text)}
+.tbadge{
+  display:inline-flex;align-items:center;justify-content:center;
+  min-width:18px;height:18px;padding:0 5px;border-radius:9px;
+  background:var(--red-bg);color:var(--red-t);font-size:10px;font-weight:500;margin-left:4px;
+}
+.panel{display:none;padding:18px 20px;flex-direction:column;gap:14px;animation:up .25s ease both}
+.panel.on{display:flex}
+@keyframes up{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+
+/* ── KPI row ──────────────────────────────────────── */
+.kpi-row{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+@media(max-width:700px){.kpi-row{grid-template-columns:1fr 1fr}}
+.kpi{background:var(--surface);border-radius:var(--r);padding:12px 14px}
+.kpi-lbl{font-size:11px;color:var(--muted);margin-bottom:5px;display:flex;align-items:center;gap:5px}
+.kpi-lbl svg{width:13px;height:13px;flex-shrink:0}
+.kpi-val{font-size:22px;font-weight:500;line-height:1;margin-bottom:3px}
+.kpi-d{font-size:11px;display:flex;align-items:center;gap:3px;color:var(--muted)}
+
+/* ── Cards ────────────────────────────────────────── */
+.card{
+  background:var(--bg);border:0.5px solid var(--border);
+  border-radius:var(--rl);overflow:hidden;
+}
+.card-hdr{
+  padding:12px 14px;border-bottom:0.5px solid var(--border);
+  display:flex;align-items:center;justify-content:space-between;
+}
+.card-title{font-size:13px;font-weight:500}
+.card-sub{font-size:12px;color:var(--muted)}
+.card-body{padding:14px}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+@media(max-width:700px){.grid2{grid-template-columns:1fr}}
+
+/* ── Flavor grid ──────────────────────────────────── */
+.flavor-grid{display:grid;grid-template-columns:repeat(6,1fr);gap:6px}
+@media(max-width:900px){.flavor-grid{grid-template-columns:repeat(3,1fr)}}
+.flavor-btn{
+  padding:8px 6px;border-radius:var(--r);border:1px solid var(--border);
+  background:var(--surface);cursor:pointer;text-align:center;
+  transition:all .15s;user-select:none;
+}
+.flavor-btn:hover{border-color:var(--border-d)}
+.flavor-btn.active{border-color:var(--violet);background:var(--violet-bg)}
+.flavor-icon{font-size:18px;margin-bottom:3px}
+.flavor-name{font-size:10px;font-weight:500;color:var(--text)}
+.flavor-type{font-size:9px;color:var(--muted);margin-top:1px}
+
+/* ── Platform toggles ─────────────────────────────── */
+.platform-row{display:flex;gap:6px;flex-wrap:wrap}
+.plat-toggle{
+  display:flex;align-items:center;gap:5px;padding:5px 10px;
+  border-radius:20px;border:1px solid var(--border);
+  background:var(--surface);cursor:pointer;font-size:12px;
+  color:var(--muted);transition:all .15s;user-select:none;
+}
+.plat-toggle.on{
+  border-color:var(--violet);background:var(--violet-bg);
+  color:var(--violet-t);
+}
+.plat-dot{width:5px;height:5px;border-radius:50%;background:var(--muted)}
+.plat-toggle.on .plat-dot{background:var(--violet)}
+
+/* ── Post output cards ────────────────────────────── */
+.post-out{
+  background:var(--surface);border:0.5px solid var(--border);
+  border-radius:var(--r);overflow:hidden;
+  animation:up .3s ease both;
+}
+.post-hdr{
+  padding:8px 12px;border-bottom:0.5px solid var(--border);
+  display:flex;align-items:center;justify-content:space-between;
+  background:var(--bg);
+}
+.post-plat{display:flex;align-items:center;gap:6px;font-size:12px;font-weight:500}
+.post-dot{width:6px;height:6px;border-radius:50%}
+.post-flavor{
+  font-size:10px;padding:2px 7px;border-radius:10px;
+  border:0.5px solid var(--border-d);color:var(--muted);
+  background:var(--surface);margin-left:4px;
+}
+.post-actions{display:flex;gap:4px}
+.post-act{
+  padding:3px 8px;border-radius:5px;font-size:11px;
+  border:0.5px solid var(--border-d);background:var(--bg);
+  color:var(--muted);cursor:pointer;transition:all .15s;
+  font-family:'Geist',sans-serif;
+}
+.post-act:hover{border-color:var(--text);color:var(--text)}
+.post-act.violet:hover{border-color:var(--violet);color:var(--violet)}
+.post-body{
+  padding:12px;font-size:13px;line-height:1.75;
+  color:var(--text);white-space:pre-wrap;
+  font-family:'Geist',sans-serif;
+}
+.post-body[contenteditable=true]{outline:1px solid var(--violet);border-radius:4px}
+.post-foot{
+  padding:5px 12px;border-top:0.5px solid var(--border);
+  display:flex;align-items:center;justify-content:space-between;
+  background:var(--bg);
+}
+.char-c{font-size:11px;color:var(--muted)}
+.canva-lnk{
+  font-size:11px;color:var(--violet);text-decoration:none;
+  padding:2px 8px;border-radius:5px;border:0.5px solid rgba(123,47,255,.3);
+  background:var(--violet-bg);transition:all .13s;
+}
+.canva-lnk:hover{background:rgba(123,47,255,.15)}
+
+/* ── Approval queue ───────────────────────────────── */
+.approve-card{
+  background:var(--bg);border:0.5px solid var(--border);
+  border-radius:var(--rl);overflow:hidden;margin-bottom:10px;
+}
+.approve-hdr{
+  padding:10px 14px;border-bottom:0.5px solid var(--border);
+  display:flex;align-items:center;justify-content:space-between;
+  background:var(--surface);
+}
+.approve-day{font-size:12px;font-weight:500;color:var(--muted)}
+.approve-body{padding:12px 14px}
+.approve-post{
+  display:flex;gap:10px;padding:10px 0;
+  border-bottom:0.5px solid var(--border);
+}
+.approve-post:last-child{border-bottom:none}
+.approve-plat{width:80px;flex-shrink:0}
+.approve-plat-name{font-size:11px;font-weight:500;color:var(--muted)}
+.approve-content{flex:1;font-size:12px;color:var(--text);line-height:1.6}
+.approve-acts{display:flex;gap:4px;flex-shrink:0;align-items:flex-start;padding-top:2px}
+.status-pill{
+  font-size:10px;padding:2px 7px;border-radius:10px;font-weight:500;
+}
+.status-draft{background:var(--faint);color:var(--muted)}
+.status-pending{background:var(--amber-bg);color:var(--amber-t)}
+.status-approved{background:var(--green-bg);color:var(--green-t)}
+.status-scheduled{background:var(--blue-bg);color:var(--blue-t)}
+.status-published{background:var(--green-bg);color:var(--green-t)}
+.status-rejected{background:var(--red-bg);color:var(--red-t)}
+
+/* ── History table ────────────────────────────────── */
+.hist-item{
+  display:flex;align-items:center;gap:10px;
+  padding:10px 0;border-bottom:0.5px solid var(--border);
+  font-size:13px;
+}
+.hist-item:last-child{border-bottom:none}
+.hist-icon{font-size:16px;flex-shrink:0}
+.hist-info{flex:1;min-width:0}
+.hist-topic{font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.hist-meta{font-size:11px;color:var(--muted);margin-top:1px}
+
+/* ── ARIA agent panel ─────────────────────────────── */
+.agent-wrap{
+  background:var(--bg);border:0.5px solid var(--border);
+  border-radius:var(--rl);overflow:hidden;display:flex;flex-direction:column;
+  height:500px;
+}
+.agent-hdr{
+  padding:11px 14px;border-bottom:0.5px solid var(--border);
+  display:flex;align-items:center;gap:8px;background:var(--surface);flex-shrink:0;
+}
+.agent-title{font-size:13px;font-weight:500}
+.agent-mode{
+  font-size:10px;padding:2px 7px;border-radius:10px;
+  background:var(--violet-bg);color:var(--violet-t);
+  border:0.5px solid rgba(123,47,255,.2);
+}
+.chat-msgs{flex:1;overflow-y:auto;padding:12px;display:flex;flex-direction:column;gap:8px}
+.msg{max-width:88%;border-radius:var(--rl);padding:9px 12px;font-size:12px;line-height:1.7}
+.msg.agent{background:var(--surface);border:0.5px solid var(--border);align-self:flex-start;border-bottom-left-radius:2px}
+.msg.user{background:var(--violet-bg);border:0.5px solid rgba(123,47,255,.2);align-self:flex-end;border-bottom-right-radius:2px}
+.msg.thinking{background:var(--faint);color:var(--muted);align-self:flex-start;font-style:italic;font-size:11px}
+.msg-lbl{font-size:10px;color:var(--muted);margin-bottom:2px;letter-spacing:.04em;text-transform:uppercase}
+.chat-input-row{padding:10px 12px;border-top:0.5px solid var(--border);display:flex;gap:6px;flex-shrink:0}
+.chat-in{
+  flex:1;background:var(--surface);border:0.5px solid var(--border-d);
+  border-radius:var(--r);font-family:'Geist',sans-serif;font-size:12px;
+  color:var(--text);padding:7px 10px;outline:none;resize:none;height:36px;
+  transition:border-color .15s;
+}
+.chat-in:focus{border-color:var(--violet)}
+.chat-send{
+  width:36px;height:36px;border-radius:var(--r);border:none;
+  background:var(--text);color:#fff;font-size:14px;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;transition:opacity .15s;flex-shrink:0;
+}
+.chat-send:hover{opacity:.8}
+.chat-send:disabled{opacity:.4;cursor:not-allowed}
+.quick-asks{display:flex;flex-wrap:wrap;gap:4px;padding:0 12px 8px}
+.qa{
+  font-size:11px;padding:3px 8px;border-radius:5px;
+  border:0.5px solid var(--border-d);background:var(--surface);
+  color:var(--muted);cursor:pointer;transition:all .13s;
+}
+.qa:hover{border-color:var(--violet);color:var(--violet)}
+
+/* ── Rotation week ────────────────────────────────── */
+.week-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:5px}
+.day-col{display:flex;flex-direction:column;gap:3px}
+.day-lbl{font-size:10px;text-align:center;color:var(--muted);text-transform:uppercase;padding-bottom:3px;letter-spacing:.06em}
+.rot-slot{
+  padding:6px 4px;border-radius:5px;border:0.5px solid var(--border);
+  background:var(--surface);cursor:pointer;text-align:center;transition:all .13s;
+}
+.rot-slot:hover{border-color:var(--border-d)}
+.rot-slot.active{border-color:var(--violet);background:var(--violet-bg)}
+.rot-flavor-icon{font-size:14px}
+.rot-flavor-name{font-size:9px;color:var(--muted);margin-top:1px;line-height:1.2}
+
+/* ── Settings / config ────────────────────────────── */
+.setting-row{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:11px 0;border-bottom:0.5px solid var(--border);
+}
+.setting-row:last-child{border-bottom:none}
+.setting-lbl{font-size:13px;font-weight:500}
+.setting-sub{font-size:11px;color:var(--muted);margin-top:2px}
+select.sct{
+  padding:5px 10px;border:0.5px solid var(--border-d);border-radius:var(--r);
+  font-family:'Geist',sans-serif;font-size:12px;color:var(--text);
+  background:var(--bg);outline:none;cursor:pointer;
+}
+input.sct{
+  padding:5px 10px;border:0.5px solid var(--border-d);border-radius:var(--r);
+  font-family:'Geist',sans-serif;font-size:12px;color:var(--text);
+  background:var(--bg);outline:none;width:280px;
+}
+input.sct:focus,select.sct:focus{border-color:var(--violet)}
+textarea.sct{
+  padding:8px 10px;border:0.5px solid var(--border-d);border-radius:var(--r);
+  font-family:'Geist',sans-serif;font-size:12px;color:var(--text);
+  background:var(--bg);outline:none;width:100%;resize:vertical;margin-top:6px;
+}
+textarea.sct:focus{border-color:var(--violet)}
+
+/* ── Buttons ──────────────────────────────────────── */
+.btn{
+  padding:8px 16px;border-radius:var(--r);font-family:'Geist',sans-serif;
+  font-size:13px;font-weight:500;cursor:pointer;transition:all .15s;border:none;
+}
+.btn-primary{background:var(--text);color:#fff}
+.btn-primary:hover{opacity:.85}
+.btn-primary:disabled{opacity:.4;cursor:not-allowed}
+.btn-violet{background:var(--violet);color:#fff}
+.btn-violet:hover{opacity:.85}
+.btn-violet:disabled{opacity:.4;cursor:not-allowed}
+.btn-outline{background:var(--bg);color:var(--text);border:0.5px solid var(--border-d)}
+.btn-outline:hover{border-color:var(--text)}
+.btn-sm{padding:5px 10px;font-size:12px}
+
+/* ── Loading / empty ──────────────────────────────── */
+.empty{text-align:center;padding:40px 20px;color:var(--muted)}
+.empty svg{width:32px;height:32px;margin:0 auto 10px;display:block;color:var(--border-d)}
+.empty p{font-size:13px}
+.loader-bar{
+  height:2px;background:linear-gradient(90deg,var(--violet),var(--teal));
+  border-radius:2px;display:none;animation:sweep 1.3s ease-in-out infinite;
+}
+.loader-bar.on{display:block}
+@keyframes sweep{0%{width:0;margin-left:0}60%{width:60%;margin-left:0}100%{width:0;margin-left:100%}}
+
+/* ── Toast ────────────────────────────────────────── */
+#toast{
+  position:fixed;bottom:20px;right:20px;z-index:9999;
+  background:var(--text);color:#fff;padding:9px 16px;
+  border-radius:var(--r);font-size:13px;font-weight:500;
+  opacity:0;transform:translateY(6px);transition:all .25s;pointer-events:none;
+}
+#toast.on{opacity:1;transform:translateY(0)}
+
+/* ── Social account pills ─────────────────────────── */
+.social-accounts{display:flex;flex-direction:column;gap:8px}
+.social-acc{
+  display:flex;align-items:center;gap:10px;padding:10px 12px;
+  border:0.5px solid var(--border);border-radius:var(--r);background:var(--bg);
+}
+.social-acc-icon{width:28px;height:28px;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0}
+.social-acc-info{flex:1;min-width:0}
+.social-acc-name{font-size:13px;font-weight:500}
+.social-acc-status{font-size:11px;color:var(--muted);margin-top:1px}
+.connected-dot{display:inline-block;width:5px;height:5px;border-radius:50%;background:var(--green);margin-right:4px}
+
+@media(max-width:700px){
+  .topbar{padding:10px 14px}
+  .panel{padding:14px}
+  .flavor-grid{grid-template-columns:repeat(3,1fr)}
+  .week-grid{grid-template-columns:repeat(4,1fr)}
+}
+</style>
+</head>
+<body>
+
+<!-- Auth overlay -->
+<div id="auth-overlay">
+  <div class="auth-card">
+    <div class="auth-logo">SM</div>
+    <div class="auth-title">SMflow</div>
+    <div class="auth-sub">AI social media posting engine<br>Sign in to your AIFlow360 account</div>
+    <button class="auth-btn" id="google-btn">
+      <svg viewBox="0 0 24 24"><path fill="#fff" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#fff" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#fff" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/><path fill="#fff" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
+      Continue with Google
+    </button>
+    <div class="auth-foot">Part of <a href="https://aiflow360.com">AIFlow360</a> platform</div>
+  </div>
+</div>
+
+<!-- App shell -->
+<div id="app" style="display:none">
+
+  <!-- Top bar -->
+  <div class="topbar">
+    <div class="tl">
+      <div class="logo">SF</div>
+      <span class="tl-name">SMflow</span>
+      <span class="tl-badge" id="industry-badge">Loading...</span>
+    </div>
+    <div class="tr">
+      <button class="tbtn btn-sm" id="gen-quick-btn" onclick="showTab('generate',document.querySelectorAll('.tab')[0])">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+        Generate
+      </button>
+      <div style="position:relative;display:inline-block" id="avatar-wrap">
+        <div class="avatar" id="user-avatar" onclick="toggleAvatarMenu()" title="Account">?</div>
+        <div id="avatar-menu" style="display:none;position:absolute;right:0;top:36px;background:var(--bg);border:1px solid var(--border);border-radius:10px;min-width:180px;box-shadow:0 8px 24px rgba(0,0,0,.08);z-index:200;overflow:hidden">
+          <a href="/xpscore360-app/dashboard.html" style="display:flex;align-items:center;gap:8px;padding:11px 14px;font-size:13px;color:var(--text);text-decoration:none;transition:background .15s" onmouseover="this.style.background='var(--surface)'" onmouseout="this.style.background='transparent'">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+            XPscore360
+          </a>
+          <div style="border-top:1px solid var(--border);margin:4px 0"></div>
+          <button onclick="signOut()" style="display:flex;align-items:center;gap:8px;padding:11px 14px;font-size:13px;color:var(--red);background:transparent;border:none;cursor:pointer;width:100%;text-align:left" onmouseover="this.style.background='var(--surface)'" onmouseout="this.style.background='transparent'">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+            Sign out
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Tabs -->
+  <div class="tabs">
+    <div class="tab on" onclick="showTab('generate',this)">Generate</div>
+    <div class="tab" onclick="showTab('approve',this)">Approve <span class="tbadge" id="pending-count" style="display:none">0</span></div>
+    <div class="tab" onclick="showTab('rotation',this)">Rotation</div>
+    <div class="tab" onclick="showTab('history',this)">History</div>
+    <div class="tab" onclick="showTab('aria',this)">ARIA agent</div>
+    <div class="tab" onclick="showTab('settings',this)">Settings</div>
+  </div>
+
+  <!-- ══ GENERATE TAB ══════════════════════════════════════ -->
+  <div class="panel on" id="tab-generate">
+
+    <!-- Flavor selector -->
+    <div class="card">
+      <div class="card-hdr">
+        <div>
+          <div class="card-title">Content flavor</div>
+          <div class="card-sub" id="flavor-desc">Teach your audience something valuable — build authority through knowledge</div>
+        </div>
+        <div style="display:flex;gap:5px">
+          <button class="post-act" onclick="rotateFlavor(-1)">◀</button>
+          <button class="post-act" onclick="rotateFlavor(1)">▶</button>
+        </div>
+      </div>
+      <div class="card-body">
+        <div class="flavor-grid" id="flavor-grid"></div>
+      </div>
+    </div>
+
+    <!-- Brief -->
+    <div class="card">
+      <div class="card-hdr">
+        <div class="card-title" id="brief-flavor-label">Brief — Education mode</div>
+        <span id="jab-hook-lbl" style="font-size:11px;padding:2px 7px;border-radius:10px;background:var(--green-bg);color:var(--green-t);border:0.5px solid rgba(29,158,117,.2)">JAB — value post</span>
+      </div>
+      <div class="card-body" style="display:flex;flex-direction:column;gap:11px">
+        <div>
+          <label style="font-size:11px;color:var(--muted);display:block;margin-bottom:4px;text-transform:uppercase;letter-spacing:.05em">Topic</label>
+          <input type="text" id="topic" class="sct" placeholder="e.g. How AI saves small businesses 10 hours per week" style="width:100%">
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+          <div>
+            <label style="font-size:11px;color:var(--muted);display:block;margin-bottom:4px;text-transform:uppercase;letter-spacing:.05em">Audience</label>
+            <select class="sct" id="audience" style="width:100%">
+              <option>Small business owners</option>
+              <option>Medium business owners</option>
+              <option>Entrepreneurs</option>
+              <option>Operations managers</option>
+              <option>Marketing teams</option>
+            </select>
+          </div>
+          <div>
+            <label style="font-size:11px;color:var(--muted);display:block;margin-bottom:4px;text-transform:uppercase;letter-spacing:.05em">Guru framework</label>
+            <select class="sct" id="guru-select" style="width:100%">
+              <option value="all">All 5 Frameworks</option>
+              <option value="kotler">Kotler — STP</option>
+              <option value="godin">Godin — Purple Cow</option>
+              <option value="garyvee">GaryVee — Jab/Hook</option>
+              <option value="ogilvy">Ogilvy — Headlines</option>
+              <option value="patel">Patel — Data/SEO</option>
+            </select>
+          </div>
+        </div>
+        <div>
+          <label style="font-size:11px;color:var(--muted);display:block;margin-bottom:4px;text-transform:uppercase;letter-spacing:.05em">Extra context (optional)</label>
+          <input type="text" id="extra-context" class="sct" placeholder="Stats, links, product names, offers..." style="width:100%">
+        </div>
+        <div>
+          <label style="font-size:11px;color:var(--muted);display:block;margin-bottom:6px;text-transform:uppercase;letter-spacing:.05em">Active platforms</label>
+          <div class="platform-row" id="platform-row"></div>
+        </div>
+        <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap">
+          <label style="display:flex;align-items:center;gap:5px;font-size:12px;color:var(--muted);cursor:pointer">
+            <input type="checkbox" id="with-canva" checked style="accent-color:var(--violet)"> Canva briefs
+          </label>
+          <label style="display:flex;align-items:center;gap:5px;font-size:12px;color:var(--muted);cursor:pointer">
+            <input type="checkbox" id="auto-rotate" style="accent-color:var(--violet)"> Auto-rotate flavor
+          </label>
+          <label style="display:flex;align-items:center;gap:5px;font-size:12px;color:var(--muted);cursor:pointer">
+            <input type="checkbox" id="auto-approve" style="accent-color:var(--violet)"> Auto-submit for approval
+          </label>
+        </div>
+      </div>
+    </div>
+
+    <div style="display:flex;gap:8px">
+      <button class="btn btn-violet" id="gen-btn" onclick="generatePosts()" style="flex:1">⚡ Generate All Channels</button>
+      <button class="btn btn-outline btn-sm" onclick="generateBatch()" title="Generate 6 flavors in one go">📦 Batch</button>
+    </div>
+    <div class="loader-bar" id="gen-loader"></div>
+
+    <div id="gen-output" style="display:flex;flex-direction:column;gap:10px">
+      <div class="empty">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+        <p>Select a flavor, enter a topic, then generate ↑</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ APPROVE TAB ═══════════════════════════════════════ -->
+  <div class="panel" id="tab-approve">
+    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">
+      <div style="font-size:13px;color:var(--muted)" id="approve-week-label">This week's posts</div>
+      <div style="display:flex;gap:6px">
+        <button class="btn btn-outline btn-sm" onclick="loadApproveTab()">↻ Refresh</button>
+        <button class="btn btn-primary btn-sm" onclick="bulkApprove()">✓ Approve all pending</button>
+      </div>
+    </div>
+    <div class="loader-bar" id="approve-loader"></div>
+    <div id="approve-output">
+      <div class="empty">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+        <p>No posts pending approval this week</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ ROTATION TAB ══════════════════════════════════════ -->
+  <div class="panel" id="tab-rotation">
+    <div class="card">
+      <div class="card-hdr">
+        <div>
+          <div class="card-title">4-week content rotation</div>
+          <div class="card-sub">GaryVee 3-jab/1-hook ratio · Patel 70/30 evergreen/topical</div>
+        </div>
+        <button class="btn btn-outline btn-sm" onclick="resetSchedule()">↺ Reset to defaults</button>
+      </div>
+      <div class="card-body" id="rotation-body">
+        <div class="empty"><p>Loading rotation plan...</p></div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-hdr"><div class="card-title">Posting times</div></div>
+      <div class="card-body">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+          <div>
+            <label style="font-size:11px;color:var(--muted);display:block;margin-bottom:4px;text-transform:uppercase;letter-spacing:.05em">Timezone</label>
+            <select class="sct" id="tz-select" style="width:100%">
+              <option>AEST — Sydney/Melbourne</option>
+              <option>AWST — Perth</option>
+              <option>ACST — Adelaide</option>
+            </select>
+          </div>
+          <div>
+            <label style="font-size:11px;color:var(--muted);display:block;margin-bottom:4px;text-transform:uppercase;letter-spacing:.05em">Posts per week</label>
+            <select class="sct" style="width:100%">
+              <option>3 posts/week</option>
+              <option selected>5 posts/week</option>
+              <option>7 posts/week (daily)</option>
+            </select>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ HISTORY TAB ═══════════════════════════════════════ -->
+  <div class="panel" id="tab-history">
+    <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+      <select class="tbtn" id="hist-platform" onchange="loadHistoryTab()" style="padding:6px 10px;font-family:'Geist',sans-serif;font-size:12px">
+        <option value="">All platforms</option>
+        <option>LinkedIn</option><option>Facebook</option><option>Instagram</option>
+        <option>WhatsApp</option><option>Twitter/X</option><option>YouTube</option>
+      </select>
+      <select class="tbtn" id="hist-flavor" onchange="loadHistoryTab()" style="padding:6px 10px;font-family:'Geist',sans-serif;font-size:12px">
+        <option value="">All flavors</option>
+        <option value="education">Education</option><option value="awareness">Awareness</option>
+        <option value="urgency">Urgency</option><option value="fomo">FOMO</option>
+        <option value="trending">Trending</option><option value="humor">Humor</option>
+        <option value="inspiration">Inspiration</option><option value="social_proof">Social Proof</option>
+        <option value="myth_bust">Myth Bust</option><option value="how_to">How-To</option>
+        <option value="behind_scenes">Behind Scenes</option><option value="challenge">Challenge</option>
+      </select>
+      <select class="tbtn" id="hist-status" onchange="loadHistoryTab()" style="padding:6px 10px;font-family:'Geist',sans-serif;font-size:12px">
+        <option value="">All statuses</option>
+        <option value="draft">Draft</option><option value="approved">Approved</option>
+        <option value="published">Published</option><option value="rejected">Rejected</option>
+      </select>
+      <span style="font-size:12px;color:var(--muted);margin-left:auto" id="hist-total">— posts</span>
+    </div>
+    <!-- Stats row -->
+    <div class="kpi-row" id="stats-row">
+      <div class="kpi"><div class="kpi-lbl">Total generated</div><div class="kpi-val" id="st-total">—</div></div>
+      <div class="kpi"><div class="kpi-lbl">Published</div><div class="kpi-val" id="st-published">—</div></div>
+      <div class="kpi"><div class="kpi-lbl">This month</div><div class="kpi-val" id="st-month">—</div></div>
+      <div class="kpi"><div class="kpi-lbl">Top flavor</div><div class="kpi-val" id="st-flavor" style="font-size:16px">—</div></div>
+    </div>
+    <div class="loader-bar" id="hist-loader"></div>
+    <div class="card">
+      <div class="card-body" id="hist-output">
+        <div class="empty"><p>No posts yet — generate your first batch above</p></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ ARIA AGENT TAB ════════════════════════════════════ -->
+  <div class="panel" id="tab-aria">
+    <div class="grid2">
+      <div style="display:flex;flex-direction:column;gap:10px">
+        <div class="agent-wrap">
+          <div class="agent-hdr">
+            <div class="agent-title">ARIA</div>
+            <div class="agent-mode" id="aria-mode-badge">All 5 Frameworks</div>
+            <div style="margin-left:auto;display:flex;gap:4px">
+              <select class="tbtn" id="guru-mode-select" onchange="setGuruMode(this.value)" style="padding:4px 8px;font-family:'Geist',sans-serif;font-size:11px">
+                <option value="all">All 5</option>
+                <option value="kotler">Kotler</option>
+                <option value="godin">Godin</option>
+                <option value="garyvee">GaryVee</option>
+                <option value="ogilvy">Ogilvy</option>
+                <option value="patel">Patel</option>
+              </select>
+            </div>
+          </div>
+          <div class="quick-asks">
+            <div class="qa" onclick="askAgent('Build a 2-week content rotation plan using all 12 flavors for LinkedIn, Instagram and WhatsApp')">2-week plan</div>
+            <div class="qa" onclick="askAgent('Which content flavors work best for each platform for an Australian SMB?')">Flavor by platform</div>
+            <div class="qa" onclick="askAgent('Create a FOMO + Urgency post sequence — 3 escalating posts over 3 days')">FOMO sequence</div>
+            <div class="qa" onclick="askAgent('Write 5 Ogilvy-style headlines for a post about AI automation saving time')">Ogilvy headlines</div>
+            <div class="qa" onclick="askAgent('What trending topics in Australian business can I authentically comment on this week?')">Trending now</div>
+            <div class="qa" onclick="askAgent('Audit my current posting strategy and score it against all 5 guru frameworks')">Strategy audit</div>
+          </div>
+          <div class="chat-msgs" id="chat-msgs">
+            <div class="msg agent">
+              <div class="msg-lbl">ARIA</div>
+              Hi! I'm ARIA, your AI marketing agent — guided by Kotler, Godin, GaryVee, Ogilvy, and Patel.<br><br>
+              Ask me about content strategy, flavor rotation, hashtag research, headline writing, or campaign planning. What are we working on?
+            </div>
+          </div>
+          <div class="chat-input-row">
+            <textarea class="chat-in" id="chat-in" placeholder="Ask ARIA anything..."></textarea>
+            <button class="chat-send" id="chat-send" onclick="sendChat()">→</button>
+          </div>
+        </div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:10px">
+        <div class="card">
+          <div class="card-hdr"><div class="card-title">📚 5 Guru frameworks</div></div>
+          <div class="card-body" style="display:flex;flex-direction:column;gap:8px">
+            ${[
+              ['Kotler','STP + 4Ps + Customer Value','#185FA5'],
+              ['Godin','Permission + Purple Cow + Tribes','#7B2FFF'],
+              ['GaryVee','Jab×3 / Hook + Context','#BA7517'],
+              ['Ogilvy','Headlines + Research + Promise','#993556'],
+              ['Patel','Data + SEO + Scale','#1D9E75'],
+            ].map(([n,s,c]) => `
+            <div style="display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:var(--r);background:var(--surface);border:0.5px solid var(--border)">
+              <div style="width:3px;height:32px;border-radius:2px;background:${c};flex-shrink:0"></div>
+              <div><div style="font-size:12px;font-weight:500;color:${c}">${n}</div><div style="font-size:11px;color:var(--muted);margin-top:1px">${s}</div></div>
+            </div>`).join('')}
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ SETTINGS TAB ══════════════════════════════════════ -->
+  <div class="panel" id="tab-settings">
+    <div class="grid2">
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <div class="card">
+          <div class="card-hdr"><div class="card-title">Brand voice</div></div>
+          <div class="card-body" style="display:flex;flex-direction:column;gap:0">
+            <div class="setting-row">
+              <div><div class="setting-lbl">Brand voice</div><div class="setting-sub">Tone for all generated posts</div></div>
+              <select class="sct" id="cfg-voice">
+                <option>Expert & Authoritative</option>
+                <option>Friendly & Approachable</option>
+                <option>Bold & Disruptive</option>
+                <option>Educational & Clear</option>
+              </select>
+            </div>
+            <div class="setting-row">
+              <div><div class="setting-lbl">Default guru</div><div class="setting-sub">Framework applied to every post</div></div>
+              <select class="sct" id="cfg-guru">
+                <option value="all">All 5 Frameworks</option>
+                <option value="kotler">Kotler</option>
+                <option value="godin">Godin</option>
+                <option value="garyvee">GaryVee</option>
+                <option value="ogilvy">Ogilvy</option>
+                <option value="patel">Patel</option>
+              </select>
+            </div>
+            <div class="setting-row">
+              <div><div class="setting-lbl">Target audience</div><div class="setting-sub">Who your posts are written for</div></div>
+              <input type="text" class="sct" id="cfg-audience" placeholder="e.g. Australian SMB owners">
+            </div>
+            <div style="padding-top:10px">
+              <label style="font-size:11px;color:var(--muted);display:block;margin-bottom:4px;text-transform:uppercase;letter-spacing:.05em">Extra brand context</label>
+              <textarea class="sct" id="cfg-context" rows="3" placeholder="e.g. Based in Sydney. We help SMBs automate with AI. USP is same-day setup."></textarea>
+            </div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-hdr"><div class="card-title">Canva</div></div>
+          <div class="card-body">
+            <div class="setting-row" style="border:none;padding-top:0">
+              <div><div class="setting-lbl">Default design type</div><div class="setting-sub">Used when auto-generating briefs</div></div>
+              <select class="sct" id="cfg-canva-type">
+                <option value="instagram_post">Instagram Post</option>
+                <option value="facebook_post">Facebook Post</option>
+                <option value="poster">Poster</option>
+                <option value="flyer">Flyer</option>
+                <option value="twitter_post">Twitter Post</option>
+              </select>
+            </div>
+          </div>
+        </div>
+        <button class="btn btn-primary" id="save-config-btn" onclick="saveConfig()">Save settings</button>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <div class="card">
+          <div class="card-hdr">
+            <div><div class="card-title">Social accounts</div><div class="card-sub">Connect to publish directly</div></div>
+          </div>
+          <div class="card-body">
+            <div class="social-accounts" id="social-accounts-list">
+              ${['Facebook','Instagram','LinkedIn','Twitter/X','WhatsApp','YouTube'].map(p => `
+              <div class="social-acc" id="acc-${p.replace('/','').toLowerCase()}">
+                <div class="social-acc-icon" style="background:var(--surface)">${{Facebook:'👥',Instagram:'📸',LinkedIn:'💼','Twitter/X':'🐦',WhatsApp:'💬',YouTube:'▶️'}[p]}</div>
+                <div class="social-acc-info">
+                  <div class="social-acc-name">${p}</div>
+                  <div class="social-acc-status" id="acc-status-${p.replace('/','').toLowerCase()}">Not connected</div>
+                </div>
+                <button class="btn btn-outline btn-sm" onclick="connectPlatform('${p}')">Connect</button>
+              </div>`).join('')}
+            </div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-hdr"><div class="card-title">Google Drive</div><div class="card-sub">Photo library sync</div></div>
+          <div class="card-body">
+            <div class="setting-row" style="border:none;padding-top:0">
+              <div><div class="setting-lbl">Folder ID</div><div class="setting-sub">AITECHNIC curated photo pack</div></div>
+              <input type="text" class="sct" id="gdrive-folder-id" placeholder="Google Drive folder ID" style="width:160px">
+            </div>
+            <button class="btn btn-outline btn-sm" style="margin-top:8px;width:100%" onclick="connectGDrive()">Connect Google Drive</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /app -->
+
+<div id="toast"></div>
+
+<script>
+// ══════════════════════════════════════════════════════════
+// CONFIG
+// ══════════════════════════════════════════════════════════
+const SUPABASE_URL = 'https://iroseywidzacqinmjtdc.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imlyb3NleXdpZHphY3Fpbm1qdGRjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg5MTgwMTQsImV4cCI6MjA5NDQ5NDAxNH0.x66R6jOUcU8eaXxxXL2OtUX9rJ3ddntQTYLrOdnpzOk';
+const API_BASE     = '/.netlify/functions';
+
+const { createClient } = supabase;
+const sb = createClient(SUPABASE_URL, SUPABASE_KEY);
+
+// ══════════════════════════════════════════════════════════
+// STATE
+// ══════════════════════════════════════════════════════════
+let TENANT        = null;
+let CONFIG        = null;
+let currentFlavor = 0;
+let currentGuru   = 'all';
+const chatHistory = [];
+const activePlats = new Set(['LinkedIn','Facebook','Instagram','WhatsApp','Twitter/X','YouTube']);
+
+// ══════════════════════════════════════════════════════════
+// 12 CONTENT FLAVORS
+// ══════════════════════════════════════════════════════════
+const FLAVORS = [
+  {id:'education',   icon:'🎓',name:'Education',  type:'JAB — value',       desc:'Teach something genuinely useful. Build authority through knowledge transfer.'},
+  {id:'awareness',   icon:'💡',name:'Awareness',  type:'JAB — problem',     desc:'Reveal a hidden problem. Create the aha moment that makes them realise they need a solution.'},
+  {id:'urgency',     icon:'🔥',name:'Urgency',    type:'RIGHT HOOK',        desc:'Create genuine time pressure. Make the cost of inaction vivid and specific.'},
+  {id:'fomo',        icon:'😱',name:'FOMO',       type:'JAB/HOOK hybrid',   desc:'Show what competitors are already gaining. Social proof meets loss aversion.'},
+  {id:'trending',    icon:'📈',name:'Trending',   type:'JAB — topical',     desc:'Connect to what\'s happening RIGHT NOW. Ride the wave of attention while it\'s hot.'},
+  {id:'humor',       icon:'😂',name:'Humor',      type:'JAB — viral',       desc:'Genuinely funny content about SMB pain points. The most shareable format.'},
+  {id:'inspiration', icon:'🚀',name:'Inspiration',type:'JAB — emotional',   desc:'Fuel their dreams with transformation stories. Make bigger feel possible.'},
+  {id:'social_proof',icon:'⭐',name:'Social Proof',type:'JAB/HOOK hybrid',  desc:'Let results do the selling. Stats, case studies, testimonials.'},
+  {id:'myth_bust',   icon:'🔨',name:'Myth Bust',  type:'JAB — thought lead',desc:'Destroy misconceptions. Nothing triggers engagement like "you\'ve been told wrong."'},
+  {id:'how_to',      icon:'🛠️',name:'How-To',     type:'JAB — saved most',  desc:'Give a concrete numbered process. The most saved content format.'},
+  {id:'behind_scenes',icon:'🎬',name:'BTS',       type:'JAB — trust',       desc:'Pull back the curtain. Authenticity beats polish. Humanise the brand.'},
+  {id:'challenge',   icon:'🏆',name:'Challenge',  type:'JAB + engagement',  desc:'Issue a direct challenge that creates commitment and community momentum.'},
+];
+
+const PLAT_COLORS = {
+  LinkedIn:'#0a66c2',Facebook:'#1877f2',Instagram:'#e1306c',
+  WhatsApp:'#25d366','Twitter/X':'#1d9bf0',YouTube:'#ff0000'
+};
+
+// ══════════════════════════════════════════════════════════
+// AUTH
+// ══════════════════════════════════════════════════════════
+document.getElementById('google-btn').addEventListener('click', async () => {
+  await sb.auth.signInWithOAuth({
+    provider:'google',
+    options:{redirectTo: window.location.href}
+  });
+});
+
+async function init() {
+  const { data:{ session } } = await sb.auth.getSession();
+  if (!session) return;
+
+  document.getElementById('auth-overlay').classList.add('hide');
+  document.getElementById('app').style.display = 'block';
+
+  const initials = (session.user.email||'?')[0].toUpperCase();
+  document.getElementById('user-avatar').textContent = initials;
+
+  // Load tenant
+  try {
+    const res = await fetch(`${API_BASE}/get-tenant?user_id=${session.user.id}&email=${encodeURIComponent(session.user.email)}`);
+    const d   = await res.json();
+    TENANT    = d.tenant;
+  } catch(e) { console.warn('get-tenant:', e.message); }
+
+  // Load SMflow config
+  await loadConfig();
+  buildFlavorGrid();
+  buildPlatformRow();
+
+  // Load pending count
+  loadPendingCount();
+}
+
+// ══════════════════════════════════════════════════════════
+// CONFIG
+// ══════════════════════════════════════════════════════════
+async function loadConfig() {
+  if (!TENANT) return;
+  try {
+    const res = await fetch(`${API_BASE}/smflow-config?tenant_id=${TENANT.id}`);
+    const d   = await res.json();
+    CONFIG    = d.config;
+
+    if (CONFIG) {
+      document.getElementById('cfg-voice').value      = CONFIG.brand_voice      || 'Expert & Authoritative';
+      document.getElementById('cfg-guru').value       = CONFIG.default_guru     || 'all';
+      document.getElementById('cfg-audience').value   = CONFIG.target_audience  || '';
+      document.getElementById('cfg-context').value    = CONFIG.extra_context    || '';
+      document.getElementById('cfg-canva-type').value = CONFIG.canva_design_type|| 'instagram_post';
+      if (CONFIG.active_platforms) {
+        Object.entries(CONFIG.active_platforms).forEach(([k,v]) => {
+          const platMap = {li:'LinkedIn',fb:'Facebook',ig:'Instagram',wa:'WhatsApp',tw:'Twitter/X',yt:'YouTube'};
+          if (!v && platMap[k]) activePlats.delete(platMap[k]);
+        });
+      }
+    }
+
+    // Industry badge
+    if (d.tenant?.industry_code) {
+      document.getElementById('industry-badge').textContent = d.tenant.industry_code.replace(/_/g,' ');
+    }
+  } catch(e) { console.warn('smflow-config:', e.message); }
+}
+
+async function saveConfig() {
+  if (!TENANT) return toast('Not logged in');
+  const btn = document.getElementById('save-config-btn');
+  btn.disabled = true; btn.textContent = 'Saving...';
+  try {
+    const platObj = {li:false,fb:false,ig:false,wa:false,tw:false,yt:false};
+    if (activePlats.has('LinkedIn'))   platObj.li = true;
+    if (activePlats.has('Facebook'))   platObj.fb = true;
+    if (activePlats.has('Instagram'))  platObj.ig = true;
+    if (activePlats.has('WhatsApp'))   platObj.wa = true;
+    if (activePlats.has('Twitter/X'))  platObj.tw = true;
+    if (activePlats.has('YouTube'))    platObj.yt = true;
+
+    await fetch(`${API_BASE}/smflow-config`, {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({
+        action:'save', tenant_id: TENANT.id,
+        brand_voice:       document.getElementById('cfg-voice').value,
+        default_guru:      document.getElementById('cfg-guru').value,
+        target_audience:   document.getElementById('cfg-audience').value,
+        extra_context:     document.getElementById('cfg-context').value,
+        canva_design_type: document.getElementById('cfg-canva-type').value,
+        active_platforms:  platObj,
+      }),
+    });
+    toast('✓ Settings saved');
+  } catch(e) { toast('Error saving: ' + e.message); }
+  btn.disabled = false; btn.textContent = 'Save settings';
+}
+
+// ══════════════════════════════════════════════════════════
+// FLAVOR SYSTEM
+// ══════════════════════════════════════════════════════════
+function buildFlavorGrid() {
+  document.getElementById('flavor-grid').innerHTML = FLAVORS.map((f,i) => `
+    <div class="flavor-btn ${i===0?'active':''}" id="fb-${f.id}" onclick="selectFlavor(${i})" data-idx="${i}">
+      <div class="flavor-icon">${f.icon}</div>
+      <div class="flavor-name">${f.name}</div>
+      <div class="flavor-type">${f.type.split(' — ')[1] || f.type}</div>
+    </div>`).join('');
+}
+
+function selectFlavor(idx) {
+  currentFlavor = idx;
+  document.querySelectorAll('.flavor-btn').forEach((el,i) => el.classList.toggle('active', i===idx));
+  const f = FLAVORS[idx];
+  document.getElementById('flavor-desc').textContent       = f.desc;
+  document.getElementById('brief-flavor-label').textContent= `Brief — ${f.name} mode`;
+  const isHook = f.type.includes('RIGHT HOOK');
+  const lbl = document.getElementById('jab-hook-lbl');
+  lbl.textContent = f.type;
+  lbl.style.background = isHook ? 'var(--red-bg)'   : 'var(--green-bg)';
+  lbl.style.color      = isHook ? 'var(--red-t)'    : 'var(--green-t)';
+}
+
+function rotateFlavor(dir) {
+  currentFlavor = (currentFlavor + dir + FLAVORS.length) % FLAVORS.length;
+  selectFlavor(currentFlavor);
+}
+
+// ══════════════════════════════════════════════════════════
+// PLATFORM TOGGLES
+// ══════════════════════════════════════════════════════════
+function buildPlatformRow() {
+  const row = document.getElementById('platform-row');
+  const plats = ['LinkedIn','Facebook','Instagram','WhatsApp','Twitter/X','YouTube'];
+  row.innerHTML = plats.map(p => `
+    <div class="plat-toggle ${activePlats.has(p)?'on':''}" id="pt-${p.replace('/','')}" onclick="togPlat('${p}')">
+      <span class="plat-dot"></span>${p}
+    </div>`).join('');
+}
+
+function togPlat(p) {
+  activePlats.has(p) ? activePlats.delete(p) : activePlats.add(p);
+  const el = document.getElementById('pt-'+p.replace('/',''));
+  el?.classList.toggle('on', activePlats.has(p));
+}
+
+// ══════════════════════════════════════════════════════════
+// GENERATE POSTS
+// ══════════════════════════════════════════════════════════
+async function generatePosts() {
+  const topic = document.getElementById('topic').value.trim();
+  if (!topic)               return toast('Enter a topic first');
+  if (!activePlats.size)    return toast('Enable at least one platform');
+  if (!TENANT)              return toast('Not logged in');
+
+  const flavor    = FLAVORS[currentFlavor];
+  const withCanva = document.getElementById('with-canva').checked;
+  const autoRot   = document.getElementById('auto-rotate').checked;
+  const autoApprove = document.getElementById('auto-approve').checked;
+
+  const btn = document.getElementById('gen-btn');
+  const ldr = document.getElementById('gen-loader');
+  const out = document.getElementById('gen-output');
+  btn.disabled = true; btn.textContent = `⏳ ${flavor.icon} Generating...`;
+  ldr.classList.add('on'); out.innerHTML = '';
+
+  if (autoRot) rotateFlavor(1);
+
+  try {
+    const res = await fetch(`${API_BASE}/smflow-generate`, {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({
+        tenant_id:           TENANT.id,
+        topic,
+        flavor:              flavor.id,
+        flavor_name:         flavor.name,
+        guru:                document.getElementById('guru-select').value,
+        audience:            document.getElementById('audience').value,
+        extra_context:       document.getElementById('extra-context').value,
+        brand_voice:         document.getElementById('cfg-voice').value,
+        active_platforms:    [...activePlats],
+        canva_design_type:   document.getElementById('cfg-canva-type').value,
+        generate_canva_briefs: withCanva,
+      }),
+    });
+    const d = await res.json();
+    if (d.error) throw new Error(d.error);
+
+    d.posts.forEach(p => renderPostCard(p, flavor, out));
+
+    // Auto-submit for approval
+    if (autoApprove && d.posts.length) {
+      const ids = d.posts.filter(p => p.post_id).map(p => p.post_id);
+      if (ids.length) {
+        await fetch(`${API_BASE}/smflow-approve`, {
+          method:'POST',
+          headers:{'Content-Type':'application/json'},
+          body: JSON.stringify({ action:'submit_for_approval', tenant_id: TENANT.id, post_ids: ids }),
+        });
+      }
+    }
+
+    toast(`${flavor.icon} ${d.posts.length} posts generated`);
+    loadPendingCount();
+  } catch(e) {
+    out.innerHTML = `<div class="empty"><p>Error: ${e.message}</p></div>`;
+  }
+  btn.disabled = false; btn.textContent = '⚡ Generate All Channels';
+  ldr.classList.remove('on');
+}
+
+async function generateBatch() {
+  const topic = document.getElementById('topic').value.trim();
+  if (!topic)  return toast('Enter a topic first');
+  if (!TENANT) return toast('Not logged in');
+  const out = document.getElementById('gen-output');
+  out.innerHTML = '';
+  const batchFlavors = FLAVORS.slice(0,6);
+  for (const f of batchFlavors) {
+    const lbl = document.createElement('div');
+    lbl.style.cssText = 'font-size:11px;color:var(--muted);letter-spacing:.08em;text-transform:uppercase;padding:8px 0 4px';
+    lbl.textContent = `${f.icon} ${f.name.toUpperCase()}`;
+    out.appendChild(lbl);
+    try {
+      const res = await fetch(`${API_BASE}/smflow-generate`, {
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({ tenant_id: TENANT.id, topic, flavor: f.id, flavor_name: f.name, guru: currentGuru, active_platforms:['LinkedIn','Instagram'], generate_canva_briefs: false }),
+      });
+      const d = await res.json();
+      if (!d.error) d.posts.forEach(p => renderPostCard(p, f, out));
+    } catch(e) { console.warn('batch', f.id, e.message); }
+    await new Promise(r => setTimeout(r,400));
+  }
+  toast('✓ Batch complete — 6 flavors');
+  loadPendingCount();
+}
+
+function renderPostCard(post, flavor, container) {
+  const color  = PLAT_COLORS[post.platform] || '#888';
+  const chars  = post.content?.length || 0;
+  const limits = {LinkedIn:3000,Facebook:63000,Instagram:2200,WhatsApp:1000,'Twitter/X':280,YouTube:5000};
+  const max    = limits[post.platform] || 3000;
+  const over   = chars > max;
+  const div    = document.createElement('div');
+  div.className = 'post-out';
+  div.innerHTML = `
+    <div class="post-hdr">
+      <div class="post-plat">
+        <span class="post-dot" style="background:${color}"></span>
+        ${post.platform}
+        <span class="post-flavor">${flavor.icon} ${flavor.name}</span>
+        <span class="status-pill status-${post.status || 'draft'}">${post.status || 'draft'}</span>
+      </div>
+      <div class="post-actions">
+        <button class="post-act" onclick="copyPost(this)">Copy</button>
+        <button class="post-act" onclick="editPost(this)">Edit</button>
+        ${post.post_id ? `<button class="post-act" onclick="submitApproval('${post.post_id}')">→ Approve</button>` : ''}
+        ${post.canva_url ? `<button class="post-act violet" onclick="window.open('${post.canva_url}','_blank')">🎨 Canva</button>` : ''}
+      </div>
+    </div>
+    <div class="post-body" contenteditable="false">${post.content || ''}</div>
+    <div class="post-foot">
+      <span class="char-c" style="color:${over?'var(--red)':'var(--muted)'}">${chars}/${max}${over?' ⚠':' ✓'}</span>
+      ${post.canva_url ? `<a class="canva-lnk" href="${post.canva_url}" target="_blank">✎ Open in Canva</a>` : ''}
+    </div>`;
+  container.appendChild(div);
+}
+
+function copyPost(btn) {
+  const t = btn.closest('.post-out').querySelector('.post-body').textContent;
+  navigator.clipboard.writeText(t).then(() => toast('✓ Copied'));
+}
+function editPost(btn) {
+  const el = btn.closest('.post-out').querySelector('.post-body');
+  const e  = el.contentEditable === 'true';
+  el.contentEditable = e ? 'false' : 'true';
+  btn.textContent = e ? 'Edit' : 'Done';
+  if (!e) el.focus();
+}
+async function submitApproval(postId) {
+  if (!TENANT) return;
+  await fetch(`${API_BASE}/smflow-approve`, {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({ action:'submit_for_approval', tenant_id: TENANT.id, post_ids:[postId] }),
+  });
+  toast('✓ Submitted for approval');
+  loadPendingCount();
+}
+
+// ══════════════════════════════════════════════════════════
+// APPROVAL QUEUE
+// ══════════════════════════════════════════════════════════
+async function loadPendingCount() {
+  if (!TENANT) return;
+  try {
+    const res = await fetch(`${API_BASE}/smflow-approve?tenant_id=${TENANT.id}`);
+    const d   = await res.json();
+    const cnt = d.summary?.pending_approval || 0;
+    const el  = document.getElementById('pending-count');
+    el.textContent = cnt;
+    el.style.display = cnt > 0 ? 'inline-flex' : 'none';
+  } catch(e) {}
+}
+
+async function loadApproveTab() {
+  if (!TENANT) return;
+  const ldr = document.getElementById('approve-loader');
+  const out = document.getElementById('approve-output');
+  ldr.classList.add('on');
+  try {
+    const res = await fetch(`${API_BASE}/smflow-approve?tenant_id=${TENANT.id}`);
+    const d   = await res.json();
+    document.getElementById('approve-week-label').textContent =
+      `Week of ${new Date(d.week_start).toLocaleDateString('en-AU',{day:'numeric',month:'short'})} — ${d.summary?.total||0} posts`;
+
+    if (!d.posts?.length) {
+      out.innerHTML = `<div class="empty"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg><p>No posts this week</p></div>`;
+      return;
+    }
+    out.innerHTML = '';
+    const days = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+    days.forEach(day => {
+      const posts = d.by_day?.[day] || [];
+      if (!posts.length) return;
+      const card = document.createElement('div');
+      card.className = 'approve-card';
+      card.innerHTML = `
+        <div class="approve-hdr">
+          <span class="approve-day">${day}</span>
+          <span style="font-size:11px;color:var(--muted)">${posts.length} post${posts.length>1?'s':''}</span>
+        </div>
+        <div class="approve-body">
+          ${posts.map(p => `
+          <div class="approve-post">
+            <div class="approve-plat">
+              <span class="post-dot" style="background:${PLAT_COLORS[p.platform]||'#888'};display:inline-block;margin-right:4px"></span>
+              <span class="approve-plat-name">${p.platform}</span>
+            </div>
+            <div class="approve-content">${(p.content||'').slice(0,160)}${p.content?.length>160?'...':''}</div>
+            <div class="approve-acts">
+              <span class="status-pill status-${p.status}">${p.status}</span>
+              ${p.status==='pending_approval'||p.status==='draft' ? `
+              <button class="post-act" onclick="approvePost('${p.id}')" style="color:var(--green-t);border-color:var(--green)">✓</button>
+              <button class="post-act" onclick="rejectPost('${p.id}')" style="color:var(--red-t);border-color:var(--red)">✗</button>` : ''}
+            </div>
+          </div>`).join('')}
+        </div>`;
+      out.appendChild(card);
+    });
+    loadPendingCount();
+  } catch(e) { out.innerHTML = `<div class="empty"><p>Error: ${e.message}</p></div>`; }
+  ldr.classList.remove('on');
+}
+
+async function approvePost(id) {
+  await fetch(`${API_BASE}/smflow-approve`, {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({ action:'approve', tenant_id: TENANT.id, post_id: id }),
+  });
+  toast('✓ Post approved'); loadApproveTab();
+}
+async function rejectPost(id) {
+  const reason = prompt('Reason for rejection (optional):') || '';
+  await fetch(`${API_BASE}/smflow-approve`, {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({ action:'reject', tenant_id: TENANT.id, post_id: id, reject_reason: reason }),
+  });
+  toast('Post rejected'); loadApproveTab();
+}
+async function bulkApprove() {
+  if (!TENANT) return;
+  await fetch(`${API_BASE}/smflow-approve`, {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({ action:'bulk_approve', tenant_id: TENANT.id }),
+  });
+  toast('✓ All pending posts approved'); loadApproveTab();
+}
+
+// ══════════════════════════════════════════════════════════
+// ROTATION PLANNER
+// ══════════════════════════════════════════════════════════
+async function loadRotationTab() {
+  if (!TENANT) return;
+  const body = document.getElementById('rotation-body');
+  try {
+    const res = await fetch(`${API_BASE}/smflow-schedule?tenant_id=${TENANT.id}`);
+    const d   = await res.json();
+    const weeks = [1,2,3,4];
+    const weekNames = ['Foundation — Kotler: value before ask','Engagement — GaryVee: jab×3 cadence','Convert — Ogilvy: right hook time','Compound — Patel: evergreen compounds'];
+    body.innerHTML = weeks.map(w => {
+      const days = d.by_week?.[w] || [];
+      return `
+        <div style="margin-bottom:18px">
+          <div style="font-size:12px;font-weight:500;margin-bottom:4px">Week ${w} — ${weekNames[w-1].split(' — ')[0]}</div>
+          <div style="font-size:11px;color:var(--muted);margin-bottom:8px">${weekNames[w-1].split(' — ')[1]||''}</div>
+          <div class="week-grid">
+            ${days.map(slot => {
+              const f = FLAVORS.find(fl => fl.id === slot.flavor_id) || {icon:'📝',name:slot.flavor_name||slot.flavor_id};
+              return `<div class="rot-slot ${slot.is_active?'active':''}" title="${slot.note||''}" onclick="toggleSlot('${slot.id}',${!slot.is_active})">
+                <div class="day-lbl">${slot.day_of_week}</div>
+                <div class="rot-flavor-icon">${f.icon}</div>
+                <div class="rot-flavor-name">${f.name||slot.flavor_name}</div>
+              </div>`;
+            }).join('')}
+          </div>
+        </div>`;
+    }).join('');
+  } catch(e) { body.innerHTML = `<div class="empty"><p>Error: ${e.message}</p></div>`; }
+}
+
+async function toggleSlot(slotId, isActive) {
+  if (!TENANT) return;
+  toast(isActive ? '✓ Slot activated' : 'Slot deactivated');
+}
+async function resetSchedule() {
+  if (!TENANT || !confirm('Reset rotation to default plan?')) return;
+  await fetch(`${API_BASE}/smflow-schedule`, {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({ action:'reset', tenant_id: TENANT.id }),
+  });
+  toast('✓ Schedule reset'); loadRotationTab();
+}
+
+// ══════════════════════════════════════════════════════════
+// HISTORY
+// ══════════════════════════════════════════════════════════
+async function loadHistoryTab() {
+  if (!TENANT) return;
+  const ldr = document.getElementById('hist-loader');
+  const out = document.getElementById('hist-output');
+  ldr.classList.add('on');
+  const platform = document.getElementById('hist-platform').value;
+  const flavor   = document.getElementById('hist-flavor').value;
+  const status   = document.getElementById('hist-status').value;
+  try {
+    let url = `${API_BASE}/smflow-posts?tenant_id=${TENANT.id}&limit=40`;
+    if (platform) url += `&platform=${encodeURIComponent(platform)}`;
+    if (flavor)   url += `&flavor=${encodeURIComponent(flavor)}`;
+    if (status)   url += `&status=${encodeURIComponent(status)}`;
+    const res = await fetch(url);
+    const d   = await res.json();
+    document.getElementById('hist-total').textContent = `${d.total||0} posts`;
+    if (!d.posts?.length) {
+      out.innerHTML = `<div class="empty"><p>No posts yet</p></div>`;
+    } else {
+      out.innerHTML = d.posts.map(p => {
+        const f = FLAVORS.find(fl => fl.id === p.flavor) || {icon:'📝'};
+        return `<div class="hist-item">
+          <div class="hist-icon">${f.icon}</div>
+          <div class="hist-info">
+            <div class="hist-topic">${p.topic}</div>
+            <div class="hist-meta">${p.platform} · ${p.flavor_name||p.flavor} · <span class="status-pill status-${p.status}">${p.status}</span> · ${new Date(p.created_at).toLocaleDateString('en-AU')}</div>
+          </div>
+          <button class="post-act" onclick="navigator.clipboard.writeText(this.dataset.c);toast('✓ Copied')" data-c="${(p.content||'').replace(/"/g,'&quot;').replace(/\n/g,' ')}">Copy</button>
+        </div>`;
+      }).join('');
+    }
+    // Load stats
+    const sres = await fetch(`${API_BASE}/smflow-posts`, {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ action:'stats', tenant_id: TENANT.id }),
+    });
+    const sd = await sres.json();
+    if (sd.usage) {
+      document.getElementById('st-total').textContent     = sd.usage.total_posts || 0;
+      document.getElementById('st-published').textContent = sd.usage.posts_published || 0;
+      document.getElementById('st-month').textContent     = sd.usage.posts_this_month || 0;
+      const topF = FLAVORS.find(f => f.name === sd.usage.top_flavor);
+      document.getElementById('st-flavor').textContent    = topF ? `${topF.icon} ${topF.name}` : sd.usage.top_flavor || '—';
+    }
+  } catch(e) { out.innerHTML = `<div class="empty"><p>Error: ${e.message}</p></div>`; }
+  ldr.classList.remove('on');
+}
+
+// ══════════════════════════════════════════════════════════
+// ARIA AGENT
+// ══════════════════════════════════════════════════════════
+const GURU_SYSTEMS = {
+  all: `You are ARIA, expert AI marketing agent for an Australian SMB business. Apply ALL 5 guru frameworks: Kotler (STP+4Ps), Godin (Permission+Purple Cow), GaryVee (Jab×3/Hook+Context), Ogilvy (Headlines+Promise), Patel (Data+SEO+Scale). Be concise and actionable.`,
+  kotler:  `You are ARIA marketing agent. Apply PHILIP KOTLER exclusively: STP targeting, 4Ps, customer value creation. End every response with "Kotler principle: [applied]".`,
+  godin:   `You are ARIA marketing agent. Apply SETH GODIN exclusively: Purple Cow test, Permission marketing, Tribe building. End with "Purple Cow test: pass/fail".`,
+  garyvee: `You are ARIA marketing agent. Apply GARY VEE exclusively: Jab vs Right Hook, platform-native context, authenticity. Label every suggestion [JAB] or [RIGHT HOOK].`,
+  ogilvy:  `You are ARIA marketing agent. Apply DAVID OGILVY exclusively: headline-first, specific honest promise, product as hero. Rate every headline 1-10.`,
+  patel:   `You are ARIA marketing agent. Apply NEIL PATEL exclusively: data-driven, SEO keywords, 70/30 evergreen/topical, content at scale. Give SEO score 1-10.`,
+};
+
+function setGuruMode(mode) {
+  currentGuru = mode;
+  const names = {all:'All 5 Frameworks',kotler:'Kotler',godin:'Godin',garyvee:'GaryVee',ogilvy:'Ogilvy',patel:'Patel'};
+  document.getElementById('aria-mode-badge').textContent = names[mode] || mode;
+  toast('ARIA mode: ' + names[mode]);
+}
+
+async function sendChat() {
+  const inp = document.getElementById('chat-in');
+  const msg = inp.value.trim();
+  if (!msg) return;
+  inp.value = '';
+  await askAgent(msg);
+}
+
+async function askAgent(msg) {
+  const msgs  = document.getElementById('chat-msgs');
+  const send  = document.getElementById('chat-send');
+  document.getElementById('chat-in').value = '';
+  msgs.insertAdjacentHTML('beforeend', `<div class="msg user"><div class="msg-lbl">You</div>${msg}</div>`);
+  const tkId = 'tk' + Date.now();
+  msgs.insertAdjacentHTML('beforeend', `<div class="msg thinking" id="${tkId}">ARIA is thinking...</div>`);
+  msgs.scrollTop = msgs.scrollHeight;
+  send.disabled = true;
+  chatHistory.push({ role:'user', content: msg });
+  if (chatHistory.length > 20) chatHistory.splice(0,2);
+  try {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 1000,
+        system: GURU_SYSTEMS[currentGuru] || GURU_SYSTEMS.all,
+        messages: chatHistory,
+      }),
+    });
+    const d = await res.json();
+    const reply = d.content?.[0]?.text?.trim() || 'Sorry, I had an issue. Please try again.';
+    chatHistory.push({ role:'assistant', content: reply });
+    document.getElementById(tkId)?.remove();
+    msgs.insertAdjacentHTML('beforeend', `<div class="msg agent"><div class="msg-lbl">ARIA</div>${reply}</div>`);
+  } catch(e) {
+    document.getElementById(tkId)?.remove();
+    msgs.insertAdjacentHTML('beforeend', `<div class="msg agent"><div class="msg-lbl">ARIA</div>Connection error. Please try again.</div>`);
+  }
+  msgs.scrollTop = msgs.scrollHeight;
+  send.disabled = false;
+}
+
+// ══════════════════════════════════════════════════════════
+// SOCIAL ACCOUNTS
+// ══════════════════════════════════════════════════════════
+async function loadSocialAccounts() {
+  if (!TENANT) return;
+  try {
+    const res = await fetch(`${API_BASE}/smflow-publish?tenant_id=${TENANT.id}&action=accounts`);
+    const d   = await res.json();
+    (d.accounts||[]).forEach(acc => {
+      const key = acc.platform.replace('/','').toLowerCase();
+      const el  = document.getElementById('acc-status-' + key);
+      if (el) {
+        el.innerHTML = `<span class="connected-dot"></span>${acc.account_name || 'Connected'} ${acc.is_verified?'✓':'(pending verify)'}`;
+      }
+    });
+  } catch(e) {}
+}
+
+function connectPlatform(platform) {
+  toast(`Connect ${platform} — OAuth flow coming in Sprint 5/6`);
+}
+async function connectGDrive() {
+  const folderId = document.getElementById('gdrive-folder-id').value.trim();
+  if (!folderId || !TENANT) return toast('Enter a folder ID');
+  await fetch(`${API_BASE}/smflow-assets`, {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({ action:'gdrive_connect', tenant_id: TENANT.id, folder_id: folderId }),
+  });
+  toast('✓ Google Drive connected');
+}
+
+// ══════════════════════════════════════════════════════════
+// TAB NAVIGATION
+// ══════════════════════════════════════════════════════════
+function showTab(name, btn) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('on'));
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('on'));
+  document.getElementById('tab-' + name)?.classList.add('on');
+  if (btn) btn.classList.add('on');
+  if (name === 'approve')  loadApproveTab();
+  if (name === 'rotation') loadRotationTab();
+  if (name === 'history')  loadHistoryTab();
+  if (name === 'settings') loadSocialAccounts();
+}
+
+// ══════════════════════════════════════════════════════════
+// UTILS
+// ══════════════════════════════════════════════════════════
+function toggleAvatarMenu() {
+  const m = document.getElementById('avatar-menu');
+  m.style.display = m.style.display === 'none' ? 'block' : 'none';
+}
+document.addEventListener('click', e => {
+  if (!document.getElementById('avatar-wrap')?.contains(e.target))
+    document.getElementById('avatar-menu').style.display = 'none';
+});
+async function signOut() { await sb.auth.signOut(); location.reload(); }
+
+function toast(msg, isError = false) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.style.background = isError ? 'var(--red)' : 'var(--text)';
+  t.classList.add('on');
+  setTimeout(() => t.classList.remove('on'), 2600);
+}
+
+// ══════════════════════════════════════════════════════════
+// ARIA agent — ARIA tab template fix
+// ══════════════════════════════════════════════════════════
+document.addEventListener('DOMContentLoaded', () => {
+  document.getElementById('chat-in').addEventListener('keydown', e => {
+    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendChat(); }
+  });
+  init();
+});
+</script>
+
+</body>
+</html>
