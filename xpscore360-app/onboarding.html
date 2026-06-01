@@ -425,8 +425,8 @@ textarea{resize:vertical;min-height:80px}
       <div class="step" data-s="3">
         <div class="step-num"><span>3</span></div>
         <div class="step-info">
-          <div class="step-label">Branding</div>
-          <div class="step-desc">Logo & colours</div>
+          <div class="step-label">Industry</div>
+          <div class="step-desc">Business type & KPIs</div>
         </div>
       </div>
       <div class="step" data-s="4">
@@ -561,18 +561,7 @@ textarea{resize:vertical;min-height:80px}
             <span class="hint">11-digit Australian Business Number</span>
             <span class="err-msg">Valid ABN required</span>
           </div>
-          <div class="field" id="f-bt">
-            <label>Business type <span class="req">*</span></label>
-            <select id="bt">
-              <option value="">Select type...</option>
-              <option>Restaurant</option><option>Cafe</option>
-              <option>Bar / Pub</option><option>Hotel</option>
-              <option>Retail</option><option>Health & Beauty</option>
-              <option>Healthcare</option><option>Professional Services</option>
-              <option>Entertainment</option><option>Other</option>
-            </select>
-            <span class="err-msg">Please select a type</span>
-          </div>
+          <!-- Business type moved to Industry step (Step 3) -->
         </div>
         <div class="grid">
           <div class="field">
@@ -622,57 +611,33 @@ textarea{resize:vertical;min-height:80px}
         </div>
       </div>
 
-      <!-- ══ STEP 3: Branding ════════════════════════ -->
+      <!-- ══ STEP 3: Industry ═══════════════════════ -->
       <div class="panel" id="p3" style="display:none">
-        <div class="eyebrow">Step 3 of 6 · Branding</div>
-        <h1 class="heading">Brand your<br><em>widget</em></h1>
-        <p class="subhead">Your guests will see this when they scan the QR code.</p>
+        <div class="eyebrow">Step 3 of 7 · Industry</div>
+        <h1 class="heading">What type of<br><em>business?</em></h1>
+        <p class="subhead">We'll set up your KPI tiles and AI conversation based on your industry.</p>
 
-        <div class="grid one" style="margin-bottom:8px">
-          <div class="field">
-            <label>Display name <span class="req">*</span></label>
-            <input type="text" id="dn" placeholder="Ember & Oak — The Rocks"/>
-            <span class="hint">Shown in the widget header</span>
+        <div style="position:relative;margin-bottom:20px">
+          <span style="position:absolute;left:14px;top:50%;transform:translateY(-50%);font-size:15px;pointer-events:none">🔍</span>
+          <input type="text" id="ind-search" placeholder="Search industry or business type…"
+            oninput="filterIndustry(this.value)"
+            style="padding-left:40px;background:var(--surface);border:1.5px solid var(--border);border-radius:var(--r);padding-top:11px;padding-bottom:11px;font-size:14px;width:100%"/>
+        </div>
+
+        <div id="ind-cols" style="display:flex;gap:24px;align-items:flex-start">
+          <div style="flex:1;min-width:0">
+            <label style="font-size:12px;font-weight:500;color:var(--muted);letter-spacing:.02em;display:block;margin-bottom:8px">Industry <span class="req">*</span></label>
+            <div id="industry-grid" style="display:grid;grid-template-columns:repeat(2,1fr);gap:8px"></div>
+            <span id="ind-err" style="display:none;font-size:11px;color:var(--red);margin-top:6px">Please select your industry</span>
+          </div>
+          <div id="f-biz" style="display:none;flex:1;min-width:0">
+            <label style="font-size:12px;font-weight:500;color:var(--muted);letter-spacing:.02em;display:block;margin-bottom:8px">Business type <span class="req">*</span></label>
+            <div id="biztype-grid" style="display:grid;grid-template-columns:repeat(2,1fr);gap:8px"></div>
+            <span id="biz-err" style="display:none;font-size:11px;color:var(--red);margin-top:6px">Please select your business type</span>
           </div>
         </div>
-        <div class="field" style="margin-bottom:24px">
-          <label>Logo</label>
-          <div class="upload-zone" id="logo-zone">
-            <input type="file" id="logo-file" accept="image/*" onchange="handleLogo(this)"/>
-            <img class="logo-prev" id="logo-prev" src="" alt=""/>
-            <div class="upload-icon" id="upload-ico">🖼️</div>
-            <div class="upload-label" id="upload-lbl"><strong>Click to upload</strong> or drag & drop<br>PNG, JPG, SVG — max 2MB</div>
-          </div>
-        </div>
-        <div class="field" style="margin-bottom:24px">
-          <label>Brand colour</label>
-          <div class="swatches" id="swatches">
-            <div class="swatch on" style="background:#0F0F0D" data-c="#0F0F0D" onclick="pickColor(this)"></div>
-            <div class="swatch" style="background:#C9A84C" data-c="#C9A84C" onclick="pickColor(this)"></div>
-            <div class="swatch" style="background:#E74C3C" data-c="#E74C3C" onclick="pickColor(this)"></div>
-            <div class="swatch" style="background:#3498DB" data-c="#3498DB" onclick="pickColor(this)"></div>
-            <div class="swatch" style="background:#1A7A4A" data-c="#1A7A4A" onclick="pickColor(this)"></div>
-            <div class="swatch" style="background:#7F77DD" data-c="#7F77DD" onclick="pickColor(this)"></div>
-            <div class="swatch" style="background:#E67E22" data-c="#E67E22" onclick="pickColor(this)"></div>
-            <div class="swatch-custom" title="Custom colour">
-              <span>+</span>
-              <input type="color" onchange="pickCustom(this)"/>
-            </div>
-          </div>
-          <span class="hint">Used for buttons and highlights in your widget</span>
-        </div>
-        <div class="field" style="margin-bottom:8px"><label>Widget theme</label></div>
-        <div class="theme-row">
-          <div class="theme-opt on" data-t="dark" onclick="pickTheme(this)">
-            <div class="theme-preview dark"></div>
-            <div><div class="theme-name">Dark</div><div class="theme-desc">Premium feel</div></div>
-          </div>
-          <div class="theme-opt" data-t="light" onclick="pickTheme(this)">
-            <div class="theme-preview light"></div>
-            <div><div class="theme-name">Light</div><div class="theme-desc">Clean & minimal</div></div>
-          </div>
-        </div>
-        <div class="btn-row">
+
+        <div class="btn-row" style="margin-top:28px">
           <button class="btn btn-ghost" onclick="show(2)">← Back</button>
           <button class="btn btn-primary" onclick="go3()">
             <span class="btn-txt">Continue</span><div class="spin"></div>
@@ -680,7 +645,8 @@ textarea{resize:vertical;min-height:80px}
         </div>
       </div>
 
-      <!-- ══ STEP 4: Venue ══════════════════════════ -->
+      <!-- Branding removed — handled in Settings -->
+            <!-- ══ STEP 4: Venue ══════════════════════════ -->
       <div class="panel" id="p4" style="display:none">
         <div class="eyebrow">Step 4 of 6 · Venue</div>
         <h1 class="heading">Add your first<br><em>venue</em></h1>
@@ -751,7 +717,7 @@ textarea{resize:vertical;min-height:80px}
           </div>
         </div>
         <div class="btn-row">
-          <button class="btn btn-ghost" onclick="show(3)">← Back</button>
+          <button class="btn btn-ghost" onclick="show(4)">← Back</button>
           <button class="btn btn-primary" onclick="go4()">
             <span class="btn-txt">Continue</span><div class="spin"></div>
           </button>
@@ -965,8 +931,234 @@ const SPECS = {
 };
 
 // ── State ──────────────────────────────────────────────
+// ── Industry + Business type data ─────────────────────
+const INDUSTRIES = [
+  { code:'accommodation_food', label:'Food & Hospitality', icon:'🍽', types:[
+    {code:'cafe',label:'Cafe'},
+    {code:'restaurant',label:'Restaurant'},
+    {code:'bar',label:'Bar / Pub'},
+    {code:'hotel',label:'Hotel / Motel'},
+    {code:'takeaway',label:'Takeaway / Fast Food'},
+    {code:'catering',label:'Catering Service'},
+  ]},
+  { code:'retail_trade', label:'Retail', icon:'🛍', types:[
+    {code:'fashion_retail',label:'Fashion / Clothing'},
+    {code:'grocery',label:'Grocery / Supermarket'},
+    {code:'pharmacy_retail',label:'Pharmacy / Chemist'},
+    {code:'furniture_retail',label:'Furniture / Homewares'},
+    {code:'gift_shop',label:'Gift / Specialty Shop'},
+    {code:'other_retail',label:'Other Retail'},
+  ]},
+  { code:'healthcare', label:'Healthcare', icon:'🏥', types:[
+    {code:'gp_clinic',label:'GP / Medical Clinic'},
+    {code:'dental',label:'Dental Practice'},
+    {code:'physio',label:'Physio / Chiro / Osteo'},
+    {code:'optometry',label:'Optometry'},
+    {code:'psychology',label:'Psychology / Counselling'},
+    {code:'pharmacy',label:'Compounding Pharmacy'},
+    {code:'specialist',label:'Medical Specialist'},
+    {code:'allied_health',label:'Allied Health'},
+  ]},
+  { code:'beauty', label:'Beauty & Hair', icon:'💅', types:[
+    {code:'hair_salon',label:'Hair Salon'},
+    {code:'beauty_salon',label:'Beauty Salon'},
+    {code:'nail_salon',label:'Nail Salon'},
+    {code:'barber',label:'Barber Shop'},
+    {code:'tattoo',label:'Tattoo Studio'},
+    {code:'lash_brow',label:'Lash & Brow Studio'},
+  ]},
+  { code:'arts_recreation', label:'Fitness & Wellness', icon:'💪', types:[
+    {code:'gym',label:'Gym / Fitness Centre'},
+    {code:'yoga',label:'Yoga / Pilates Studio'},
+    {code:'spa',label:'Day Spa / Wellness'},
+    {code:'massage',label:'Massage Therapy'},
+    {code:'personal_training',label:'Personal Training'},
+    {code:'martial_arts',label:'Martial Arts'},
+  ]},
+  { code:'professional_technical', label:'Professional Services', icon:'💼', types:[
+    {code:'accounting',label:'Accounting / CPA'},
+    {code:'legal',label:'Legal / Law Firm'},
+    {code:'financial_planning',label:'Financial Planning'},
+    {code:'consulting',label:'Business Consulting'},
+    {code:'marketing_agency',label:'Marketing Agency'},
+    {code:'recruitment',label:'Recruitment Agency'},
+  ]},
+  { code:'construction_trade', label:'Trade & Construction', icon:'🔨', types:[
+    {code:'plumbing',label:'Plumbing'},
+    {code:'electrical',label:'Electrical'},
+    {code:'building',label:'Building / Construction'},
+    {code:'landscaping',label:'Landscaping / Gardening'},
+    {code:'painting',label:'Painting / Decorating'},
+    {code:'pest_control',label:'Pest Control'},
+  ]},
+  { code:'admin_support', label:'Cleaning & Home Services', icon:'🧹', types:[
+    {code:'cleaning',label:'Commercial Cleaning'},
+    {code:'home_cleaning',label:'Home / Domestic Cleaning'},
+    {code:'laundry',label:'Laundry / Dry Cleaning'},
+    {code:'security',label:'Security Service'},
+    {code:'other_support',label:'Other Support Service'},
+  ]},
+  { code:'personal_services', label:'Personal Services', icon:'🤝', types:[
+    {code:'pet_grooming',label:'Pet Grooming'},
+    {code:'childcare',label:'Childcare / Daycare'},
+    {code:'aged_care',label:'Aged Care'},
+    {code:'photography',label:'Photography'},
+    {code:'events',label:'Event Planning'},
+    {code:'other_personal',label:'Other Personal Service'},
+  ]},
+  { code:'automotive', label:'Automotive', icon:'🚗', types:[
+    {code:'mechanic',label:'Auto Mechanic'},
+    {code:'car_wash',label:'Car Wash / Detailing'},
+    {code:'panel_beating',label:'Panel Beating / Smash'},
+    {code:'tyre_shop',label:'Tyre & Wheel'},
+    {code:'car_dealership',label:'Car Dealership'},
+    {code:'other_auto',label:'Other Automotive'},
+  ]},
+  { code:'transport', label:'Transport & Logistics', icon:'🚛', types:[
+    {code:'courier',label:'Courier / Delivery'},
+    {code:'freight',label:'Freight / Logistics'},
+    {code:'taxi',label:'Taxi / Rideshare'},
+    {code:'storage',label:'Storage / Warehousing'},
+    {code:'other_transport',label:'Other Transport'},
+  ]},
+  { code:'education_training', label:'Education & Training', icon:'📚', types:[
+    {code:'tutoring_centre',label:'Tutoring Centre'},
+    {code:'music_school',label:'Music School'},
+    {code:'dance_school',label:'Dance School'},
+    {code:'driving_school',label:'Driving School'},
+    {code:'vocational',label:'Vocational / TAFE'},
+    {code:'other_education',label:'Other Education'},
+  ]},
+  { code:'financial_insurance', label:'Financial Services', icon:'💰', types:[
+    {code:'bank',label:'Bank / Credit Union'},
+    {code:'mortgage_broker',label:'Mortgage Broker'},
+    {code:'tax_agent',label:'Tax Agent'},
+    {code:'bookkeeping',label:'Bookkeeping'},
+    {code:'insurance_broker',label:'Insurance Broker'},
+    {code:'financial_advice',label:'Financial Advice'},
+  ]},
+  { code:'real_estate', label:'Real Estate', icon:'🏘', types:[
+    {code:'real_estate_sales',label:'Real Estate Sales'},
+    {code:'property_management',label:'Property Management'},
+    {code:'buyers_agent',label:'Buyers Agent'},
+    {code:'strata',label:'Strata Management'},
+    {code:'conveyancing',label:'Conveyancing'},
+  ]},
+  { code:'information_media', label:'IT & Technology', icon:'💻', types:[
+    {code:'it_support',label:'IT Support / MSP'},
+    {code:'software_dev',label:'Software Development'},
+    {code:'web_design',label:'Web / App Design'},
+    {code:'cybersecurity',label:'Cybersecurity'},
+    {code:'telco',label:'Telco / ISP'},
+    {code:'other_it',label:'Other IT / Media'},
+  ]},
+  { code:'tourism', label:'Tourism & Events', icon:'✈️', types:[
+    {code:'tour_operator',label:'Tour Operator'},
+    {code:'accommodation',label:'Accommodation / B&B'},
+    {code:'travel_agent',label:'Travel Agent'},
+    {code:'event_venue',label:'Event Venue / Function'},
+    {code:'entertainment',label:'Entertainment'},
+  ]},
+  { code:'agriculture', label:'Agriculture', icon:'🌾', types:[
+    {code:'farm',label:'Farm / Produce'},
+    {code:'nursery',label:'Plant Nursery'},
+    {code:'other_agriculture',label:'Other Agriculture'},
+  ]},
+  { code:'manufacturing', label:'Manufacturing', icon:'🏭', types:[
+    {code:'food_manufacturing',label:'Food Manufacturing'},
+    {code:'other_manufacturing',label:'Other Manufacturing'},
+  ]},
+  { code:'ecommerce', label:'E-commerce', icon:'🛒', types:[
+    {code:'online_retail',label:'Online Retail'},
+    {code:'marketplace_seller',label:'Marketplace Seller'},
+    {code:'other_ecommerce',label:'Other E-commerce'},
+  ]},
+]// ── Build industry grid ────────────────────────────────
+function buildIndustryGrid() {
+  const grid = document.getElementById('industry-grid');
+  if (!grid || grid.children.length > 0) return;
+  INDUSTRIES.forEach(ind => {
+    const tile = document.createElement('div');
+    tile.dataset.code = ind.code;
+    tile.style.cssText = 'border:1.5px solid var(--border);border-radius:10px;padding:10px 12px;cursor:pointer;transition:all .15s;display:flex;align-items:center;gap:8px;font-size:13px';
+    tile.innerHTML = `<span style="font-size:18px">${ind.icon}</span><span>${ind.label}</span>`;
+    tile.onclick = () => selectIndustry(ind.code, tile);
+    grid.appendChild(tile);
+  });
+}
+
+function selectIndustry(code, tile) {
+  document.querySelectorAll('#industry-grid div[data-code]').forEach(t => {
+    t.style.borderColor = 'var(--border)';
+    t.style.background = '';
+    t.style.color = '';
+  });
+  tile.style.borderColor = 'var(--p-accent)';
+  tile.style.background = 'rgba(201,168,76,.1)';
+  S.industry_code = code;
+  S.business_type_code = '';
+  document.getElementById('ind-err').style.display = 'none';
+  // Show business type column
+  const ind = INDUSTRIES.find(i => i.code === code);
+  const biztypeGrid = document.getElementById('biztype-grid');
+  biztypeGrid.innerHTML = '';
+  if (ind && ind.types.length > 0) {
+    ind.types.forEach(bt => {
+      const t = document.createElement('div');
+      t.dataset.code = bt.code;
+      t.style.cssText = 'border:1.5px solid var(--border);border-radius:8px;padding:8px 10px;cursor:pointer;transition:all .15s;font-size:12px;text-align:center';
+      t.textContent = bt.label;
+      t.onclick = () => {
+        document.querySelectorAll('#biztype-grid div').forEach(x => {
+          x.style.borderColor = 'var(--border)'; x.style.background = '';
+        });
+        t.style.borderColor = 'var(--p-accent)';
+        t.style.background = 'rgba(201,168,76,.1)';
+        S.business_type_code = bt.code;
+        document.getElementById('biz-err').style.display = 'none';
+      };
+      biztypeGrid.appendChild(t);
+    });
+    document.getElementById('f-biz').style.display = 'flex';
+  }
+}
+
+function filterIndustry(q) {
+  q = q.toLowerCase().trim();
+  const grid = document.getElementById('industry-grid');
+  if (!q) {
+    Array.from(grid.children).forEach(t => t.style.display = '');
+    return;
+  }
+  INDUSTRIES.forEach(ind => {
+    const tile = grid.querySelector(`[data-code="${ind.code}"]`);
+    if (!tile) return;
+    const matchInd = ind.label.toLowerCase().includes(q);
+    const matchType = ind.types.some(bt => bt.label.toLowerCase().includes(q));
+    tile.style.display = (matchInd || matchType) ? '' : 'none';
+    if (matchType && !matchInd) {
+      const matched = ind.types.find(bt => bt.label.toLowerCase().includes(q));
+      if (matched) { selectIndustry(ind.code, tile); }
+    }
+  });
+}
+
+// ── go3: validate industry step ───────────────────────
+function go3() {
+  if (!S.industry_code) {
+    document.getElementById('ind-err').style.display = 'block';
+    return;
+  }
+  if (!S.business_type_code) {
+    document.getElementById('biz-err').style.display = 'block';
+    return;
+  }
+  show(4);
+}
+
 const S = {
-  step:1, product:'xpscore360', plan:'pro',
+  step:1, product:'xpscore360',
+  industry_code:'', business_type_code:'', plan:'pro',
   fn:'',em:'',ph:'',jt:'',pw:'',
   bn:'',abn:'',bt:'',ws:'',be:'',a1:'',sb:'',st:'',pc:'',
   dn:'',logoFile:null,color:'#0F0F0D',theme:'dark',
@@ -1091,6 +1283,7 @@ function show(n, animate=true) {
   S.step = n;
   const next = document.getElementById(`p${n}`);
   if (next) { next.style.display='block'; }
+  if (n === 3) buildIndustryGrid();
 
   document.querySelectorAll('.step').forEach(el => {
     const s = +el.dataset.s;
@@ -1197,31 +1390,27 @@ function go1(){
 
 // ── Step 2 ─────────────────────────────────────────────
 function go2(){
-  clearErrs('bn','abn','bt','be','a1','sb','st','pc');
+  clearErrs('bn','abn','be','a1','sb','st','pc');
   let ok=true;
   if(!v('bn')){setErr('bn',true);ok=false;}
   const adig=v('abn').replace(/\D/g,'');
   if(adig.length!==11||!validABN(adig)){setErr('abn',true);ok=false;}
-  if(!v('bt')){setErr('bt',true);ok=false;}
   if(!/\S+@\S+\.\S+/.test(v('be'))){setErr('be',true);ok=false;}
   if(!v('a1')){setErr('a1',true);ok=false;}
   if(!v('sb2')){setErr('sb',true);ok=false;}
   if(!v('st')){setErr('st',true);ok=false;}
   if(!v('pc2')){setErr('pc',true);ok=false;}
   if(!ok) return;
-  S.bn=v('bn');S.abn=adig;S.bt=v('bt');S.ws=v('ws');S.be=v('be');
+  S.bn=v('bn');S.abn=adig;S.bt='';S.ws=v('ws');S.be=v('be');
   S.a1=v('a1');S.sb=v('sb2');S.st=v('st');S.pc=v('pc2');
-  if(!document.getElementById('dn').value) document.getElementById('dn').value=S.bn;
+  // Display name pre-fill handled in Settings
   if(!document.getElementById('va').value){ document.getElementById('va').value=S.a1;
     document.getElementById('vsb').value=S.sb; document.getElementById('vpc').value=S.pc; }
   show(3);
 }
 
 // ── Step 3 ─────────────────────────────────────────────
-function go3(){
-  if(!v('dn')){toast('Please enter a display name','err');return;}
-  S.dn=v('dn'); show(4);
-}
+// Branding go4 removed
 
 // ── Step 4 ─────────────────────────────────────────────
 function go4(){
@@ -1282,6 +1471,8 @@ async function go6(){
         googlePlaceId:S.gp, specialties:S.specs, knownFor:S.kf,
       },
       plan:S.plan, termsAccepted:true, termsVersion:'v1.0',
+      industry_code:     S.industry_code      || null,
+      business_type_code:S.business_type_code || null,
     };
 
     const res=await fetch('/.netlify/functions/onboarding-complete',{

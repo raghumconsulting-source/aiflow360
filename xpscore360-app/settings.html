@@ -60,6 +60,30 @@ body{font-family:'Geist',sans-serif;font-size:15px;line-height:1.6;color:var(--t
 .save-status{font-size:12px;color:var(--green);font-weight:500;display:none;align-items:center;gap:5px;margin-top:8px}
 .save-status.show{display:flex}
 
+/* ── Logo upload ─────────────────────────────────── */
+.logo-upload{position:relative;border:2px dashed var(--border);border-radius:12px;padding:32px;text-align:center;cursor:pointer;transition:border-color .2s,background .2s;background:var(--faint)}
+.logo-upload:hover{border-color:#C9A84C;background:rgba(201,168,76,.06)}
+.logo-upload input{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%}
+.logo-upload-icon{font-size:32px;margin-bottom:8px}
+.logo-upload-text{font-size:13px;color:var(--muted)}
+.logo-upload-text strong{color:var(--text)}
+.logo-preview{max-width:120px;max-height:80px;object-fit:contain;border-radius:8px;display:none;margin:0 auto 8px}
+.logo-preview.show{display:block}
+.color-row{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px}
+.color-swatch{width:32px;height:32px;border-radius:50%;cursor:pointer;border:2px solid transparent;transition:transform .15s,border-color .15s}
+.color-swatch.active{border-color:var(--text);transform:scale(1.15)}
+.color-swatch:hover{transform:scale(1.08)}
+.color-custom{width:32px;height:32px;border-radius:50%;border:2px dashed var(--border);display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:14px;color:var(--muted);position:relative;overflow:hidden;transition:border-color .15s}
+.color-custom.active{border-color:var(--text);border-style:solid}
+.color-custom input[type=color]{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%}
+.theme-toggle{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:24px}
+.theme-opt{border:2px solid var(--border);border-radius:12px;padding:16px;cursor:pointer;display:flex;align-items:center;gap:12px;transition:border-color .2s}
+.theme-opt.selected{border-color:#C9A84C}
+.theme-preview{width:40px;height:28px;border-radius:6px;flex-shrink:0}
+.theme-preview.dark{background:linear-gradient(135deg,#1a1a2e,#16213e)}
+.theme-preview.light{background:linear-gradient(135deg,#f8f9fa,#e9ecef);border:1px solid #dee2e6}
+.theme-label{font-size:13px;font-weight:600;color:var(--text)}
+.theme-sub{font-size:11px;color:var(--muted)}
 /* ── Tabs ────────────────────────────────────────── */
 .tabs{display:flex;gap:2px;background:var(--bg);border:1px solid var(--border);border-radius:12px;padding:4px;margin-bottom:28px;overflow-x:auto}
 .tab{
@@ -499,6 +523,9 @@ body{font-family:'Geist',sans-serif;font-size:15px;line-height:1.6;color:var(--t
     <button class="tab" onclick="switchTab('ai',this)">
       AI settings
     </button>
+    <button class="tab" onclick="switchTab('branding',this)">
+      Branding
+    </button>
   </div>
 
   <!-- ══ TAB: Tables & NFC ════════════════════════ -->
@@ -635,13 +662,86 @@ body{font-family:'Geist',sans-serif;font-size:15px;line-height:1.6;color:var(--t
     </div>
   </div>
 
+  <!-- ══ TAB: Branding ════════════════════════════ -->
+  <div class="panel" id="panel-branding">
+    <div class="section-head">
+      <div class="section-title">Branding &amp; logo</div>
+      <div class="section-sub">Customise how your widget looks to guests.</div>
+    </div>
+    <div class="card"><div class="card-body">
+
+      <div class="field" style="margin-bottom:20px">
+        <label style="font-size:12px;font-weight:500;color:var(--muted);letter-spacing:.03em;display:block;margin-bottom:8px">Display name</label>
+        <input type="text" id="branding-displayname" placeholder="e.g. Subway — North Rocks"
+          style="width:100%;padding:10px 14px;border:1px solid var(--border);border-radius:8px;background:var(--faint);color:var(--text);font-size:14px"/>
+        <div style="font-size:11px;color:var(--muted);margin-top:4px;opacity:.7">Shown in the widget header</div>
+      </div>
+
+      <div class="field" style="margin-bottom:24px">
+        <label style="font-size:12px;font-weight:500;color:var(--muted);letter-spacing:.03em;display:block;margin-bottom:8px">Logo</label>
+        <div class="logo-upload" id="branding-logo-drop">
+          <input type="file" id="branding-logo-input" accept="image/*" onchange="handleBrandingLogo(this)"/>
+          <img class="logo-preview" id="branding-logo-preview" src="" alt=""/>
+          <div class="logo-upload-icon" id="branding-logo-icon">🖼️</div>
+          <div class="logo-upload-text" id="branding-logo-text"><strong>Click to upload</strong> or drag &amp; drop<br>PNG, JPG, SVG — max 2MB</div>
+        </div>
+      </div>
+
+      <div class="field" style="margin-bottom:24px">
+        <label style="font-size:12px;font-weight:500;color:var(--muted);letter-spacing:.03em;display:block;margin-bottom:8px">Brand colour</label>
+        <div class="color-row" id="branding-color-row">
+          <div class="color-swatch active" style="background:#C9A84C" data-color="#C9A84C" onclick="selectBrandingColor(this)"></div>
+          <div class="color-swatch" style="background:#E74C3C" data-color="#E74C3C" onclick="selectBrandingColor(this)"></div>
+          <div class="color-swatch" style="background:#3498DB" data-color="#3498DB" onclick="selectBrandingColor(this)"></div>
+          <div class="color-swatch" style="background:#2ECC71" data-color="#2ECC71" onclick="selectBrandingColor(this)"></div>
+          <div class="color-swatch" style="background:#9B59B6" data-color="#9B59B6" onclick="selectBrandingColor(this)"></div>
+          <div class="color-swatch" style="background:#1ABC9C" data-color="#1ABC9C" onclick="selectBrandingColor(this)"></div>
+          <div class="color-swatch" style="background:#E67E22" data-color="#E67E22" onclick="selectBrandingColor(this)"></div>
+          <div class="color-swatch" style="background:#FFFFFF" data-color="#FFFFFF" onclick="selectBrandingColor(this)"></div>
+          <div class="color-custom" title="Custom colour"><span>+</span>
+            <input type="color" id="branding-custom-color" onchange="selectBrandingCustomColor(this)"/>
+          </div>
+        </div>
+        <div style="font-size:11px;color:var(--muted);opacity:.7">Used for buttons and highlights in your review widget</div>
+      </div>
+
+      <div class="field" style="margin-bottom:24px">
+        <label style="font-size:12px;font-weight:500;color:var(--muted);letter-spacing:.03em;display:block;margin-bottom:12px">Widget theme</label>
+        <div class="theme-toggle" id="branding-theme-toggle">
+          <div class="theme-opt selected" data-theme="dark" onclick="selectBrandingTheme(this)">
+            <div class="theme-preview dark"></div>
+            <div><div class="theme-label">Dark</div><div class="theme-sub">Elegant, premium feel</div></div>
+          </div>
+          <div class="theme-opt" data-theme="light" onclick="selectBrandingTheme(this)">
+            <div class="theme-preview light"></div>
+            <div><div class="theme-label">Light</div><div class="theme-sub">Clean, minimal feel</div></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="field" style="margin-bottom:24px">
+        <label style="font-size:12px;font-weight:500;color:var(--muted);letter-spacing:.03em;display:block;margin-bottom:8px">Background image <span style="font-size:11px;opacity:.6;font-weight:400">(shown behind the widget)</span></label>
+        <div class="logo-upload" id="branding-bg-drop">
+          <input type="file" id="branding-bg-input" accept="image/*" onchange="handleBrandingBg(this)"/>
+          <img class="logo-preview" id="branding-bg-preview" src="" alt="" style="max-width:200px;max-height:100px"/>
+          <div class="logo-upload-icon" id="branding-bg-icon">🖼️</div>
+          <div class="logo-upload-text" id="branding-bg-text"><strong>Click to upload</strong> or drag &amp; drop<br>PNG, JPG, WebP — max 5MB — recommended 1920×1080</div>
+        </div>
+        <div style="font-size:11px;color:var(--muted);margin-top:4px;opacity:.7">Displayed as the full-page background when guests scan your QR code</div>
+      </div>
+
+      <!-- Save handled by top Save changes button -->
+
+    </div></div>
+  </div>
+
 </div>
 <div class="toast" id="toast"></div>
 
 <script>
 // ── Config ─────────────────────────────────────────────
 const SUPABASE_URL = 'https://iroseywidzacqinmjtdc.supabase.co';
-const SUPABASE_KEY = '__SUPABASE_ANON_PLACEHOLDER__';
+const SUPABASE_KEY = '****************pzOk';
 const API_BASE    = '/.netlify/functions/venue-config';
 const WIDGET_BASE = 'https://aiflow360.com/XPscore360/';
 
@@ -845,6 +945,22 @@ async function loadAll() {
     state.aiConfig = ai;
     state.questions = (ai.icebreaker_questions || []).map(q => ({ ...q }));
 
+    // Load venue KPI names as icebreaker topic options (based on industry/business type)
+    try {
+      const kpiRes = await fetch(`/.netlify/functions/kpi-config?venue_id=${VENUE_ID}&tenant_id=${TENANT_ID}`);
+      if (kpiRes.ok) {
+        const kpiData = await kpiRes.json();
+        if (kpiData.kpis && kpiData.kpis.length > 0) {
+          // Use actual kpi_name values — these are industry-specific from kpi_definitions
+          state.kpiTopics = ['general', ...kpiData.kpis.map(k => k.kpi_name)];
+        } else {
+          state.kpiTopics = ['general'];
+        }
+      }
+    } catch(e) {
+      state.kpiTopics = ['general'];
+    }
+
     // Tags
     state.tags = (data.tags || []).map(t => ({
       id: t.id, label: t.label, topic: t.topic,
@@ -970,9 +1086,10 @@ function renderQuestions() {
           oninput="state.questions[${i}].text=this.value;markDirty()">${esc(q.text || '')}</textarea>
         <div class="q-meta">
           <select class="topic-select" onchange="state.questions[${i}].topic=this.value;markDirty()">
-            ${['general','food','service','ambience','value','drinks','highlights'].map(t =>
-              `<option value="${t}" ${q.topic===t?'selected':''}>${t}</option>`
-            ).join('')}
+            ${(state.kpiTopics && state.kpiTopics.length > 1
+              ? state.kpiTopics
+              : ['general','food','service','ambience','value']
+            ).map(t => `<option value="${t}" ${q.topic===t?'selected':''}>${t}</option>`).join('')}
           </select>
           <span class="active-badge ${q.is_active!==false&&q.active!==false?'on':'off'}"
             onclick="toggleQuestion(${i})">
@@ -1139,7 +1256,15 @@ function markDirty() {
 }
 
 // ── Save all via Netlify function ─────────────────────
+// ── Unified save — top button saves current tab ───────
+function getActiveTab() {
+  const active = document.querySelector('.tab.active');
+  return active ? active.getAttribute('onclick').match(/switchTab\('(\w+)'/)?.[1] : null;
+}
+
 async function saveAll() {
+  const tab = getActiveTab();
+  if (tab === 'branding') { await saveBranding(); return; }
   const btn = document.getElementById('save-btn');
   btn.disabled = true;
   btn.textContent = 'Saving...';
@@ -1198,9 +1323,163 @@ function esc(str) {
   return String(str || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
 
-// ── Init ───────────────────────────────────────────────
-loadAll();
-</script>
+// BRANDING_JS_INSERTED
+let brandingState = { color: '#C9A84C', theme: 'dark', logoFile: null, logoUrl: '', bgFile: null, bgUrl: '' };
+
+async function loadBranding() {
+  try {
+    const res = await fetch(`/.netlify/functions/tenant-branding?tenant_id=${TENANT_ID}`);
+    if (!res.ok) throw new Error('Failed to load branding');
+    const data = await res.json();
+    if (data.display_name) document.getElementById('branding-displayname').value = data.display_name;
+    if (data.primary_color) {
+      brandingState.color = data.primary_color;
+      const match = document.querySelector(`#branding-color-row .color-swatch[data-color="${data.primary_color}"]`);
+      document.querySelectorAll('#branding-color-row .color-swatch').forEach(s => s.classList.remove('active'));
+      if (match) { match.classList.add('active'); }
+      else { document.getElementById('branding-custom-color').value = data.primary_color; }
+    }
+    if (data.widget_theme) {
+      brandingState.theme = data.widget_theme;
+      document.querySelectorAll('#branding-theme-toggle .theme-opt').forEach(o =>
+        o.classList.toggle('selected', o.dataset.theme === data.widget_theme));
+    }
+    if (data.logo_url) {
+      brandingState.logoUrl = data.logo_url;
+      const prev = document.getElementById('branding-logo-preview');
+      prev.src = data.logo_url;
+      prev.classList.add('show');
+      document.getElementById('branding-logo-icon').style.display = 'none';
+      document.getElementById('branding-logo-text').textContent = '\u2713 Logo loaded';
+    }
+    if (data.bg_image_url) {
+      brandingState.bgUrl = data.bg_image_url;
+      const prev = document.getElementById('branding-bg-preview');
+      prev.src = data.bg_image_url;
+      prev.classList.add('show');
+      document.getElementById('branding-bg-icon').style.display = 'none';
+      document.getElementById('branding-bg-text').textContent = '\u2713 Background loaded';
+    }
+  } catch(e) { console.error('loadBranding error:', e); }
+}
+function handleBrandingLogo(input) {
+  const file = input.files[0];
+  if (!file) return;
+  if (file.size > 2 * 1024 * 1024) { toast('Logo must be under 2MB', 'err'); return; }
+  brandingState.logoFile = file;
+  const reader = new FileReader();
+  reader.onload = e => {
+    const prev = document.getElementById('branding-logo-preview');
+    prev.src = e.target.result; prev.classList.add('show');
+    document.getElementById('branding-logo-icon').style.display = 'none';
+    document.getElementById('branding-logo-text').textContent = '\u2713 ' + file.name;
+  };
+  reader.readAsDataURL(file);
+}
+function handleBrandingBg(input) {
+  const file = input.files[0];
+  if (!file) return;
+  if (file.size > 2 * 1024 * 1024) { toast('Background image must be under 2MB', 'err'); return; }
+  brandingState.bgFile = file;
+  const reader = new FileReader();
+  reader.onload = e => {
+    const prev = document.getElementById('branding-bg-preview');
+    prev.src = e.target.result;
+    prev.classList.add('show');
+    document.getElementById('branding-bg-icon').style.display = 'none';
+    document.getElementById('branding-bg-text').textContent = '✓ ' + file.name;
+  };
+  reader.readAsDataURL(file);
+}
+
+function selectBrandingColor(el) {
+  document.querySelectorAll('#branding-color-row .color-swatch').forEach(s => s.classList.remove('active'));
+  el.classList.add('active'); brandingState.color = el.dataset.color;
+  // Reset custom swatch
+  const cust = document.querySelector('#branding-color-row .color-custom');
+  if (cust) {
+    cust.style.background = '';
+    cust.classList.remove('active');
+    const span = cust.querySelector('span');
+    if (span) span.style.display = '';
+  }
+}
+function selectBrandingCustomColor(input) {
+  brandingState.color = input.value;
+  document.querySelectorAll('#branding-color-row .color-swatch').forEach(s => s.classList.remove('active'));
+  // Show colour on the custom swatch itself
+  const cust = document.querySelector('#branding-color-row .color-custom');
+  if (cust) {
+    cust.style.background = input.value;
+    cust.classList.add('active');
+    cust.querySelector('span').style.display = 'none';
+  }
+}
+function selectBrandingTheme(el) {
+  document.querySelectorAll('#branding-theme-toggle .theme-opt').forEach(o => o.classList.remove('selected'));
+  el.classList.add('selected'); brandingState.theme = el.dataset.theme;
+}
+async function saveBranding() {
+  if (!TENANT_ID) { toast('Session not loaded yet', 'err'); return; }
+  const btn = document.getElementById('save-btn');
+  const origText = btn.textContent;
+  btn.textContent = 'Saving\u2026'; btn.disabled = true;
+  try {
+    let logoBase64 = null, logoMime = null, logoExt = null;
+    if (brandingState.logoFile) {
+      logoBase64 = await new Promise((res, rej) => {
+        const r = new FileReader();
+        r.onload = () => res(r.result.split(',')[1]);
+        r.onerror = () => rej(new Error('File read failed'));
+        r.readAsDataURL(brandingState.logoFile);
+      });
+      logoMime = brandingState.logoFile.type;
+      logoExt  = brandingState.logoFile.name.split('.').pop();
+    }
+    // Encode bg image if selected
+    let bgBase64 = null, bgMime = null, bgExt = null;
+    if (brandingState.bgFile) {
+      bgBase64 = await new Promise((res, rej) => {
+        const r = new FileReader();
+        r.onload = () => res(r.result.split(',')[1]);
+        r.onerror = () => rej(new Error('File read failed'));
+        r.readAsDataURL(brandingState.bgFile);
+      });
+      bgMime = brandingState.bgFile.type;
+      bgExt  = brandingState.bgFile.name.split('.').pop();
+    }
+    const res = await fetch('/.netlify/functions/tenant-branding', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        tenant_id:     TENANT_ID,
+        venue_id:      VENUE_ID,
+        display_name:  document.getElementById('branding-displayname').value.trim() || null,
+        primary_color: brandingState.color,
+        widget_theme:  brandingState.theme,
+        logo_base64:   logoBase64, logo_mime: logoMime, logo_ext: logoExt,
+        existing_logo_url: logoBase64 ? null : (brandingState.logoUrl || null),
+        bg_base64:     bgBase64, bg_mime: bgMime, bg_ext: bgExt,
+        existing_bg_url: bgBase64 ? null : (brandingState.bgUrl || null),
+      }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Save failed');
+    if (data.logo_url) brandingState.logoUrl = data.logo_url;
+    brandingState.logoFile = null;
+    brandingState.bgFile = null;
+    if (data.bg_image_url) brandingState.bgUrl = data.bg_image_url;
+    toast('Branding saved \u2713', 'ok');
+  } catch(e) {
+    console.error('saveBranding error:', e);
+    toast('Save failed: ' + e.message, 'err');
+  } finally { btn.textContent = 'Save changes'; btn.disabled = false; }
+}
+const _origSwitchTab = switchTab;
+switchTab = function(name, btn) {
+  _origSwitchTab(name, btn);
+  if (name === 'branding' && TENANT_ID) loadBranding();
+};
+bootstrap();</script>
 </body>
 </html>
 

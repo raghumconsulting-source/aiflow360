@@ -347,11 +347,59 @@ canvas{display:block;width:100%!important}
     <div class="auth-logo">XP</div>
     <div class="auth-title">Sign in to continue</div>
     <div class="auth-sub">Access your XPscore360 dashboard</div>
+
+    <!-- Email/password form -->
+    <div id="email-form">
+      <div style="display:flex;flex-direction:column;gap:10px;margin-bottom:12px">
+        <input type="email" id="auth-email" placeholder="Email address"
+          style="padding:11px 14px;border:1px solid #e5e5e3;border-radius:8px;font-size:14px;outline:none;font-family:inherit;transition:border-color .2s"
+          onfocus="this.style.borderColor='#0F0F0D'" onblur="this.style.borderColor='#e5e5e3'"/>
+        <div style="position:relative">
+          <input type="password" id="auth-password" placeholder="Password"
+            style="padding:11px 14px;border:1px solid #e5e5e3;border-radius:8px;font-size:14px;outline:none;font-family:inherit;width:100%;box-sizing:border-box;transition:border-color .2s"
+            onfocus="this.style.borderColor='#0F0F0D'" onblur="this.style.borderColor='#e5e5e3'"
+            onkeydown="if(event.key==='Enter')emailSignIn()"/>
+          <span onclick="togglePw()" style="position:absolute;right:12px;top:50%;transform:translateY(-50%);cursor:pointer;font-size:12px;color:#999;user-select:none" id="pw-toggle">Show</span>
+        </div>
+      </div>
+      <div id="auth-error" style="font-size:12px;color:#c0392b;margin-bottom:10px;display:none;text-align:center"></div>
+      <button onclick="emailSignIn()" id="email-signin-btn"
+        style="width:100%;padding:12px;background:#0F0F0D;color:#fff;border:none;border-radius:8px;font-size:14px;font-weight:500;cursor:pointer;font-family:inherit;margin-bottom:8px">
+        Sign in
+      </button>
+      <div style="text-align:right;margin-bottom:16px">
+        <a href="#" onclick="showForgotPassword()" style="font-size:12px;color:#888;text-decoration:none">Forgot password?</a>
+      </div>
+    </div>
+
+    <!-- Forgot password form (hidden by default) -->
+    <div id="forgot-form" style="display:none">
+      <div style="font-size:13px;color:#666;margin-bottom:12px;text-align:center">Enter your email and we'll send a reset link</div>
+      <input type="email" id="reset-email" placeholder="Email address"
+        style="padding:11px 14px;border:1px solid #e5e5e3;border-radius:8px;font-size:14px;outline:none;font-family:inherit;width:100%;box-sizing:border-box;margin-bottom:10px;transition:border-color .2s"
+        onfocus="this.style.borderColor='#0F0F0D'" onblur="this.style.borderColor='#e5e5e3'"/>
+      <div id="reset-msg" style="font-size:12px;margin-bottom:10px;display:none;text-align:center"></div>
+      <button onclick="sendResetEmail()" id="reset-btn"
+        style="width:100%;padding:12px;background:#0F0F0D;color:#fff;border:none;border-radius:8px;font-size:14px;font-weight:500;cursor:pointer;font-family:inherit;margin-bottom:8px">
+        Send reset link
+      </button>
+      <div style="text-align:center">
+        <a href="#" onclick="showEmailForm()" style="font-size:12px;color:#888;text-decoration:none">← Back to sign in</a>
+      </div>
+    </div>
+
+    <!-- Divider -->
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px">
+      <div style="flex:1;height:1px;background:#e5e5e3"></div>
+      <span style="font-size:11px;color:#bbb;white-space:nowrap">or</span>
+      <div style="flex:1;height:1px;background:#e5e5e3"></div>
+    </div>
+
     <button class="auth-btn" id="google-btn">
       <svg viewBox="0 0 24 24" fill="none"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z" fill="#FBBC05"/><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/></svg>
       Continue with Google
     </button>
-    <div class="auth-foot">No account? <a href="/onboarding.html">Start free trial →</a></div>
+    <div class="auth-foot">No account? <a href='/xpscore360-app/onboarding.html'>Start free trial →</a></div>
   </div>
 </div>
 
@@ -361,7 +409,7 @@ canvas{display:block;width:100%!important}
     <div style="font-size:32px;margin-bottom:12px">📊</div>
     <h2>Upgrade to access the dashboard</h2>
     <p>The management dashboard is available on Pro and Business plans. Your free trial includes the review widget and basic settings.</p>
-    <a href="/onboarding.html?product=xpscore360&step=plan">Upgrade now →</a>
+    <a href='/onboarding?product=xpscore360&step=plan'>Upgrade now →</a>
   </div>
 </div>
 
@@ -393,11 +441,11 @@ canvas{display:block;width:100%!important}
       <div style="position:relative;display:inline-block" id="avatar-wrap">
         <div class="avatar" id="user-avatar" onclick="toggleAvatarMenu()" title="Account" style="cursor:pointer">?</div>
         <div id="avatar-menu" style="display:none;position:absolute;right:0;top:36px;background:var(--bg);border:1px solid var(--border);border-radius:10px;min-width:180px;box-shadow:0 8px 24px rgba(0,0,0,.08);z-index:200;overflow:hidden">
-          <a href="/xpscore360-app/profile.html" style="display:flex;align-items:center;gap:8px;padding:11px 14px;font-size:13px;color:var(--text);text-decoration:none;transition:background .15s" onmouseover="this.style.background='var(--surface)'" onmouseout="this.style.background='transparent'">
+          <a href='/xpscore360-app/profile' onmouseout='this.style.background=\'transparent\'' onmouseover='this.style.background=\'var(--surface)\'' style='display:flex;align-items:center;gap:8px;padding:11px 14px;font-size:13px;color:var(--text);text-decoration:none;transition:background .15s'>
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
             Profile &amp; account
           </a>
-          <a href="/xpscore360-app/profile.html#plan" style="display:flex;align-items:center;gap:8px;padding:11px 14px;font-size:13px;color:var(--text);text-decoration:none;transition:background .15s" onmouseover="this.style.background='var(--surface)'" onmouseout="this.style.background='transparent'">
+          <a href='/xpscore360-app/profile#plan' onmouseout='this.style.background=\'transparent\'' onmouseover='this.style.background=\'var(--surface)\'' style='display:flex;align-items:center;gap:8px;padding:11px 14px;font-size:13px;color:var(--text);text-decoration:none;transition:background .15s'>
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
             Plan &amp; billing
           </a>
@@ -419,7 +467,7 @@ canvas{display:block;width:100%!important}
     <div class="tab" onclick="showTab('analytics',this)">Analytics</div>
     <div class="tab" id="alerts-tab" onclick="showTab('alerts',this)">Alerts <span class="tbadge" id="alert-count">0</span></div>
     <div class="tab" onclick="showTab('ai',this)">AI insights</div>
-    <div class="tab" onclick="window.location.href='/xpscore360-app/settings.html'">Settings ↗</div>
+    <div class="tab" onclick="window.location.href=`/xpscore360-app/settings.html?venue_id=${selectedVenueId()||VENUES[0]?.id||''}&tenant_id=${TENANT?.id||''}`">Settings ↗</div>
   </div>
 
   <!-- ══ OVERVIEW TAB ══════════════════════════════ -->
@@ -644,7 +692,7 @@ canvas{display:block;width:100%!important}
 <script>
 // ── Config ─────────────────────────────────────────
 const SUPABASE_URL = 'https://iroseywidzacqinmjtdc.supabase.co';
-const SUPABASE_KEY = '__SUPABASE_ANON_PLACEHOLDER__';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imlyb3NleXdpZHphY3Fpbm1qdGRjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg5MTgwMTQsImV4cCI6MjA5NDQ5NDAxNH0.x66R6jOUcU8eaXxxXL2OtUX9rJ3ddntQTYLrOdnpzOk';
 const API_BASE     = '/.netlify/functions';
 
 const { createClient } = supabase;
@@ -664,6 +712,79 @@ document.getElementById('google-btn').addEventListener('click', async () => {
     options: { redirectTo: window.location.origin + '/xpscore360-app/dashboard.html' },
   });
 });
+
+// ── Email/password sign in ─────────────────────────────
+async function emailSignIn() {
+  const email    = document.getElementById('auth-email').value.trim();
+  const password = document.getElementById('auth-password').value;
+  const errEl    = document.getElementById('auth-error');
+  const btn      = document.getElementById('email-signin-btn');
+  errEl.style.display = 'none';
+  if (!email || !password) { showAuthError('Please enter your email and password'); return; }
+  btn.textContent = 'Signing in…';
+  btn.disabled = true;
+  const { data, error } = await sb.auth.signInWithPassword({ email, password });
+  if (error) {
+    btn.textContent = 'Sign in';
+    btn.disabled = false;
+    showAuthError(error.message === 'Invalid login credentials' ? 'Incorrect email or password' : error.message);
+    return;
+  }
+  init();
+}
+
+function showAuthError(msg) {
+  const errEl = document.getElementById('auth-error');
+  errEl.textContent = msg;
+  errEl.style.display = 'block';
+}
+
+function togglePw() {
+  const pw = document.getElementById('auth-password');
+  const toggle = document.getElementById('pw-toggle');
+  if (pw.type === 'password') { pw.type = 'text'; toggle.textContent = 'Hide'; }
+  else { pw.type = 'password'; toggle.textContent = 'Show'; }
+}
+
+function showForgotPassword() {
+  document.getElementById('email-form').style.display = 'none';
+  document.getElementById('forgot-form').style.display = 'block';
+  const email = document.getElementById('auth-email').value;
+  if (email) document.getElementById('reset-email').value = email;
+}
+
+function showEmailForm() {
+  document.getElementById('forgot-form').style.display = 'none';
+  document.getElementById('email-form').style.display = 'block';
+  document.getElementById('reset-msg').style.display = 'none';
+}
+
+async function sendResetEmail() {
+  const email = document.getElementById('reset-email').value.trim();
+  const msgEl = document.getElementById('reset-msg');
+  const btn   = document.getElementById('reset-btn');
+  if (!email) {
+    msgEl.style.color = '#c0392b';
+    msgEl.textContent = 'Please enter your email address';
+    msgEl.style.display = 'block';
+    return;
+  }
+  btn.textContent = 'Sending…';
+  btn.disabled = true;
+  const { error } = await sb.auth.resetPasswordForEmail(email, {
+    redirectTo: window.location.origin + '/xpscore360-app/reset-password.html',
+  });
+  btn.textContent = 'Send reset link';
+  btn.disabled = false;
+  if (error) {
+    msgEl.style.color = '#c0392b';
+    msgEl.textContent = error.message;
+  } else {
+    msgEl.style.color = '#27ae60';
+    msgEl.textContent = '✓ Reset link sent — check your email';
+  }
+  msgEl.style.display = 'block';
+}
 
 async function init() {
   const { data: { session } } = await sb.auth.getSession();

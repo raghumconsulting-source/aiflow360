@@ -74,7 +74,7 @@ exports.handler = async function(event) {
       // Fetch venue_kpis joined with kpi_definitions
       const [venueKpis, venue] = await Promise.all([
         sb(
-          `venue_kpis?venue_id=eq.${venueId}&is_active=eq.true` +
+          `venue_kpis?venue_id=eq.${venueId}&is_active=neq.false` +
           `&select=*,kpi_definition:kpi_definitions(kpi_name,description,kpi_category,` +
           `measurement_method,icon_name,color_hex,weight)` +
           `&order=sort_order`
@@ -82,8 +82,31 @@ exports.handler = async function(event) {
         sb(`venues?id=eq.${venueId}&select=industry_code,business_type_code&limit=1`),
       ]);
 
+      // ── Auto-seed if no KPIs exist but venue has industry codes ──
+      let finalKpis = venueKpis;
+      if (venueKpis.length === 0 && venue[0]?.industry_code && venue[0]?.business_type_code) {
+        console.log(`Auto-seeding KPIs for venue ${venueId}: ${venue[0].industry_code}/${venue[0].business_type_code}`);
+        try {
+          await rpc('seed_venue_kpis', {
+            p_tenant_id: tenantId,
+            p_venue_id:  venueId,
+            p_industry:  venue[0].industry_code,
+            p_biz_type:  venue[0].business_type_code,
+          });
+          // Re-fetch after seeding
+          finalKpis = await sb(
+            `venue_kpis?venue_id=eq.${venueId}&is_active=neq.false` +
+            `&select=*,kpi_definition:kpi_definitions(kpi_name,description,kpi_category,` +
+            `measurement_method,icon_name,color_hex,weight)` +
+            `&order=sort_order`
+          );
+        } catch (seedErr) {
+          console.warn('Auto-seed failed (non-fatal):', seedErr.message);
+        }
+      }
+
       // Flatten the join for easy consumption by frontend
-      const kpis = venueKpis.map(vk => ({
+      const kpis = finalKpis.map(vk => ({
         id:                 vk.id,
         kpi_definition_id:  vk.kpi_definition_id,
         kpi_name:           vk.custom_label || vk.kpi_definition?.kpi_name || 'Custom KPI',

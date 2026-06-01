@@ -53,6 +53,7 @@ exports.handler = async (event) => {
           specialties:   v.specialties || [],
           primaryColor:  v.primary_color || null,
           logoUrl:       v.logo_url || null,
+          bgImageUrl:    v.bg_image_url || null,
           googlePlaceId: v.google_place_id || null,
         }),
       };
@@ -233,3 +234,5 @@ exports.handler = async (event) => {
 
   return { statusCode: 405, headers: HEADERS, body: JSON.stringify({ error: 'Method not allowed' }) };
 };
+
+

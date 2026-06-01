@@ -457,7 +457,7 @@ const TABLE_REF  = PARAMS.get('table') || '1';
 const VENUE = {
   venueId: null, tenantId: null, slug: VENUE_SLUG, table: TABLE_REF,
   name: '', location: '', type: 'restaurant', knownFor: '',
-  specialties: [], googleReviewUrl: null, primaryColor: null, logoUrl: null,
+  specialties: [], googleReviewUrl: null, primaryColor: null, logoUrl: null, bgImageUrl: null,
   aiConfig: null, tags: [], recoveryActions: [], activeKpis: [],
 };
 
@@ -515,7 +515,7 @@ async function sbAnon(path) {
       google_review_url: d.googleReviewUrl,
       known_for: d.knownFor, specialties: d.specialties,
       venue_type: d.venueType, primary_color: d.primaryColor,
-      logo_url: d.logoUrl
+      logo_url: d.logoUrl, bg_image_url: d.bgImageUrl
     }];
   }
   return [];
@@ -543,7 +543,7 @@ async function bootVenue() {
     if (!VENUE_SLUG) throw new Error('No venue slug');
     const rows = await sbAnon(
       `venues?slug=eq.${VENUE_SLUG}&select=id,tenant_id,name,display_name,suburb,state,` +
-      `google_review_url,known_for,specialties,venue_type,primary_color,logo_url&limit=1`
+      `google_review_url,known_for,specialties,venue_type,primary_color,logo_url,bg_image_url&limit=1`
     );
     const v = rows[0];
     if (!v) throw new Error('Venue not found');
@@ -557,6 +557,7 @@ async function bootVenue() {
     VENUE.specialties    = v.specialties || [];
     VENUE.googleReviewUrl = v.google_review_url || null;
     VENUE.primaryColor   = v.primary_color || null;
+    VENUE.bgImageUrl    = v.bg_image_url   || null;
 
     // Update splash + main UI
     const mono = VENUE.name.split(' ').map(w=>w[0]).join('').slice(0,3).toUpperCase();
@@ -574,6 +575,15 @@ async function bootVenue() {
     if (v.primary_color) {
       document.querySelectorAll('.overall-card,.submit-btn,.send-btn,.biz-logo,.sp-logo,.mode-btn.primary')
         .forEach(el => el.style.background = v.primary_color);
+    }
+
+    // Background image
+    if (v.bg_image_url) {
+      document.body.style.backgroundImage = `url('${v.bg_image_url}')`;
+      document.body.style.backgroundSize  = 'cover';
+      document.body.style.backgroundPosition = 'center';
+      document.body.style.backgroundRepeat   = 'no-repeat';
+      document.body.style.backgroundAttachment = 'fixed';
     }
 
     // Logo
