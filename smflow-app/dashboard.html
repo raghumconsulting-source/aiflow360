@@ -845,27 +845,30 @@ document.getElementById('google-btn').addEventListener('click', async () => {
 
 async function init() {
   const { data:{ session } } = await sb.auth.getSession();
-  if (!session) return;
-
+  if (!session) {
+    document.getElementById('auth-overlay').style.display = 'flex';
+    document.getElementById('auth-overlay').style.opacity = '1';
+    document.getElementById('auth-overlay').style.pointerEvents = 'all';
+    document.getElementById('app').style.display = 'none';
+    return;
+  }
   document.getElementById('auth-overlay').classList.add('hide');
+  setTimeout(() => { document.getElementById('auth-overlay').style.display = 'none'; }, 400);
   document.getElementById('app').style.display = 'block';
-
   const initials = (session.user.email||'?')[0].toUpperCase();
   document.getElementById('user-avatar').textContent = initials;
-
-  // Load tenant
   try {
     const res = await fetch(`${API_BASE}/get-tenant?user_id=${session.user.id}&email=${encodeURIComponent(session.user.email)}`);
     const d   = await res.json();
     TENANT    = d.tenant;
+    if (TENANT) {
+      const badge = document.getElementById('industry-badge');
+      if (badge) badge.textContent = TENANT.industry_code ? TENANT.industry_code.replace(/_/g,' ') : TENANT.name || 'SMflow';
+    }
   } catch(e) { console.warn('get-tenant:', e.message); }
-
-  // Load SMflow config
   await loadConfig();
   buildFlavorGrid();
   buildPlatformRow();
-
-  // Load pending count
   loadPendingCount();
 }
 
@@ -1347,18 +1350,17 @@ async function askAgent(msg) {
   chatHistory.push({ role:'user', content: msg });
   if (chatHistory.length > 20) chatHistory.splice(0,2);
   try {
-    const res = await fetch('https://api.anthropic.com/v1/messages', {
+    const res = await fetch(`${API_BASE}/smflow-aria`, {
       method:'POST',
       headers:{'Content-Type':'application/json'},
       body: JSON.stringify({
-        model: 'claude-sonnet-4-20250514',
-        max_tokens: 1000,
-        system: GURU_SYSTEMS[currentGuru] || GURU_SYSTEMS.all,
-        messages: chatHistory,
+        tenant_id: TENANT?.id,
+        system:    GURU_SYSTEMS[currentGuru] || GURU_SYSTEMS.all,
+        messages:  chatHistory,
       }),
     });
     const d = await res.json();
-    const reply = d.content?.[0]?.text?.trim() || 'Sorry, I had an issue. Please try again.';
+    const reply = d.reply || d.error || 'Sorry, I had an issue. Please try again.';
     chatHistory.push({ role:'assistant', content: reply });
     document.getElementById(tkId)?.remove();
     msgs.insertAdjacentHTML('beforeend', `<div class="msg agent"><div class="msg-lbl">ARIA</div>${reply}</div>`);
