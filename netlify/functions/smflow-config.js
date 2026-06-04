@@ -80,12 +80,22 @@ exports.handler = async function (event) {
         `tenants?id=eq.${tenantId}&select=display_name,logo_url,primary_color,industry_code,business_type_code,products&limit=1`
       );
 
+      // Optionally include social accounts — uses service key server-side, bypasses RLS anon restriction
+      let socialAccounts;
+      if (params.include === 'social_accounts') {
+        socialAccounts = await sb(
+          `smflow_social_accounts?tenant_id=eq.${tenantId}&is_active=eq.true` +
+          `&select=platform,account_name,is_verified,connected_at&order=connected_at.asc`
+        );
+      }
+
       return {
         statusCode: 200,
         headers:    HEADERS,
         body:       JSON.stringify({
-          config: rows[0] || null,
-          tenant: tenantRows[0] || null,
+          config:  rows[0] || null,
+          tenant:  tenantRows[0] || null,
+          ...(socialAccounts !== undefined && { social_accounts: socialAccounts }),
         }),
       };
     } catch (err) {
