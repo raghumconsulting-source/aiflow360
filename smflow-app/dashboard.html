@@ -554,9 +554,18 @@ textarea.sct:focus{border-color:var(--violet)}
   <!-- ══ APPROVE TAB ═══════════════════════════════════════ -->
   <div class="panel" id="tab-approve">
     <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">
-      <div style="font-size:13px;color:var(--muted)" id="approve-week-label">This week's posts</div>
-      <div style="display:flex;gap:6px">
+      <div style="display:flex;align-items:center;gap:10px">
+        <span style="font-size:13px;color:var(--muted)" id="approve-week-label">This week's posts</span>
+        <label style="display:flex;align-items:center;gap:5px;font-size:12px;color:var(--muted);cursor:pointer;user-select:none">
+          <input type="checkbox" id="select-all-posts" style="accent-color:var(--violet)" onchange="toggleSelectAll(this.checked)">
+          Select all
+        </label>
+        <span id="selected-count" style="font-size:11px;color:var(--violet);display:none">0 selected</span>
+      </div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap">
         <button class="btn btn-outline btn-sm" onclick="loadApproveTab()">↻ Refresh</button>
+        <button class="btn btn-outline btn-sm" id="approve-selected-btn" onclick="approveSelected()" style="display:none;border-color:var(--green);color:var(--green-t)">✓ Approve selected</button>
+        <button class="btn btn-outline btn-sm" id="reject-selected-btn" onclick="rejectSelected()" style="display:none;border-color:var(--red);color:var(--red-t)">✗ Reject selected</button>
         <button class="btn btn-primary btn-sm" onclick="bulkApprove()">✓ Approve all pending</button>
       </div>
     </div>
@@ -691,17 +700,26 @@ textarea.sct:focus{border-color:var(--violet)}
         <div class="card">
           <div class="card-hdr"><div class="card-title">📚 5 Guru frameworks</div></div>
           <div class="card-body" style="display:flex;flex-direction:column;gap:8px">
-            ${[
-              ['Kotler','STP + 4Ps + Customer Value','#185FA5'],
-              ['Godin','Permission + Purple Cow + Tribes','#7B2FFF'],
-              ['GaryVee','Jab×3 / Hook + Context','#BA7517'],
-              ['Ogilvy','Headlines + Research + Promise','#993556'],
-              ['Patel','Data + SEO + Scale','#1D9E75'],
-            ].map(([n,s,c]) => `
             <div style="display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:var(--r);background:var(--surface);border:0.5px solid var(--border)">
-              <div style="width:3px;height:32px;border-radius:2px;background:${c};flex-shrink:0"></div>
-              <div><div style="font-size:12px;font-weight:500;color:${c}">${n}</div><div style="font-size:11px;color:var(--muted);margin-top:1px">${s}</div></div>
-            </div>`).join('')}
+              <div style="width:3px;height:32px;border-radius:2px;background:#185FA5;flex-shrink:0"></div>
+              <div><div style="font-size:12px;font-weight:500;color:#185FA5">Kotler</div><div style="font-size:11px;color:var(--muted);margin-top:1px">STP + 4Ps + Customer Value</div></div>
+            </div>
+            <div style="display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:var(--r);background:var(--surface);border:0.5px solid var(--border)">
+              <div style="width:3px;height:32px;border-radius:2px;background:#7B2FFF;flex-shrink:0"></div>
+              <div><div style="font-size:12px;font-weight:500;color:#7B2FFF">Godin</div><div style="font-size:11px;color:var(--muted);margin-top:1px">Permission + Purple Cow + Tribes</div></div>
+            </div>
+            <div style="display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:var(--r);background:var(--surface);border:0.5px solid var(--border)">
+              <div style="width:3px;height:32px;border-radius:2px;background:#BA7517;flex-shrink:0"></div>
+              <div><div style="font-size:12px;font-weight:500;color:#BA7517">GaryVee</div><div style="font-size:11px;color:var(--muted);margin-top:1px">Jab×3 / Hook + Context</div></div>
+            </div>
+            <div style="display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:var(--r);background:var(--surface);border:0.5px solid var(--border)">
+              <div style="width:3px;height:32px;border-radius:2px;background:#993556;flex-shrink:0"></div>
+              <div><div style="font-size:12px;font-weight:500;color:#993556">Ogilvy</div><div style="font-size:11px;color:var(--muted);margin-top:1px">Headlines + Research + Promise</div></div>
+            </div>
+            <div style="display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:var(--r);background:var(--surface);border:0.5px solid var(--border)">
+              <div style="width:3px;height:32px;border-radius:2px;background:#1D9E75;flex-shrink:0"></div>
+              <div><div style="font-size:12px;font-weight:500;color:#1D9E75">Patel</div><div style="font-size:11px;color:var(--muted);margin-top:1px">Data + SEO + Scale</div></div>
+            </div>
           </div>
         </div>
       </div>
@@ -1271,7 +1289,10 @@ async function loadApproveTab() {
         </div>
         <div class="approve-body">
           ${posts.map(p => `
-          <div class="approve-post">
+          <div class="approve-post" id="apost-${p.id}">
+            <div style="flex-shrink:0;padding-top:2px">
+              <input type="checkbox" class="post-checkbox" data-id="${p.id}" style="accent-color:var(--violet)" onchange="updateSelectedCount()">
+            </div>
             <div class="approve-plat">
               <span class="post-dot" style="background:${PLAT_COLORS[p.platform]||'#888'};display:inline-block;margin-right:4px"></span>
               <span class="approve-plat-name">${p.platform}</span>
@@ -1480,35 +1501,49 @@ async function loadSocialAccounts() {
   if (!TENANT) return;
   loadGDriveStatus();
   try {
-    // Load connected accounts from smflow_social_accounts via Supabase
-    const res = await fetch(`${SUPABASE_URL}/rest/v1/smflow_social_accounts?tenant_id=eq.${TENANT.id}&is_active=eq.true&select=platform,account_name,is_verified,connected_at`, {
-      headers: {
-        'apikey': SUPABASE_KEY,
-        'Authorization': `Bearer ${SUPABASE_KEY}`,
-      }
-    });
+    const res = await fetch(
+      `${SUPABASE_URL}/rest/v1/smflow_social_accounts?tenant_id=eq.${TENANT.id}&is_active=eq.true&select=platform,account_name,is_verified,connected_at`,
+      { headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` } }
+    );
     const accounts = await res.json();
-    // Reset all to not connected first
-    ['facebook','instagram','linkedin','twitterx','whatsapp','youtube'].forEach(k => {
-      const el = document.getElementById('acc-status-' + k);
-      if (el) el.innerHTML = 'Not connected';
-      const card = document.getElementById('acc-' + k);
-      if (card) {
-        card.querySelector('.btn').textContent = 'Connect';
-        card.querySelector('.btn').style.borderColor = '';
-        card.querySelector('.btn').style.color = '';
+
+    // Reset all platforms to disconnected state
+    const platKeys = {
+      'Facebook':'facebook','Instagram':'instagram','LinkedIn':'linkedin',
+      'Twitter/X':'twitterx','WhatsApp':'whatsapp','YouTube':'youtube'
+    };
+    Object.values(platKeys).forEach(k => {
+      const statusEl = document.getElementById('acc-status-' + k);
+      const btnEl    = document.getElementById('acc-' + k)?.querySelector('.btn');
+      if (statusEl) statusEl.innerHTML = 'Not connected';
+      if (btnEl) {
+        btnEl.textContent        = 'Connect';
+        btnEl.style.borderColor  = '';
+        btnEl.style.color        = '';
+        btnEl.style.background   = '';
       }
     });
-    // Update connected ones
+
+    // Update connected platforms
+    const seen = new Set();
     (accounts||[]).forEach(acc => {
-      const key = acc.platform.replace('Twitter/X','twitterx').replace('/','').replace(' ','').toLowerCase();
-      const el  = document.getElementById('acc-status-' + key);
-      const btn = document.getElementById('acc-' + key)?.querySelector('.btn');
-      if (el) el.innerHTML = `<span class="connected-dot"></span>${acc.account_name || 'Connected'}${acc.is_verified ? ' ✓' : ''}`;
-      if (btn) { btn.textContent = 'Reconnect'; btn.style.borderColor = 'var(--green)'; btn.style.color = 'var(--green-t)'; }
+      const key = platKeys[acc.platform] || acc.platform.replace(/[^a-z]/gi,'').toLowerCase();
+      if (seen.has(key)) return; // dedupe — show first connected account per platform
+      seen.add(key);
+      const statusEl = document.getElementById('acc-status-' + key);
+      const btnEl    = document.getElementById('acc-' + key)?.querySelector('.btn');
+      if (statusEl) statusEl.innerHTML =
+        `<span class="connected-dot"></span>${acc.account_name || 'Connected'}`;
+      if (btnEl) {
+        btnEl.textContent        = 'Reconnect';
+        btnEl.style.borderColor  = 'var(--green)';
+        btnEl.style.color        = 'var(--green-t)';
+        btnEl.style.background   = 'var(--green-bg)';
+      }
     });
-    // URL param toasts handled in DOMContentLoaded
-  } catch(e) { console.warn('loadSocialAccounts:', e.message); }
+
+    console.log('Social accounts loaded:', (accounts||[]).length, 'connected');
+  } catch(e) { console.warn('loadSocialAccounts error:', e.message); }
 }
 
 function connectPlatform(platform) {
@@ -1610,7 +1645,12 @@ async function loadAssets() {
       <div class="asset-thumb" id="at-${a.id}" onclick="selectAsset('${a.id}','${(a.thumbnail_url||a.file_url).replace(/'/g,'%27')}','${(a.file_url).replace(/'/g,'%27')}')" title="${a.file_name||''}">
         <img src="${a.thumbnail_url || a.file_url}" alt="${a.alt_text||''}" loading="lazy"
              referrerpolicy="no-referrer"
-             onerror="this.src='https://via.placeholder.com/200x200?text=📷';this.onerror=null">
+             style="background:var(--surface)"
+             onerror="this.style.display='none';this.parentElement.querySelector('.asset-fallback').style.display='flex'">
+        <div class="asset-fallback" style="display:none;position:absolute;inset:0;align-items:center;justify-content:center;flex-direction:column;gap:4px;background:var(--surface)">
+          <span style="font-size:24px">📷</span>
+          <span style="font-size:9px;color:var(--muted);text-align:center;padding:0 4px;line-height:1.3">${(a.file_name||'').slice(0,20)}</span>
+        </div>
         <div class="asset-thumb-tags">
           ${(a.flavor_tags||[]).slice(0,2).map(t => `<span class="asset-thumb-tag">${t.replace('_',' ')}</span>`).join('')}
         </div>
@@ -1627,6 +1667,63 @@ function selectAsset(id, thumbUrl, fileUrl) {
   if (el) el.classList.add('selected');
   selectedAssetUrl = fileUrl;
   toast('✓ Photo selected — will attach to next generated post');
+}
+
+// ══════════════════════════════════════════════════════════
+// APPROVE — SELECT ALL / BATCH ACTIONS
+// ══════════════════════════════════════════════════════════
+function toggleSelectAll(checked) {
+  document.querySelectorAll('.post-checkbox').forEach(cb => cb.checked = checked);
+  updateSelectedCount();
+}
+
+function updateSelectedCount() {
+  const checked = document.querySelectorAll('.post-checkbox:checked');
+  const count   = checked.length;
+  const countEl = document.getElementById('selected-count');
+  const approveBtn = document.getElementById('approve-selected-btn');
+  const rejectBtn  = document.getElementById('reject-selected-btn');
+  const selectAll  = document.getElementById('select-all-posts');
+
+  if (countEl) { countEl.textContent = `${count} selected`; countEl.style.display = count > 0 ? 'inline' : 'none'; }
+  if (approveBtn) approveBtn.style.display = count > 0 ? 'inline-flex' : 'none';
+  if (rejectBtn)  rejectBtn.style.display  = count > 0 ? 'inline-flex' : 'none';
+
+  // Update select-all checkbox state
+  const all = document.querySelectorAll('.post-checkbox').length;
+  if (selectAll) {
+    selectAll.indeterminate = count > 0 && count < all;
+    selectAll.checked = all > 0 && count === all;
+  }
+}
+
+async function approveSelected() {
+  if (!TENANT) return;
+  const ids = [...document.querySelectorAll('.post-checkbox:checked')].map(cb => cb.dataset.id);
+  if (!ids.length) return toast('Select posts first');
+  for (const id of ids) {
+    await fetch(`${API_BASE}/smflow-approve`, {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ action:'approve', tenant_id: TENANT.id, post_id: id }),
+    });
+  }
+  toast(`✓ ${ids.length} posts approved`);
+  loadApproveTab();
+}
+
+async function rejectSelected() {
+  if (!TENANT) return;
+  const ids = [...document.querySelectorAll('.post-checkbox:checked')].map(cb => cb.dataset.id);
+  if (!ids.length) return toast('Select posts first');
+  const reason = prompt(`Reject ${ids.length} posts — reason (optional):`) || '';
+  for (const id of ids) {
+    await fetch(`${API_BASE}/smflow-approve`, {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ action:'reject', tenant_id: TENANT.id, post_id: id, reject_reason: reason }),
+    });
+  }
+  toast(`${ids.length} posts rejected`);
+  loadApproveTab();
 }
 
 // ══════════════════════════════════════════════════════════
