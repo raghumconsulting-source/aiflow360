@@ -188,7 +188,7 @@ async function driveListFiles(drive, folderId) {
 }
 
 const getDrivePublicUrl   = id => `https://drive.google.com/uc?export=view&id=${id}`;
-const getDriveThumbnailUrl = id => `https://drive.google.com/thumbnail?id=${id}&sz=w400`;
+const getDriveThumbnailUrl = id => `https://lh3.googleusercontent.com/d/${id}=w400`;
 
 exports.handler = async function (event) {
   if (event.httpMethod === 'OPTIONS') return { statusCode: 204, headers: HEADERS, body: '' };
