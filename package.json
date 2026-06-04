@@ -20,6 +20,7 @@
   "homepage": "https://github.com/raghumconsulting-source/aiflow360#readme",
   "dependencies": {
     "@supabase/supabase-js": "^2.106.1",
+    "googleapis": "^173.0.0",
     "stripe": "^22.1.1"
   }
 }
