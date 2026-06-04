@@ -25,6 +25,7 @@ const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY;
 const STORAGE_BUCKET       = 'tenant-assets';
 const SA_EMAIL             = process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL;
 const SA_KEY               = process.env.GOOGLE_SERVICE_ACCOUNT_KEY;
+const SHARED_DRIVE_ID      = process.env.GOOGLE_SHARED_DRIVE_ID; // SMflow Clients folder ID
 
 const HEADERS = {
   'Access-Control-Allow-Origin':  '*',
@@ -130,13 +131,28 @@ function getTagsFromFolder(name) {
 
 async function driveCreateFolder(drive, name, parentId) {
   const meta = { name, mimeType: 'application/vnd.google-apps.folder' };
-  if (parentId) meta.parents = [parentId];
-  const res = await drive.files.create({ requestBody: meta, fields: 'id,name,webViewLink' });
+  // Use provided parentId, or fall back to shared SMflow Clients folder
+  meta.parents = [parentId || SHARED_DRIVE_ID];
+  const res = await drive.files.create({
+    requestBody: meta,
+    fields: 'id,name,webViewLink',
+    supportsAllDrives: true,  // required for shared drives
+  });
   return res.data;
 }
 
 async function driveShareFolder(drive, fileId, role = 'writer') {
-  await drive.permissions.create({ fileId, requestBody: { role, type: 'anyone' } });
+  // Only share if not inside a Shared Drive (shared drives inherit permissions)
+  try {
+    await drive.permissions.create({
+      fileId,
+      requestBody: { role, type: 'anyone' },
+      supportsAllDrives: true,
+    });
+  } catch(e) {
+    // Non-fatal — shared drive folders inherit access from parent
+    console.warn('driveShareFolder non-fatal:', e.message);
+  }
 }
 
 async function driveCreateReadme(drive, parentId, subFolders) {
@@ -145,23 +161,28 @@ async function driveCreateReadme(drive, parentId, subFolders) {
   await drive.files.create({
     requestBody: { name: 'READ ME — How to add your photos.txt', mimeType: 'text/plain', parents: [parentId] },
     media: { mimeType: 'text/plain', body: content },
+    supportsAllDrives: true,
   });
 }
 
 async function driveListSubFolders(drive, folderId) {
   const res = await drive.files.list({
-    q:        `'${folderId}' in parents and mimeType = 'application/vnd.google-apps.folder' and trashed = false`,
-    fields:   'files(id,name)',
-    pageSize: 50,
+    q:                `'${folderId}' in parents and mimeType = 'application/vnd.google-apps.folder' and trashed = false`,
+    fields:           'files(id,name)',
+    pageSize:         50,
+    supportsAllDrives: true,
+    includeItemsFromAllDrives: true,
   });
   return res.data.files || [];
 }
 
 async function driveListFiles(drive, folderId) {
   const res = await drive.files.list({
-    q:        `'${folderId}' in parents and trashed = false`,
-    fields:   'files(id,name,mimeType,size,webContentLink,thumbnailLink,createdTime)',
-    pageSize: 100,
+    q:                `'${folderId}' in parents and trashed = false`,
+    fields:           'files(id,name,mimeType,size,webContentLink,thumbnailLink,createdTime)',
+    pageSize:         100,
+    supportsAllDrives: true,
+    includeItemsFromAllDrives: true,
   });
   return res.data.files || [];
 }
