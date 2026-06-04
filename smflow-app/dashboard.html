@@ -427,7 +427,8 @@ textarea.sct:focus{border-color:var(--violet)}
     <div class="tl">
       <div class="logo">SF</div>
       <span class="tl-name">SMflow</span>
-      <span class="tl-badge" id="industry-badge">Loading...</span>
+      <span class="tl-venue" id="venue-name" style="font-size:13px;font-weight:500;color:var(--text);margin-left:2px"></span>
+      <span class="tl-badge" id="industry-badge" style="font-size:11px"></span>
     </div>
     <div class="tr">
       <button class="tbtn btn-sm" id="gen-quick-btn" onclick="showTab('generate',document.querySelectorAll('.tab')[0])">
@@ -751,7 +752,9 @@ textarea.sct:focus{border-color:var(--violet)}
             </div>
             <div class="setting-row">
               <div><div class="setting-lbl">Target audience</div><div class="setting-sub">Who your posts are written for</div></div>
-              <input type="text" class="sct" id="cfg-audience" placeholder="e.g. Australian SMB owners">
+              <select class="sct" id="cfg-audience">
+                <option value="">Loading...</option>
+              </select>
             </div>
             <div style="padding-top:10px">
               <label style="font-size:11px;color:var(--muted);display:block;margin-bottom:4px;text-transform:uppercase;letter-spacing:.05em">Extra brand context</label>
@@ -974,7 +977,9 @@ async function init() {
     TENANT    = d.tenant;
     if (TENANT) {
       const badge = document.getElementById('industry-badge');
-      if (badge) badge.textContent = TENANT.industry_code ? TENANT.industry_code.replace(/_/g,' ') : TENANT.name || 'SMflow';
+      const vname = document.getElementById('venue-name');
+      if (vname) vname.textContent = TENANT.display_name || TENANT.name || '';
+      if (badge) badge.textContent = TENANT.industry_code ? TENANT.industry_code.replace(/_/g,' ') : '';
     }
   } catch(e) { console.warn('get-tenant:', e.message); }
   await loadConfig();
@@ -1010,18 +1015,19 @@ const INDUSTRY_AUDIENCES = {
 };
 
 function populateAudienceDropdown(industryCode, savedAudience) {
-  const sel = document.getElementById('audience');
-  if (!sel) return;
-  const options = INDUSTRY_AUDIENCES[industryCode] || INDUSTRY_AUDIENCES['_default'];
-  // Default to "Everyone" if nothing saved
+  const options  = INDUSTRY_AUDIENCES[industryCode] || INDUSTRY_AUDIENCES['_default'];
   const selected = savedAudience || 'Everyone (all audiences)';
-  sel.innerHTML = options
+  const html = options
     .map(o => `<option value="${o}"${o === selected ? ' selected' : ''}>${o}</option>`)
     .join('');
-  // If saved audience is a custom value not in the list, prepend it
-  if (savedAudience && !options.includes(savedAudience)) {
-    sel.innerHTML = `<option value="${savedAudience}" selected>${savedAudience}</option>` + sel.innerHTML;
-  }
+  const customPrefix = (savedAudience && !options.includes(savedAudience))
+    ? `<option value="${savedAudience}" selected>${savedAudience}</option>`
+    : '';
+  // Populate both Generate tab dropdown AND Settings tab dropdown
+  ['audience','cfg-audience'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.innerHTML = customPrefix + html;
+  });
 }
 
 // ══════════════════════════════════════════════════════════
@@ -1037,7 +1043,7 @@ async function loadConfig() {
     if (CONFIG) {
       document.getElementById('cfg-voice').value      = CONFIG.brand_voice      || 'Expert & Authoritative';
       document.getElementById('cfg-guru').value       = CONFIG.default_guru     || 'all';
-      document.getElementById('cfg-audience').value   = CONFIG.target_audience  || '';
+      // cfg-audience dropdown populated by populateAudienceDropdown() below with correct selection
       document.getElementById('cfg-context').value    = CONFIG.extra_context    || '';
       document.getElementById('cfg-canva-type').value = CONFIG.canva_design_type|| 'instagram_post';
       if (CONFIG.active_platforms) {
@@ -1050,9 +1056,10 @@ async function loadConfig() {
 
     // Industry badge + populate audience dropdown with industry-aware options
     const industryCode = d.tenant?.industry_code || TENANT?.industry_code || '_default';
-    if (d.tenant?.industry_code) {
-      document.getElementById('industry-badge').textContent = d.tenant.industry_code.replace(/_/g,' ');
-    }
+    const venameEl = document.getElementById('venue-name');
+    const badgeEl  = document.getElementById('industry-badge');
+    if (d.tenant?.display_name && venameEl) venameEl.textContent = d.tenant.display_name;
+    if (d.tenant?.industry_code && badgeEl)  badgeEl.textContent = d.tenant.industry_code.replace(/_/g,' ');
     populateAudienceDropdown(industryCode, CONFIG?.target_audience || '');
   } catch(e) { console.warn('smflow-config:', e.message); }
 }
