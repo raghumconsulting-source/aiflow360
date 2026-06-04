@@ -187,8 +187,40 @@ async function driveListFiles(drive, folderId) {
   return res.data.files || [];
 }
 
-const getDrivePublicUrl   = id => `https://drive.google.com/uc?export=view&id=${id}`;
-const getDriveThumbnailUrl = id => `https://lh3.googleusercontent.com/d/${id}=w400`;
+// Download a file from Google Drive and upload to Supabase Storage.
+// Returns { file_url, thumbnail_url, storage_path } served from own domain — no CORS issues.
+async function downloadAndStore(drive, fileId, fileName, mimeType, tenantId) {
+  // 1. Download binary from Drive using service account
+  const res = await drive.files.get(
+    { fileId, alt: 'media', supportsAllDrives: true },
+    { responseType: 'arraybuffer' }
+  );
+  const buffer = Buffer.from(res.data);
+
+  // 2. Build a safe storage path
+  const safeName = fileName.replace(/[^a-z0-9._-]/gi, '_').toLowerCase();
+  const path     = `${tenantId}/smflow/gdrive/${Date.now()}_${safeName}`;
+
+  // 3. Upload to Supabase Storage via REST (service key, bypasses RLS)
+  const uploadUrl = `${SUPABASE_URL}/storage/v1/object/${STORAGE_BUCKET}/${path}`;
+  const uploadRes = await fetch(uploadUrl, {
+    method:  'POST',
+    headers: {
+      'Authorization': `Bearer ${SUPABASE_SERVICE_KEY}`,
+      'Content-Type':  mimeType || 'image/jpeg',
+      'x-upsert':      'true',
+    },
+    body: buffer,
+  });
+  if (!uploadRes.ok) {
+    const txt = await uploadRes.text();
+    throw new Error(`Storage upload failed (${uploadRes.status}): ${txt.slice(0, 200)}`);
+  }
+
+  // 4. Public URL — own domain, no CORS
+  const publicUrl = `${SUPABASE_URL}/storage/v1/object/public/${STORAGE_BUCKET}/${path}`;
+  return { file_url: publicUrl, thumbnail_url: publicUrl, storage_path: path };
+}
 
 exports.handler = async function (event) {
   if (event.httpMethod === 'OPTIONS') return { statusCode: 204, headers: HEADERS, body: '' };
@@ -270,8 +302,21 @@ exports.handler = async function (event) {
         const drive    = getDriveClient();
         const syncedAt = new Date().toISOString();
         const results  = { imported: 0, skipped: 0, errors: [] };
-        const existing = await sb(`smflow_assets?tenant_id=eq.${tenant_id}&source=eq.gdrive&select=gdrive_file_id`);
-        const existingIds = new Set(existing.map(a => a.gdrive_file_id).filter(Boolean));
+
+        // re_sync=true: soft-delete all existing gdrive assets first so they are re-downloaded
+        // and stored in Supabase Storage (fixes old broken Google Drive thumbnail URLs)
+        if (body.re_sync) {
+          await sb(`smflow_assets?tenant_id=eq.${tenant_id}&source=eq.gdrive`, {
+            method: 'PATCH', prefer: 'return=minimal',
+            body: { is_active: false, updated_at: syncedAt },
+          });
+        }
+
+        // Only skip files already stored (active records with a storage_path = already in Supabase Storage)
+        const existing = await sb(`smflow_assets?tenant_id=eq.${tenant_id}&source=eq.gdrive&is_active=eq.true&select=gdrive_file_id,storage_path`);
+        const existingIds = new Set(
+          existing.filter(a => a.storage_path).map(a => a.gdrive_file_id).filter(Boolean)
+        );
         const subFolders  = await driveListSubFolders(drive, config.folder_id);
         const foldersToProcess = subFolders.length > 0
           ? subFolders.map(f => ({ ...f, tags: getTagsFromFolder(f.name) }))
@@ -282,12 +327,15 @@ exports.handler = async function (event) {
             if (!file.mimeType?.startsWith('image/') && !file.mimeType?.startsWith('video/')) continue;
             if (existingIds.has(file.id)) { results.skipped++; continue; }
             try {
+              // Download from Drive → upload to Supabase Storage → store own-domain URL
+              const stored = await downloadAndStore(drive, file.id, file.name, file.mimeType, tenant_id);
               await sb('smflow_assets', {
                 method: 'POST', prefer: 'return=minimal',
                 body: {
                   tenant_id,
-                  file_url:       getDrivePublicUrl(file.id),
-                  thumbnail_url:  getDriveThumbnailUrl(file.id),
+                  file_url:       stored.file_url,
+                  thumbnail_url:  stored.thumbnail_url,
+                  storage_path:   stored.storage_path,
                   file_name:      file.name,
                   file_type:      file.mimeType,
                   source:         'gdrive',
