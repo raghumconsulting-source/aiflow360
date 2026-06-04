@@ -391,6 +391,16 @@ textarea.sct:focus{border-color:var(--violet)}
   .flavor-grid{grid-template-columns:repeat(3,1fr)}
   .week-grid{grid-template-columns:repeat(4,1fr)}
 }
+
+/* ── Asset grid ──────────────────────────────────────────── */
+.asset-thumb{position:relative;border-radius:var(--r);overflow:hidden;aspect-ratio:1;cursor:pointer;border:2px solid transparent;transition:all .15s;background:var(--surface)}
+.asset-thumb:hover{border-color:var(--violet)}
+.asset-thumb.selected{border-color:var(--violet);box-shadow:0 0 0 2px var(--violet-bg)}
+.asset-thumb img{width:100%;height:100%;object-fit:cover;display:block}
+.asset-thumb-tags{position:absolute;bottom:0;left:0;right:0;background:linear-gradient(transparent,rgba(0,0,0,.6));padding:12px 5px 4px;display:flex;flex-wrap:wrap;gap:2px}
+.asset-thumb-tag{font-size:8px;padding:1px 4px;border-radius:3px;background:rgba(255,255,255,.2);color:#fff;font-family:'DM Mono',monospace;text-transform:uppercase}
+.asset-thumb-sel{position:absolute;top:4px;right:4px;width:18px;height:18px;border-radius:50%;background:var(--violet);color:#fff;display:none;align-items:center;justify-content:center;font-size:10px;font-weight:700}
+.asset-thumb.selected .asset-thumb-sel{display:flex}
 </style>
 </head>
 <body>
@@ -772,13 +782,61 @@ textarea.sct:focus{border-color:var(--violet)}
           </div>
         </div>
         <div class="card">
-          <div class="card-hdr"><div class="card-title">Google Drive</div><div class="card-sub">Photo library sync</div></div>
-          <div class="card-body">
-            <div class="setting-row" style="border:none;padding-top:0">
-              <div><div class="setting-lbl">Folder ID</div><div class="setting-sub">AITECHNIC curated photo pack</div></div>
-              <input type="text" class="sct" id="gdrive-folder-id" placeholder="Google Drive folder ID" style="width:160px">
+          <div class="card-hdr">
+            <div><div class="card-title">Google Drive</div><div class="card-sub" id="gdrive-status-sub">Photo library sync</div></div>
+            <button class="btn btn-outline btn-sm" id="gdrive-sync-btn" onclick="syncGDrive()" style="display:none">↻ Sync photos</button>
+          </div>
+          <div class="card-body" id="gdrive-card-body">
+            <div id="gdrive-connected-view" style="display:none">
+              <div style="display:flex;align-items:center;gap:8px;padding:10px 12px;background:var(--green-bg);border-radius:var(--r);margin-bottom:12px">
+                <span style="color:var(--green-t);font-size:13px">✓ Connected</span>
+                <span id="gdrive-folder-name" style="font-size:12px;color:var(--green-t);font-weight:500"></span>
+                <a id="gdrive-folder-link" href="#" target="_blank" style="font-size:11px;color:var(--teal);margin-left:auto">Open in Drive →</a>
+              </div>
+              <div style="display:flex;gap:16px;flex-wrap:wrap">
+                <div style="text-align:center">
+                  <div style="font-size:22px;font-weight:500;color:var(--teal)" id="gdrive-asset-count">0</div>
+                  <div style="font-size:11px;color:var(--muted)">Photos synced</div>
+                </div>
+                <div style="text-align:center">
+                  <div style="font-size:22px;font-weight:500;color:var(--muted)" id="gdrive-last-sync">—</div>
+                  <div style="font-size:11px;color:var(--muted)">Last sync</div>
+                </div>
+              </div>
             </div>
-            <button class="btn btn-outline btn-sm" style="margin-top:8px;width:100%" onclick="connectGDrive()">Connect Google Drive</button>
+            <div id="gdrive-connect-view">
+              <div class="setting-row" style="border:none;padding-top:0">
+                <div><div class="setting-lbl">Folder ID</div><div class="setting-sub">AITECHNIC curated photo pack</div></div>
+                <input type="text" class="sct" id="gdrive-folder-id" placeholder="Google Drive folder ID" style="width:160px">
+              </div>
+              <button class="btn btn-outline btn-sm" style="margin-top:8px;width:100%" onclick="connectGDrive()">Connect Google Drive</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Asset Library -->
+        <div class="card" id="asset-library-card" style="display:none">
+          <div class="card-hdr">
+            <div class="card-title">📸 Photo library</div>
+            <div style="display:flex;gap:6px;align-items:center">
+              <select class="tbtn" id="asset-flavor-filter" onchange="loadAssets()" style="padding:5px 8px;font-family:'Geist',sans-serif;font-size:11px">
+                <option value="">All flavors</option>
+                <option value="social_proof">Social Proof</option>
+                <option value="behind_scenes">Behind Scenes</option>
+                <option value="inspiration">Inspiration</option>
+                <option value="humor">Humor</option>
+                <option value="fomo">FOMO</option>
+                <option value="urgency">Urgency</option>
+                <option value="education">Education</option>
+                <option value="awareness">Awareness</option>
+              </select>
+              <span style="font-size:11px;color:var(--muted)" id="asset-count-lbl">0 photos</span>
+            </div>
+          </div>
+          <div class="card-body" style="padding:10px">
+            <div id="asset-grid" style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px">
+              <div class="empty" style="grid-column:1/-1"><p>No photos yet — sync Google Drive first</p></div>
+            </div>
           </div>
         </div>
       </div>
@@ -1020,6 +1078,7 @@ async function generatePosts() {
         active_platforms:    [...activePlats],
         canva_design_type:   document.getElementById('cfg-canva-type').value,
         generate_canva_briefs: withCanva,
+        image_url:           selectedAssetUrl || null,
       }),
     });
     const d = await res.json();
@@ -1082,7 +1141,10 @@ function renderPostCard(post, flavor, container) {
   const over   = chars > max;
   const div    = document.createElement('div');
   div.className = 'post-out';
-  div.innerHTML = `
+  const imgHtml = (post.image_url || selectedAssetUrl)
+    ? `<div style="width:100%;max-height:180px;overflow:hidden;background:var(--surface);border-bottom:0.5px solid var(--border)"><img src="${post.image_url || selectedAssetUrl}" style="width:100%;height:180px;object-fit:cover" onerror="this.parentElement.style.display='none'"></div>`
+    : '';
+  div.innerHTML = `${imgHtml}
     <div class="post-hdr">
       <div class="post-plat">
         <span class="post-dot" style="background:${color}"></span>
@@ -1377,6 +1439,7 @@ async function askAgent(msg) {
 // ══════════════════════════════════════════════════════════
 async function loadSocialAccounts() {
   if (!TENANT) return;
+  loadGDriveStatus();
   try {
     const res = await fetch(`${API_BASE}/smflow-publish?tenant_id=${TENANT.id}&action=accounts`);
     const d   = await res.json();
@@ -1393,14 +1456,111 @@ async function loadSocialAccounts() {
 function connectPlatform(platform) {
   toast(`Connect ${platform} — OAuth flow coming in Sprint 5/6`);
 }
+// ── Selected asset for post attachment ───────────────────
+let selectedAssetUrl = null;
+
 async function connectGDrive() {
   const folderId = document.getElementById('gdrive-folder-id').value.trim();
   if (!folderId || !TENANT) return toast('Enter a folder ID');
-  await fetch(`${API_BASE}/smflow-assets`, {
+  const res = await fetch(`${API_BASE}/smflow-assets`, {
     method:'POST', headers:{'Content-Type':'application/json'},
     body: JSON.stringify({ action:'gdrive_connect', tenant_id: TENANT.id, folder_id: folderId }),
   });
-  toast('✓ Google Drive connected');
+  const d = await res.json();
+  if (d.success) { toast('✓ Google Drive connected'); loadGDriveStatus(); }
+  else toast('Error: ' + d.error);
+}
+
+async function loadGDriveStatus() {
+  if (!TENANT) return;
+  try {
+    const res = await fetch(`${API_BASE}/smflow-assets`, {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ action:'gdrive_status', tenant_id: TENANT.id }),
+    });
+    const d = await res.json();
+    if (d.connected) {
+      document.getElementById('gdrive-connected-view').style.display = 'block';
+      document.getElementById('gdrive-connect-view').style.display   = 'none';
+      document.getElementById('gdrive-sync-btn').style.display       = 'inline-flex';
+      document.getElementById('asset-library-card').style.display    = 'block';
+      document.getElementById('gdrive-folder-name').textContent      = d.folder_name || '';
+      const link = document.getElementById('gdrive-folder-link');
+      if (link && d.folder_url) link.href = d.folder_url;
+      document.getElementById('gdrive-asset-count').textContent = d.assets_in_db || 0;
+      if (d.last_synced_at) {
+        const dt = new Date(d.last_synced_at);
+        document.getElementById('gdrive-last-sync').textContent =
+          dt.toLocaleDateString('en-AU',{day:'numeric',month:'short'}) + ' ' +
+          dt.toLocaleTimeString('en-AU',{hour:'2-digit',minute:'2-digit'});
+      }
+      loadAssets();
+    } else {
+      document.getElementById('gdrive-connected-view').style.display = 'none';
+      document.getElementById('gdrive-connect-view').style.display   = 'block';
+      document.getElementById('gdrive-sync-btn').style.display       = 'none';
+      document.getElementById('asset-library-card').style.display    = 'none';
+    }
+  } catch(e) { console.warn('gdrive status:', e.message); }
+}
+
+async function syncGDrive() {
+  if (!TENANT) return;
+  const btn = document.getElementById('gdrive-sync-btn');
+  btn.textContent = '⏳ Syncing...'; btn.disabled = true;
+  try {
+    const res = await fetch(`${API_BASE}/smflow-assets`, {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ action:'gdrive_sync', tenant_id: TENANT.id }),
+    });
+    const d = await res.json();
+    if (d.success) {
+      toast(`✓ ${d.imported} new photos synced`);
+      loadGDriveStatus();
+      loadAssets();
+    } else {
+      toast('Sync error: ' + d.error);
+    }
+  } catch(e) { toast('Sync failed: ' + e.message); }
+  btn.textContent = '↻ Sync photos'; btn.disabled = false;
+}
+
+async function loadAssets() {
+  if (!TENANT) return;
+  const flavor = document.getElementById('asset-flavor-filter')?.value || '';
+  try {
+    let url = `${API_BASE}/smflow-assets?tenant_id=${TENANT.id}&source=gdrive&limit=40`;
+    if (flavor) url += `&flavor=${encodeURIComponent(flavor)}`;
+    const res = await fetch(url);
+    const d   = await res.json();
+    const grid = document.getElementById('asset-grid');
+    const lbl  = document.getElementById('asset-count-lbl');
+    if (!d.assets?.length) {
+      grid.innerHTML = '<div class="empty" style="grid-column:1/-1"><p>No photos yet — click Sync photos above</p></div>';
+      if (lbl) lbl.textContent = '0 photos';
+      return;
+    }
+    if (lbl) lbl.textContent = `${d.assets.length} photos`;
+    grid.innerHTML = d.assets.map(a => `
+      <div class="asset-thumb" id="at-${a.id}" onclick="selectAsset('${a.id}','${(a.thumbnail_url||a.file_url).replace(/'/g,'%27')}','${(a.file_url).replace(/'/g,'%27')}')" title="${a.file_name||''}">
+        <img src="${a.thumbnail_url || a.file_url}" alt="${a.alt_text||''}" loading="lazy"
+             onerror="this.style.background='var(--surface)';this.style.display='block';this.parentElement.style.background='var(--surface)'">
+        <div class="asset-thumb-tags">
+          ${(a.flavor_tags||[]).slice(0,2).map(t => `<span class="asset-thumb-tag">${t.replace('_',' ')}</span>`).join('')}
+        </div>
+        <div class="asset-thumb-sel">✓</div>
+      </div>`).join('');
+  } catch(e) { console.warn('loadAssets:', e.message); }
+}
+
+function selectAsset(id, thumbUrl, fileUrl) {
+  // Deselect previous
+  document.querySelectorAll('.asset-thumb.selected').forEach(el => el.classList.remove('selected'));
+  // Select new
+  const el = document.getElementById('at-' + id);
+  if (el) el.classList.add('selected');
+  selectedAssetUrl = fileUrl;
+  toast('✓ Photo selected — will attach to next generated post');
 }
 
 // ══════════════════════════════════════════════════════════
