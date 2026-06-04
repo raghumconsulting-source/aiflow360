@@ -987,201 +987,39 @@ async function init() {
 // AUDIENCE DROPDOWN — industry-aware
 // ══════════════════════════════════════════════════════════
 const INDUSTRY_AUDIENCES = {
-  accommodation_food: [
-    'Local diners & food lovers',
-    'Families looking for a meal out',
-    'Corporate lunch & function crowd',
-    'Tourists & visitors to the area',
-    'Foodies & social media enthusiasts',
-    'Regular locals & repeat customers',
-    'Event & celebration bookers',
-  ],
-  retail_trade: [
-    'Local shoppers & walk-in customers',
-    'Online shoppers',
-    'Gift buyers & occasion shoppers',
-    'Loyal repeat customers',
-    'Bargain hunters & sale seekers',
-    'Fashion & lifestyle enthusiasts',
-    'Parents & families',
-  ],
-  healthcare: [
-    'Existing patients & clients',
-    'People seeking preventative care',
-    'Families & caregivers',
-    'Seniors & aged care patients',
-    'New residents looking for a provider',
-    'Chronic condition patients',
-    'Health-conscious individuals',
-  ],
-  beauty: [
-    'Local women seeking beauty services',
-    'Brides & wedding party clients',
-    'Regular appointment clients',
-    'Men\'s grooming customers',
-    'Teens & young adults',
-    'Gift voucher buyers',
-    'Luxury & self-care seekers',
-  ],
-  arts_recreation: [
-    'Fitness enthusiasts & regulars',
-    'People starting their fitness journey',
-    'Families & kids programs',
-    'Athletes & performance seekers',
-    'Yoga & wellness seekers',
-    'Weight loss & body transformation clients',
-    'Corporate wellness participants',
-  ],
-  professional_technical: [
-    'Small business owners',
-    'Medium business owners',
-    'Entrepreneurs & startups',
-    'Operations managers',
-    'Finance & accounting professionals',
-    'Business decision-makers',
-    'C-suite & senior executives',
-  ],
-  financial_insurance: [
-    'Small business owners',
-    'Individuals planning for retirement',
-    'Investors & wealth builders',
-    'Young professionals',
-    'Families planning their finances',
-    'Self-managed super fund (SMSF) holders',
-    'Business owners seeking advice',
-  ],
-  real_estate: [
-    'First home buyers',
-    'Property investors',
-    'Homeowners looking to sell',
-    'Renters seeking a property',
-    'Downsizers & lifestyle movers',
-    'Developers & commercial buyers',
-    'Relocating families & professionals',
-  ],
-  information_media: [
-    'Small business owners',
-    'IT managers & decision-makers',
-    'Startups & tech founders',
-    'Marketing teams',
-    'Non-technical business owners',
-    'Enterprise procurement teams',
-    'Government & public sector buyers',
-  ],
-  education_training: [
-    'Students & learners',
-    'Parents choosing a school or program',
-    'Working professionals upskilling',
-    'Job seekers & career changers',
-    'Corporate training buyers',
-    'Recent school leavers',
-    'International students',
-  ],
-  construction_trade: [
-    'Homeowners planning a renovation',
-    'Property developers & investors',
-    'Commercial property managers',
-    'Real estate agents & stagers',
-    'Strata & body corporate managers',
-    'Insurance repair clients',
-    'New home builders',
-  ],
-  admin_support: [
-    'Small business owners',
-    'Operations & office managers',
-    'HR professionals',
-    'Startups needing back-office support',
-    'Accounting & bookkeeping clients',
-    'Non-profit organisations',
-    'Solo operators & sole traders',
-  ],
-  personal_services: [
-    'Local community members',
-    'Busy professionals needing help',
-    'Families & households',
-    'Seniors needing support',
-    'Regular & loyal clients',
-    'Gift voucher buyers',
-    'New movers to the area',
-  ],
-  automotive: [
-    'Car owners needing servicing',
-    'New & used car buyers',
-    'Fleet & business vehicle managers',
-    'Motorists after roadside assistance',
-    'Car enthusiasts & modifiers',
-    'Insurance & smash repair clients',
-    'Rideshare & delivery drivers',
-  ],
-  transport: [
-    'Businesses needing freight & delivery',
-    'E-commerce sellers',
-    'Importers & exporters',
-    'Event & hire transport clients',
-    'Families booking transfers',
-    'Corporate travel managers',
-    'Tourists & visitors',
-  ],
-  tourism: [
-    'Tourists & interstate visitors',
-    'International travellers',
-    'Local residents seeking experiences',
-    'Travel agents & tour operators',
-    'Corporate event & incentive planners',
-    'Adventure & outdoor enthusiasts',
-    'Couples & romantic getaway seekers',
-  ],
-  agriculture: [
-    'Farmers & rural property owners',
-    'Agricultural supply buyers',
-    'Food producers & processors',
-    'Export market buyers',
-    'Rural community members',
-    'Agribusiness investors',
-    'Sustainability-focused producers',
-  ],
-  manufacturing: [
-    'Wholesale & trade buyers',
-    'Retail & distribution partners',
-    'Procurement & supply chain managers',
-    'Export & international clients',
-    'Small business product sourcing',
-    'OEM & contract customers',
-    'Sustainable sourcing buyers',
-  ],
-  ecommerce: [
-    'Online shoppers',
-    'Bargain & deal seekers',
-    'Loyal repeat customers',
-    'Gift buyers',
-    'Social media influenced shoppers',
-    'Niche product enthusiasts',
-    'Mobile-first buyers',
-  ],
-  _default: [
-    'Local customers',
-    'General public',
-    'Existing clients',
-    'New prospects',
-    'Online audience',
-    'Community members',
-    'Business clients',
-  ],
+  accommodation_food: ['Everyone (all audiences)','Local diners & food lovers','Families looking for a meal out','Corporate lunch & function crowd','Tourists & visitors to the area','Foodies & social media enthusiasts','Regular locals & repeat customers','Event & celebration bookers'],
+  retail_trade:       ['Everyone (all audiences)','Local shoppers & walk-in customers','Online shoppers','Gift buyers & occasion shoppers','Loyal repeat customers','Bargain hunters & sale seekers','Fashion & lifestyle enthusiasts','Parents & families'],
+  healthcare:         ['Everyone (all audiences)','Existing patients & clients','People seeking preventative care','Families & caregivers','Seniors & aged care patients','New residents looking for a provider','Chronic condition patients','Health-conscious individuals'],
+  beauty:             ['Everyone (all audiences)','Local women seeking beauty services','Brides & wedding party clients','Regular appointment clients','Men\'s grooming customers','Teens & young adults','Gift voucher buyers','Luxury & self-care seekers'],
+  arts_recreation:    ['Everyone (all audiences)','Fitness enthusiasts & regulars','People starting their fitness journey','Families & kids programs','Athletes & performance seekers','Yoga & wellness seekers','Weight loss & body transformation clients','Corporate wellness participants'],
+  professional_technical: ['Everyone (all audiences)','Small business owners','Medium business owners','Entrepreneurs & startups','Operations managers','Finance & accounting professionals','Business decision-makers','C-suite & senior executives'],
+  financial_insurance:['Everyone (all audiences)','Small business owners','Individuals planning for retirement','Investors & wealth builders','Young professionals','Families planning their finances','SMSF holders','Business owners seeking advice'],
+  real_estate:        ['Everyone (all audiences)','First home buyers','Property investors','Homeowners looking to sell','Renters seeking a property','Downsizers & lifestyle movers','Developers & commercial buyers','Relocating families & professionals'],
+  information_media:  ['Everyone (all audiences)','Small business owners','IT managers & decision-makers','Startups & tech founders','Marketing teams','Non-technical business owners','Enterprise procurement teams','Government & public sector buyers'],
+  education_training: ['Everyone (all audiences)','Students & learners','Parents choosing a school or program','Working professionals upskilling','Job seekers & career changers','Corporate training buyers','Recent school leavers','International students'],
+  construction_trade: ['Everyone (all audiences)','Homeowners planning a renovation','Property developers & investors','Commercial property managers','Real estate agents & stagers','Strata & body corporate managers','Insurance repair clients','New home builders'],
+  admin_support:      ['Everyone (all audiences)','Small business owners','Operations & office managers','HR professionals','Startups needing back-office support','Accounting & bookkeeping clients','Non-profit organisations','Solo operators & sole traders'],
+  personal_services:  ['Everyone (all audiences)','Local community members','Busy professionals needing help','Families & households','Seniors needing support','Regular & loyal clients','Gift voucher buyers','New movers to the area'],
+  automotive:         ['Everyone (all audiences)','Car owners needing servicing','New & used car buyers','Fleet & business vehicle managers','Motorists after roadside assistance','Car enthusiasts & modifiers','Insurance & smash repair clients','Rideshare & delivery drivers'],
+  transport:          ['Everyone (all audiences)','Businesses needing freight & delivery','E-commerce sellers','Importers & exporters','Event & hire transport clients','Families booking transfers','Corporate travel managers','Tourists & visitors'],
+  tourism:            ['Everyone (all audiences)','Tourists & interstate visitors','International travellers','Local residents seeking experiences','Travel agents & tour operators','Corporate event & incentive planners','Adventure & outdoor enthusiasts','Couples & romantic getaway seekers'],
+  agriculture:        ['Everyone (all audiences)','Farmers & rural property owners','Agricultural supply buyers','Food producers & processors','Export market buyers','Rural community members','Agribusiness investors','Sustainability-focused producers'],
+  manufacturing:      ['Everyone (all audiences)','Wholesale & trade buyers','Retail & distribution partners','Procurement & supply chain managers','Export & international clients','Small business product sourcing','OEM & contract customers','Sustainable sourcing buyers'],
+  ecommerce:          ['Everyone (all audiences)','Online shoppers','Bargain & deal seekers','Loyal repeat customers','Gift buyers','Social media influenced shoppers','Niche product enthusiasts','Mobile-first buyers'],
+  _default:           ['Everyone (all audiences)','Local customers','General public','Existing clients','New prospects','Online audience','Community members','Business clients'],
 };
 
 function populateAudienceDropdown(industryCode, savedAudience) {
   const sel = document.getElementById('audience');
   if (!sel) return;
-  const industryOptions = INDUSTRY_AUDIENCES[industryCode] || INDUSTRY_AUDIENCES['_default'];
-  const everyone = 'Everyone (all audiences)';
-  const allOptions = [everyone, ...industryOptions];
+  const options = INDUSTRY_AUDIENCES[industryCode] || INDUSTRY_AUDIENCES['_default'];
   // Default to "Everyone" if nothing saved
-  const selected = savedAudience || everyone;
-  sel.innerHTML = allOptions
+  const selected = savedAudience || 'Everyone (all audiences)';
+  sel.innerHTML = options
     .map(o => `<option value="${o}"${o === selected ? ' selected' : ''}>${o}</option>`)
     .join('');
   // If saved audience is a custom value not in the list, prepend it
-  if (savedAudience && !allOptions.includes(savedAudience)) {
+  if (savedAudience && !options.includes(savedAudience)) {
     sel.innerHTML = `<option value="${savedAudience}" selected>${savedAudience}</option>` + sel.innerHTML;
   }
 }
@@ -1210,13 +1048,12 @@ async function loadConfig() {
       }
     }
 
-    // Industry badge + audience dropdown
+    // Industry badge + populate audience dropdown with industry-aware options
     const industryCode = d.tenant?.industry_code || TENANT?.industry_code || '_default';
     if (d.tenant?.industry_code) {
       document.getElementById('industry-badge').textContent = d.tenant.industry_code.replace(/_/g,' ');
     }
-    const savedAudience = CONFIG?.target_audience || '';
-    populateAudienceDropdown(industryCode, savedAudience);
+    populateAudienceDropdown(industryCode, CONFIG?.target_audience || '');
   } catch(e) { console.warn('smflow-config:', e.message); }
 }
 
@@ -1843,10 +1680,16 @@ async function loadAssets() {
       return;
     }
     if (lbl) lbl.textContent = `${d.assets.length} photos`;
-    grid.innerHTML = d.assets.map(a => `
-      <div class="asset-thumb" id="at-${a.id}" onclick="selectAsset('${a.id}','${(a.thumbnail_url||a.file_url).replace(/'/g,'%27')}','${(a.file_url).replace(/'/g,'%27')}')" title="${a.file_name||''}">
-        <img src="${a.thumbnail_url || a.file_url}" alt="${a.alt_text||''}" loading="lazy"
+    grid.innerHTML = d.assets.map(a => {
+      // Build public URL — prefer explicit fields, fall back to Supabase storage path
+      const imgSrc = a.thumbnail_url || a.file_url ||
+        (a.storage_path ? `${SUPABASE_URL}/storage/v1/object/public/tenant-assets/${a.storage_path}` : '');
+      const safeSrc = imgSrc.replace(/'/g,'%27');
+      return `
+      <div class="asset-thumb" id="at-${a.id}" onclick="selectAsset('${a.id}','${safeSrc}','${safeSrc}')" title="${a.file_name||''}">
+        <img src="${imgSrc}" alt="${a.alt_text||''}" loading="lazy"
              referrerpolicy="no-referrer"
+             crossorigin="anonymous"
              style="background:var(--surface)"
              onerror="this.style.display='none';this.parentElement.querySelector('.asset-fallback').style.display='flex'">
         <div class="asset-fallback" style="display:none;position:absolute;inset:0;align-items:center;justify-content:center;flex-direction:column;gap:4px;background:var(--surface)">
@@ -1857,7 +1700,8 @@ async function loadAssets() {
           ${(a.flavor_tags||[]).slice(0,2).map(t => `<span class="asset-thumb-tag">${t.replace('_',' ')}</span>`).join('')}
         </div>
         <div class="asset-thumb-sel">✓</div>
-      </div>`).join('');
+      </div>`;
+    }).join('');
   } catch(e) { console.warn('loadAssets:', e.message); }
 }
 
@@ -1981,8 +1825,14 @@ document.addEventListener('DOMContentLoaded', () => {
     // Show connect success/error toast
     const success = params.get('connect_success');
     const error   = params.get('connect_error');
-    if (success) setTimeout(() => toast('✓ ' + decodeURIComponent(success)), 500);
-    if (error)   setTimeout(() => toast('⚠ ' + decodeURIComponent(error)), 500);
+    if (success) {
+      setTimeout(() => toast('✓ ' + decodeURIComponent(success)), 500);
+      // Auto-navigate to Settings and refresh social account status
+      const settingsTab = document.querySelector(`.tab[onclick*="'settings'"]`);
+      if (settingsTab) showTab('settings', settingsTab);
+      setTimeout(() => loadSocialAccounts(), 800);
+    }
+    if (error) setTimeout(() => toast('⚠ ' + decodeURIComponent(error)), 500);
   });
 });
 </script>
