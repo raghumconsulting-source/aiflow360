@@ -769,15 +769,54 @@ textarea.sct:focus{border-color:var(--violet)}
           </div>
           <div class="card-body">
             <div class="social-accounts" id="social-accounts-list">
-              ${['Facebook','Instagram','LinkedIn','Twitter/X','WhatsApp','YouTube'].map(p => `
-              <div class="social-acc" id="acc-${p.replace('/','').toLowerCase()}">
-                <div class="social-acc-icon" style="background:var(--surface)">${{Facebook:'👥',Instagram:'📸',LinkedIn:'💼','Twitter/X':'🐦',WhatsApp:'💬',YouTube:'▶️'}[p]}</div>
+              <div class="social-acc" id="acc-facebook">
+                <div class="social-acc-icon" style="background:var(--surface)">👥</div>
                 <div class="social-acc-info">
-                  <div class="social-acc-name">${p}</div>
-                  <div class="social-acc-status" id="acc-status-${p.replace('/','').toLowerCase()}">Not connected</div>
+                  <div class="social-acc-name">Facebook</div>
+                  <div class="social-acc-status" id="acc-status-facebook">Not connected</div>
                 </div>
-                <button class="btn btn-outline btn-sm" onclick="connectPlatform('${p}')">Connect</button>
-              </div>`).join('')}
+                <button class="btn btn-outline btn-sm" onclick="connectPlatform('Facebook')">Connect</button>
+              </div>
+              <div class="social-acc" id="acc-instagram">
+                <div class="social-acc-icon" style="background:var(--surface)">📸</div>
+                <div class="social-acc-info">
+                  <div class="social-acc-name">Instagram</div>
+                  <div class="social-acc-status" id="acc-status-instagram">Not connected</div>
+                </div>
+                <button class="btn btn-outline btn-sm" onclick="connectPlatform('Instagram')">Connect</button>
+              </div>
+              <div class="social-acc" id="acc-linkedin">
+                <div class="social-acc-icon" style="background:var(--surface)">💼</div>
+                <div class="social-acc-info">
+                  <div class="social-acc-name">LinkedIn</div>
+                  <div class="social-acc-status" id="acc-status-linkedin">Not connected</div>
+                </div>
+                <button class="btn btn-outline btn-sm" onclick="connectPlatform('LinkedIn')">Connect</button>
+              </div>
+              <div class="social-acc" id="acc-twitterx">
+                <div class="social-acc-icon" style="background:var(--surface)">🐦</div>
+                <div class="social-acc-info">
+                  <div class="social-acc-name">Twitter/X</div>
+                  <div class="social-acc-status" id="acc-status-twitterx">Not connected</div>
+                </div>
+                <button class="btn btn-outline btn-sm" onclick="connectPlatform('Twitter/X')">Connect</button>
+              </div>
+              <div class="social-acc" id="acc-whatsapp">
+                <div class="social-acc-icon" style="background:var(--surface)">💬</div>
+                <div class="social-acc-info">
+                  <div class="social-acc-name">WhatsApp</div>
+                  <div class="social-acc-status" id="acc-status-whatsapp">Not connected</div>
+                </div>
+                <button class="btn btn-outline btn-sm" onclick="connectPlatform('WhatsApp')">Connect</button>
+              </div>
+              <div class="social-acc" id="acc-youtube">
+                <div class="social-acc-icon" style="background:var(--surface)">▶️</div>
+                <div class="social-acc-info">
+                  <div class="social-acc-name">YouTube</div>
+                  <div class="social-acc-status" id="acc-status-youtube">Not connected</div>
+                </div>
+                <button class="btn btn-outline btn-sm" onclick="connectPlatform('YouTube')">Connect</button>
+              </div>
             </div>
           </div>
         </div>
@@ -1441,20 +1480,49 @@ async function loadSocialAccounts() {
   if (!TENANT) return;
   loadGDriveStatus();
   try {
-    const res = await fetch(`${API_BASE}/smflow-publish?tenant_id=${TENANT.id}&action=accounts`);
-    const d   = await res.json();
-    (d.accounts||[]).forEach(acc => {
-      const key = acc.platform.replace('/','').toLowerCase();
-      const el  = document.getElementById('acc-status-' + key);
-      if (el) {
-        el.innerHTML = `<span class="connected-dot"></span>${acc.account_name || 'Connected'} ${acc.is_verified?'✓':'(pending verify)'}`;
+    // Load connected accounts from smflow_social_accounts via Supabase
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/smflow_social_accounts?tenant_id=eq.${TENANT.id}&is_active=eq.true&select=platform,account_name,is_verified,connected_at`, {
+      headers: {
+        'apikey': SUPABASE_KEY,
+        'Authorization': `Bearer ${SUPABASE_KEY}`,
       }
     });
-  } catch(e) {}
+    const accounts = await res.json();
+    // Reset all to not connected first
+    ['facebook','instagram','linkedin','twitterx','whatsapp','youtube'].forEach(k => {
+      const el = document.getElementById('acc-status-' + k);
+      if (el) el.innerHTML = 'Not connected';
+      const card = document.getElementById('acc-' + k);
+      if (card) {
+        card.querySelector('.btn').textContent = 'Connect';
+        card.querySelector('.btn').style.borderColor = '';
+        card.querySelector('.btn').style.color = '';
+      }
+    });
+    // Update connected ones
+    (accounts||[]).forEach(acc => {
+      const key = acc.platform.replace(/[^a-z]/gi,'').toLowerCase();
+      const el  = document.getElementById('acc-status-' + key);
+      const btn = document.getElementById('acc-' + key)?.querySelector('.btn');
+      if (el) el.innerHTML = `<span class="connected-dot"></span>${acc.account_name || 'Connected'}${acc.is_verified ? ' ✓' : ''}`;
+      if (btn) { btn.textContent = 'Reconnect'; btn.style.borderColor = 'var(--green)'; btn.style.color = 'var(--green-t)'; }
+    });
+    // Check URL for connect_success message
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('connect_success')) toast('✓ ' + params.get('connect_success'));
+    if (params.get('connect_error')) toast('⚠ ' + params.get('connect_error'));
+  } catch(e) { console.warn('loadSocialAccounts:', e.message); }
 }
 
 function connectPlatform(platform) {
-  toast(`Connect ${platform} — OAuth flow coming in Sprint 5/6`);
+  if (!TENANT) return toast('Not logged in');
+  if (platform === 'Facebook' || platform === 'Instagram') {
+    // Both Facebook + Instagram connect via same Meta OAuth flow
+    const oauthUrl = `/.netlify/functions/smflow-oauth?tenant_id=${TENANT.id}&platform=facebook&redirect_back=${encodeURIComponent(window.location.href)}`;
+    window.location.href = oauthUrl;
+  } else {
+    toast(`${platform} publishing coming in Sprint 8`);
+  }
 }
 // ── Selected asset for post attachment ───────────────────
 let selectedAssetUrl = null;
