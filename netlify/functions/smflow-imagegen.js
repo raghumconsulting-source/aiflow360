@@ -17,7 +17,7 @@
 const SUPABASE_URL         = process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY;
 const GEMINI_API_KEY       = process.env.Gemini_SMflow_API_Key;
-const IMAGINE_ART_API_KEY  = process.env.IMAGINE_ART_API_KEY;
+const IMAGINE_ART_API_KEY  = process.env.imagine_art_smflow_app;
 const OPENAI_API_KEY       = process.env.OPENAI_API_KEY;
 const STORAGE_BUCKET       = 'tenant-assets';
 
