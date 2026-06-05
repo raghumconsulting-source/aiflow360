@@ -29,14 +29,13 @@ const FB_SCOPES = [
 ].join(',');
 
 // ── LinkedIn scopes ────────────────────────────────────────
+// Only request scopes that are auto-approved for new apps
+// Organization scopes require LinkedIn partnership review
 const LINKEDIN_SCOPES = [
-  'openid',
-  'profile',
-  'email',
-  'w_member_social',       // post on behalf of member
-  'r_organization_social', // read org posts
-  'w_organization_social', // post on behalf of org/page
-  'rw_organization_admin', // manage org
+  'openid',          // basic identity
+  'profile',         // name, photo
+  'email',           // email address
+  'w_member_social', // post as member — auto-approved
 ].join(' ');
 
 // ── YouTube / Google scopes ────────────────────────────────

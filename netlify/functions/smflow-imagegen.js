@@ -120,9 +120,8 @@ function buildPrompt({ post_content, flavor, industry_code, brand_voice, target_
 
 // ── Call Gemini 2.5 Flash Image (free tier, 500 images/day) ──
 async function generateWithGemini(prompt) {
-  // Uses gemini-2.5-flash-image-preview (Nano Banana) — free tier
-  // Standard generateContent endpoint, returns inline base64 image
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${GEMINI_API_KEY}`;
+  // Uses gemini-2.5-flash-image (Nano Banana) — free tier image generation
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-image:generateContent?key=${GEMINI_API_KEY}`;
 
   const res = await fetch(url, {
     method:  'POST',
@@ -132,8 +131,7 @@ async function generateWithGemini(prompt) {
         parts: [{ text: prompt }],
       }],
       generationConfig: {
-        responseModalities: ['IMAGE', 'TEXT'],
-        responseMimeType:   'text/plain',
+        responseModalities: ['IMAGE'],
       },
     }),
   });

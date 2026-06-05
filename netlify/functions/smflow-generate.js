@@ -201,10 +201,15 @@ Return ONLY valid JSON (no markdown, no backticks, no extra text):
       const content = posts[platform];
       if (!content) continue;
 
-      // Canva URL: no type param (causes 400), brief truncated to 80 chars
-      const briefText  = (canvaBriefs[platform] || topic).slice(0, 80);
-      const canvaQuery = encodeURIComponent(briefText);
-      const canvaUrl   = `https://www.canva.com/design/new?q=${canvaQuery}`;
+      // Canva URL: direct create link - client must be logged into Canva
+      // q= param causes 400 errors; use clean create URL
+      const canvaDesignMap = {
+        Instagram: 'instagram_post', Facebook: 'facebook_post',
+        LinkedIn: 'linkedin_post', 'Twitter/X': 'twitter_post',
+        YouTube: 'youtube_thumbnail', WhatsApp: 'instagram_post',
+      };
+      const designType = canvaDesignMap[platform] || 'instagram_post';
+      const canvaUrl   = `https://www.canva.com/design/new?type=${designType}`;
 
       try {
         const inserted = await sb('smflow_posts', {
@@ -247,7 +252,7 @@ Return ONLY valid JSON (no markdown, no backticks, no extra text):
           platform,
           content,
           canva_brief: canvaBriefs[platform] || null,
-          canva_url:   `https://www.canva.com/design/new?q=${encodeURIComponent(topic.slice(0,80))}`,
+          canva_url:   `https://www.canva.com/design/new?type=instagram_post`,
           status:      'draft',
           save_error:  saveErr.message,
         });
