@@ -374,13 +374,15 @@ async function generateWithGemini(prompt) {
 // PROVIDER 2 — ImagineArt API (Pro, ~$30/mo)
 // ══════════════════════════════════════════════════════════
 async function generateWithImagineArt(prompt, platform) {
+  // ImagineArt API: multipart/form-data POST
+  // Response: binary image directly (NOT JSON)
+  // Docs: https://docs.imagine.art/troubleshooting/request-and-response-formats
   const aspectRatio = PLATFORM_ASPECT_RATIO[platform] || PLATFORM_ASPECT_RATIO._default;
-  // Use simple params — style_id varies by plan, safer without it initially
-  // aspect_ratio: '1:1' for square, '16:9' for landscape
+
   const formData = new FormData();
   formData.append('prompt', prompt);
+  formData.append('style',  'realistic');   // string style name, not style_id
   formData.append('aspect_ratio', aspectRatio);
-  formData.append('high_res_results', '1');
 
   const res = await withTimeout(
     fetch('https://api.vyro.ai/v2/image/generations', {
@@ -388,7 +390,7 @@ async function generateWithImagineArt(prompt, platform) {
       headers: { 'Authorization': `Bearer ${IMAGINE_ART_API_KEY}` },
       body:    formData,
     }),
-    20000, 'ImagineArt'
+    25000, 'ImagineArt'
   );
 
   if (!res.ok) {
@@ -396,18 +398,36 @@ async function generateWithImagineArt(prompt, platform) {
     throw new Error(`ImagineArt error (${res.status}): ${txt.slice(0, 300)}`);
   }
 
-  const data = await res.json();
-  if (data.artifacts?.[0]?.base64) {
-    return { base64: data.artifacts[0].base64, mimeType: 'image/jpeg' };
+  // Response is binary image — check content-type to confirm
+  const contentType = res.headers.get('content-type') || '';
+  console.log('ImagineArt response content-type:', contentType);
+
+  if (contentType.includes('image/')) {
+    // Direct binary image response
+    const buffer = await res.arrayBuffer();
+    const base64 = Buffer.from(buffer).toString('base64');
+    const mimeType = contentType.split(';')[0].trim();
+    return { base64, mimeType };
   }
-  const imgUrl = data.artifacts?.[0]?.url || data.image_url;
-  if (imgUrl) {
-    const imgRes = await fetch(imgUrl);
-    const buffer = await imgRes.arrayBuffer();
-    return { base64: Buffer.from(buffer).toString('base64'), mimeType: 'image/jpeg' };
+
+  // Fallback: try JSON in case API version returns JSON
+  const text = await res.text();
+  try {
+    const data = JSON.parse(text);
+    if (data.artifacts?.[0]?.base64) {
+      return { base64: data.artifacts[0].base64, mimeType: 'image/jpeg' };
+    }
+    const imgUrl = data.artifacts?.[0]?.url || data.image_url || data.url;
+    if (imgUrl) {
+      const imgRes = await fetch(imgUrl);
+      const buf = await imgRes.arrayBuffer();
+      return { base64: Buffer.from(buf).toString('base64'), mimeType: 'image/jpeg' };
+    }
+    console.error('ImagineArt JSON response:', text.slice(0, 500));
+    throw new Error('ImagineArt returned no image data in JSON');
+  } catch(e) {
+    throw new Error(`ImagineArt unexpected response: ${text.slice(0, 200)}`);
   }
-  console.error('ImagineArt response:', JSON.stringify(data).slice(0, 500));
-  throw new Error('ImagineArt returned no image data');
 }
 
 // ══════════════════════════════════════════════════════════
@@ -462,25 +482,26 @@ async function getTenantConfig(tenantId) {
 async function generateImage(promptParams, platform, plan, guru) {
   console.log(`Generating image — plan: ${plan}, guru: ${guru}, platform: ${platform}`);
 
-  if (plan === 'business' && OPENAI_API_KEY) {
-    try {
-      const prompt = buildSmartPrompt({ ...promptParams, platform, guru, provider: 'gpt-image-2' });
-      console.log('GPT Image 2 prompt:', prompt.slice(0, 150));
-      const result = await generateWithGPTImage2(prompt, platform);
-      return { ...result, provider: 'gpt-image-2', prompt };
-    } catch (err) {
-      console.warn('GPT Image 2 failed, falling back to ImagineArt:', err.message);
-    }
-  }
-
-  if ((plan === 'pro' || plan === 'business') && IMAGINE_ART_API_KEY) {
+  // If ImagineArt key exists, use it first (pro/business plans + demo)
+  if (IMAGINE_ART_API_KEY) {
     try {
       const prompt = buildSmartPrompt({ ...promptParams, platform, guru, provider: 'imagineArt' });
       console.log('ImagineArt prompt:', prompt.slice(0, 150));
       const result = await generateWithImagineArt(prompt, platform);
       return { ...result, provider: 'imagineArt', prompt };
     } catch (err) {
-      console.warn('ImagineArt failed, falling back to Gemini:', err.message);
+      console.warn('ImagineArt failed, falling back to GPT Image 2:', err.message);
+    }
+  }
+
+  if (OPENAI_API_KEY) {
+    try {
+      const prompt = buildSmartPrompt({ ...promptParams, platform, guru, provider: 'gpt-image-2' });
+      console.log('GPT Image 2 prompt:', prompt.slice(0, 150));
+      const result = await generateWithGPTImage2(prompt, platform);
+      return { ...result, provider: 'gpt-image-2', prompt };
+    } catch (err) {
+      console.warn('GPT Image 2 failed, falling back to Gemini:', err.message);
     }
   }
 
