@@ -28,6 +28,14 @@ const HEADERS = {
   'Content-Type':                 'application/json',
 };
 
+// ── Timeout wrapper — prevents hanging API calls ─────────
+function withTimeout(promise, ms, label) {
+  const timeout = new Promise((_, reject) =>
+    setTimeout(() => reject(new Error(`${label} timed out after ${ms}ms`)), ms)
+  );
+  return Promise.race([promise, timeout]);
+}
+
 async function sb(path, options = {}) {
   const url    = `${SUPABASE_URL}/rest/v1/${path}`;
   const method = options.method || 'GET';
@@ -340,14 +348,17 @@ FINAL TEST: Would this image stop a ${target_audience || 'small business owner'}
 // ══════════════════════════════════════════════════════════
 async function generateWithGemini(prompt) {
   const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-image:generateContent?key=${GEMINI_API_KEY}`;
-  const res = await fetch(url, {
-    method:  'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      contents: [{ parts: [{ text: prompt }] }],
-      generationConfig: { responseModalities: ['IMAGE'] },
+  const res = await withTimeout(
+    fetch(url, {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        contents: [{ parts: [{ text: prompt }] }],
+        generationConfig: { responseModalities: ['IMAGE'] },
+      }),
     }),
-  });
+    20000, 'Gemini'
+  );
   const data = await res.json();
   if (!res.ok) throw new Error(`Gemini error (${res.status}): ${JSON.stringify(data).slice(0, 300)}`);
   const parts = data.candidates?.[0]?.content?.parts || [];
@@ -364,19 +375,21 @@ async function generateWithGemini(prompt) {
 // ══════════════════════════════════════════════════════════
 async function generateWithImagineArt(prompt, platform) {
   const aspectRatio = PLATFORM_ASPECT_RATIO[platform] || PLATFORM_ASPECT_RATIO._default;
+  // Use simple params — style_id varies by plan, safer without it initially
+  // aspect_ratio: '1:1' for square, '16:9' for landscape
   const formData = new FormData();
   formData.append('prompt', prompt);
-  formData.append('style_id', '33');
   formData.append('aspect_ratio', aspectRatio);
   formData.append('high_res_results', '1');
-  formData.append('steps', '30');
-  formData.append('cfg', '7.5');
 
-  const res = await fetch('https://api.vyro.ai/v2/image/generations', {
-    method:  'POST',
-    headers: { 'Authorization': `Bearer ${IMAGINE_ART_API_KEY}` },
-    body:    formData,
-  });
+  const res = await withTimeout(
+    fetch('https://api.vyro.ai/v2/image/generations', {
+      method:  'POST',
+      headers: { 'Authorization': `Bearer ${IMAGINE_ART_API_KEY}` },
+      body:    formData,
+    }),
+    20000, 'ImagineArt'
+  );
 
   if (!res.ok) {
     const txt = await res.text();
@@ -405,18 +418,21 @@ async function generateWithGPTImage2(prompt, platform) {
     Instagram: '1024x1024', Facebook: '1536x864', LinkedIn: '1536x864',
     'Twitter/X': '1536x864', WhatsApp: '1024x1024', YouTube: '1536x864', _default: '1024x1024',
   };
-  const res = await fetch('https://api.openai.com/v1/images/generations', {
-    method:  'POST',
-    headers: { 'Authorization': `Bearer ${OPENAI_API_KEY}`, 'Content-Type': 'application/json' },
-    body: JSON.stringify({
+  const res = await withTimeout(
+    fetch('https://api.openai.com/v1/images/generations', {
+      method:  'POST',
+      headers: { 'Authorization': `Bearer ${OPENAI_API_KEY}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
       model:         'gpt-image-2',
       prompt,
       n:             1,
       size:          sizeMap[platform] || sizeMap._default,
       quality:       'medium',
       output_format: 'b64_json',
+      }),
     }),
-  });
+    25000, 'GPT Image 2'
+  );
   if (!res.ok) {
     const txt = await res.text();
     throw new Error(`GPT Image 2 error (${res.status}): ${txt.slice(0, 300)}`);
@@ -468,10 +484,16 @@ async function generateImage(promptParams, platform, plan, guru) {
     }
   }
 
-  const prompt = buildSmartPrompt({ ...promptParams, platform, guru, provider: 'gemini' });
-  console.log('Gemini prompt:', prompt.slice(0, 150));
-  const result = await generateWithGemini(prompt);
-  return { ...result, provider: 'gemini-flash', prompt };
+  // Last resort: Gemini (free tier)
+  try {
+    const prompt = buildSmartPrompt({ ...promptParams, platform, guru, provider: 'gemini' });
+    console.log('Gemini prompt:', prompt.slice(0, 150));
+    const result = await generateWithGemini(prompt);
+    return { ...result, provider: 'gemini-flash', prompt };
+  } catch (err) {
+    console.error('All providers failed. Gemini error:', err.message);
+    throw new Error(`All image providers failed. Last error: ${err.message}. Try again in a few minutes or check API quotas.`);
+  }
 }
 
 // ── Save image to Supabase Storage ────────────────────────
