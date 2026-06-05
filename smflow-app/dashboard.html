@@ -1531,8 +1531,7 @@ function openPostPreview(postId, platform, status, flavor, encodedContent, canva
         </div>
         <button class="btn btn-outline btn-sm" onclick="document.getElementById('post-preview-overlay').remove()">✕</button>
       </div>
-      <div class="post-preview-body" id="preview-content-${postId}">${content.replace(/[<]/g,'&lt;').replace(/
-/g,'<br>')}</div>
+      <div class="post-preview-body" id="preview-content-${postId}">${content.replace(/[<]/g,'&lt;').split('\n').join('<br>')}</div>
       <div class="post-preview-ftr">
         ${isPending ? `
           <button class="btn btn-primary" onclick="approvePost('${postId}');document.getElementById('post-preview-overlay').remove()">✓ Approve</button>
