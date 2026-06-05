@@ -28,8 +28,8 @@ async function sb(path, options = {}) {
 
 async function publishToFacebook(post, account) {
   const pageToken = account.access_token;
-  const pageId    = account.account_id;
-  const message   = post.content_text;
+  const pageId    = account.platform_account_id;
+  const message   = post.content;
 
   let body = { message, access_token: pageToken };
 
@@ -56,9 +56,9 @@ async function publishToFacebook(post, account) {
 }
 
 async function publishToInstagram(post, account) {
-  const igUserId = account.account_id;
+  const igUserId = account.platform_account_id;
   const token    = account.access_token;
-  const caption  = post.content_text;
+  const caption  = post.content;
 
   if (!post.image_url) throw new Error('Instagram requires an image');
 
