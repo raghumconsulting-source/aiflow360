@@ -95,6 +95,7 @@ body{font-family:'Geist',sans-serif;font-size:14px;color:var(--text);line-height
   display:flex;padding:0 20px;
   border-bottom:0.5px solid var(--border);
   gap:2px;overflow-x:auto;background:var(--bg);
+  position:sticky;top:55px;z-index:99;
 }
 .tab{
   padding:12px 14px;font-size:13px;color:var(--muted);
@@ -167,8 +168,19 @@ body{font-family:'Geist',sans-serif;font-size:14px;color:var(--text);line-height
 
 /* ── Post output cards ────────────────────────────── */
 /* Split panel post card */
-.post-split{display:grid;grid-template-columns:1fr 1fr;gap:0;border:.5px solid var(--border);border-radius:var(--radius-lg);overflow:hidden;margin-bottom:12px;min-height:300px}
-.post-split-left{border-right:.5px solid var(--border);display:flex;flex-direction:column}
+.post-split{display:grid;grid-template-columns:1fr 220px 1fr;gap:0;border:.5px solid var(--border);border-radius:var(--radius-lg);overflow:hidden;margin-bottom:12px;min-height:320px}
+.post-split-mid{border-right:.5px solid var(--border);background:var(--surface);display:flex;flex-direction:column;overflow:hidden;min-width:140px;max-width:280px;resize:horizontal}
+.post-split-mid-hdr{font-size:11px;font-weight:500;color:var(--muted);padding:8px 10px;border-bottom:.5px solid var(--border);text-transform:uppercase;letter-spacing:.05em;flex-shrink:0}
+.photo-reel{display:flex;flex-direction:column;gap:6px;padding:8px;overflow-y:auto;flex:1}
+.photo-reel-item{border-radius:6px;overflow:hidden;cursor:grab;position:relative;aspect-ratio:1;border:.5px solid var(--border)}
+.photo-reel-item img{width:100%;height:100%;object-fit:cover;display:block}
+.photo-reel-item:hover{border-color:var(--violet)}
+.photo-reel-item.drag-active{opacity:.5;cursor:grabbing}
+.photo-reel-drop-hint{font-size:10px;color:var(--muted);text-align:center;padding:8px 6px;line-height:1.4}
+@media(max-width:900px){.post-split{grid-template-columns:1fr 1fr}.post-split-mid{display:none}}
+@media(max-width:700px){.post-split{grid-template-columns:1fr}.post-split-right{display:none}}
+.post-split-left{border-right:.5px solid var(--border);display:flex;flex-direction:column;min-height:320px}
+.post-split-left .post-body{flex:1;min-height:200px;overflow-y:auto;white-space:pre-wrap;word-break:break-word}
 .post-split-right{background:var(--surface);display:flex;flex-direction:column;align-items:center;justify-content:flex-start;padding:16px;overflow:hidden}
 .preview-frame{border-radius:12px;overflow:hidden;box-shadow:0 4px 20px rgba(0,0,0,.12);width:100%;max-width:280px}
 .preview-phone{background:#000;border-radius:20px;padding:8px;box-shadow:0 8px 32px rgba(0,0,0,.3);width:100%;max-width:260px}
@@ -1290,7 +1302,9 @@ async function generatePosts() {
         image_url:           selectedAssetUrl || null,
       }),
     });
-    const d = await res.json();
+    const txt1 = await res.text();
+    let d;
+    try { d = JSON.parse(txt1); } catch { throw new Error(res.status===504?'Generation timed out — try fewer platforms or shorter topic':`Server error (${res.status})`); }
     if (d.error) throw new Error(d.error);
 
     d.posts.forEach(p => renderPostCard(p, flavor, out));
@@ -1333,8 +1347,9 @@ async function generateBatch() {
         method:'POST', headers:{'Content-Type':'application/json'},
         body: JSON.stringify({ tenant_id: TENANT.id, topic, flavor: f.id, flavor_name: f.name, guru: currentGuru, active_platforms:['LinkedIn','Instagram'], generate_canva_briefs: false }),
       });
-      const d = await res.json();
-      if (!d.error) d.posts.forEach(p => renderPostCard(p, f, out));
+      const btxt = await res.text();
+      let d; try { d = JSON.parse(btxt); } catch { d = {}; }
+      if (!d.error && d.posts) d.posts.forEach(p => renderPostCard(p, f, out));
     } catch(e) { console.warn('batch', f.id, e.message); }
     await new Promise(r => setTimeout(r,400));
   }
@@ -1431,21 +1446,24 @@ function renderPostCard(post, flavor, container) {
   div.className = 'post-split';
   div.id = `postcard-${post.post_id || Math.random().toString(36).slice(2)}`;
 
+  const cardId = post.post_id || ('tmp_'+Math.random().toString(36).slice(2));
+  div.dataset.cardId = cardId;
+
   div.innerHTML = `
     <!-- LEFT: Edit panel -->
     <div class="post-split-left">
       <div class="post-hdr">
         <div class="post-plat">
           <span class="post-dot" style="background:${color}"></span>
-          ${post.platform}
+          <span class="plat-name">${post.platform}</span>
           <span class="post-flavor">${flavor.icon} ${flavor.name}</span>
           <span class="status-pill status-${post.status || 'draft'}">${post.status || 'draft'}</span>
         </div>
         <div class="post-actions" style="flex-wrap:wrap;gap:4px">
-          <button class="post-act gen-img-btn" data-flavor="${flavor.id}" onclick="generateImage(this,'${post.post_id || ''}','${post.platform}')">✦ AI</button>
-          <button class="post-act" onclick="triggerImageUpload(this,'${post.post_id || ''}')" title="Upload image">⬆</button>
-          <button class="post-act" onclick="copyPost(this)">Copy</button>
-          <button class="post-act" onclick="editPost(this)">Edit</button>
+          <button class="post-act gen-img-btn" data-flavor="${flavor.id}" data-card="${cardId}" onclick="generateImage(this,'${post.post_id || ''}','${post.platform}')">✦ AI</button>
+          <button class="post-act" data-card="${cardId}" onclick="triggerImageUpload(this,'${post.post_id || ''}')" title="Upload image">⬆ Upload</button>
+          <button class="post-act" data-card="${cardId}" onclick="copyPost(this)">Copy</button>
+          <button class="post-act" data-card="${cardId}" onclick="editPost(this)">Edit</button>
           ${post.post_id ? `<button class="post-act" onclick="submitApproval('${post.post_id}')">→ Approve</button>` : ''}
           <button class="post-act violet" onclick="openCanvaWithContent(this)"
             data-content="${(post.content||'').replace(/`/g,"'").replace(/["]/g,'&quot;').slice(0,500)}"
@@ -1453,37 +1471,49 @@ function renderPostCard(post, flavor, container) {
             title="Copy text &amp; open Canva">🎨</button>
         </div>
       </div>
-      <div class="post-body" contenteditable="false" oninput="updatePreview(this,'${post.post_id || ''}')">${post.content || ''}</div>
+      <div class="post-body" contenteditable="false" data-card="${cardId}" oninput="updatePreview(this,'${post.post_id || ''}','${cardId}')">${post.content || ''}</div>
       <input type="file" class="post-img-upload" accept="image/png,image/jpeg,image/webp,image/gif"
         style="display:none" onchange="handleImageUpload(this,'${post.post_id || ''}')">
       <div class="post-foot">
         <span class="char-c" style="color:${over?'var(--red)':'var(--muted)'}">${chars}/${max}${over?' ⚠':' ✓'}</span>
       </div>
     </div>
-    <!-- RIGHT: Live preview -->
-    <div class="post-split-right" id="preview-${post.post_id || ''}">
-      <div class="preview-platform-label">${post.platform} preview</div>
+    <!-- MIDDLE: Photo reel from Google Drive -->
+    <div class="post-split-mid" id="reel-${cardId}">
+      <div class="post-split-mid-hdr">📸 Photo library</div>
+      <div class="photo-reel" id="photos-${cardId}">
+        <div class="photo-reel-drop-hint">Loading photos...</div>
+      </div>
+    </div>
+    <!-- RIGHT: Live preview (also a drop target for photos) -->
+    <div class="post-split-right" id="preview-${cardId}"
+      ondragover="onPreviewDragOver(event)"
+      ondrop="onPreviewDrop(event,'${cardId}','${post.post_id || ''}')">
+      <div class="preview-platform-label">${post.platform} preview <span style="font-size:10px;opacity:.5">← drop photo here</span></div>
       ${buildPlatformPreview(post, imgUrl)}
     </div>`;
+
+  // Load photo reel async
+  setTimeout(() => loadPhotoReel(cardId, post.post_id || '', post.platform), 100);
 
   container.appendChild(div);
 }
 
 // Live update preview when editing
-function updatePreview(editEl, postId) {
-  const card      = editEl.closest('.post-split');
-  if (!card) return;
-  const previewEl = card.querySelector('.post-split-right');
+function updatePreview(editEl, postId, cardId) {
+  const previewEl = cardId ? document.getElementById(`preview-${cardId}`) : editEl.closest('.post-split')?.querySelector('.post-split-right');
   if (!previewEl) return;
-  const platform  = card.querySelector('.post-plat .post-dot')?.nextSibling?.textContent?.trim()?.split(' ')[0];
-  const imgEl     = card.querySelector('.post-img-wrap img');
-  const fakePost  = { content: editEl.textContent, platform, post_id: postId, status: 'draft' };
-  const label     = previewEl.querySelector('.preview-platform-label')?.outerHTML || '';
-  previewEl.innerHTML = label + buildPlatformPreview(fakePost, imgEl?.src || null);
+  const card     = editEl.closest('.post-split');
+  const platform = card?.querySelector('.plat-name')?.textContent?.trim() || 'Instagram';
+  const imgEl    = card?.querySelector('.post-img-wrap img') || card?.dataset?.selectedImage;
+  const imgSrc   = typeof imgEl === 'string' ? imgEl : imgEl?.src || null;
+  const label    = previewEl.querySelector('.preview-platform-label')?.outerHTML || '';
+  previewEl.innerHTML = label + buildPlatformPreview({ content: editEl.textContent, platform, status:'draft' }, imgSrc);
 }
 async function generateImage(btn, postId, platform) {
   if (!TENANT) return;
-  const card     = btn.closest('.post-out');
+  const cardId   = btn.dataset.card;
+  const card     = cardId ? document.querySelector(`[data-card-id='${cardId}']`) : btn.closest('.post-split');
   const content  = card.querySelector('.post-body')?.textContent || '';
   const flavorId = card.querySelector('.post-flavor')?.dataset?.flavor || currentFlavor;
 
@@ -1541,11 +1571,11 @@ function regenerateImage(btn, postId, platform) {
 }
 
 function copyPost(btn) {
-  const t = btn.closest('.post-out').querySelector('.post-body').textContent;
+  const t = btn.closest('.post-split').querySelector('.post-body').textContent;
   navigator.clipboard.writeText(t).then(() => toast('✓ Copied'));
 }
 function editPost(btn) {
-  const el = btn.closest('.post-out').querySelector('.post-body');
+  const el = btn.closest('.post-split').querySelector('.post-body');
   const e  = el.contentEditable === 'true';
   el.contentEditable = e ? 'false' : 'true';
   btn.textContent = e ? 'Edit' : 'Done';
@@ -1674,8 +1704,9 @@ function openPostPreview(postId, platform, status, flavor, encodedContent, canva
 
 // ── Image upload to Supabase Storage ─────────────────────
 function triggerImageUpload(btn, postId) {
-  const card  = btn.closest('.post-out');
-  const input = card.querySelector('.post-img-upload');
+  const cardId = btn.dataset.card;
+  const card   = cardId ? document.querySelector(`[data-card-id='${cardId}']`) : btn.closest('.post-split');
+  const input  = card?.querySelector('.post-img-upload');
   if (input) input.click();
 }
 
@@ -1688,7 +1719,7 @@ async function handleImageUpload(input, postId) {
   const allowed = ['image/png','image/jpeg','image/webp','image/gif'];
   if (!allowed.includes(file.type)) { toast('⚠ Only PNG, JPG, WebP or GIF allowed'); return; }
 
-  const card   = input.closest('.post-out');
+  const card   = input.closest('.post-split');
   const btn    = card.querySelector('[onclick*="triggerImageUpload"]');
   if (btn) { btn.textContent = '⏳ Uploading...'; btn.disabled = true; }
 
@@ -1773,6 +1804,74 @@ async function removePostImage(btn, postId) {
     }).catch(e => console.warn('remove image non-fatal:', e.message));
   }
   toast('Image removed');
+}
+
+// ── Photo reel per post card ──────────────────────────────
+async function loadPhotoReel(cardId, postId, platform) {
+  const reel = document.getElementById(`photos-${cardId}`);
+  if (!reel || !TENANT) return;
+  try {
+    const res  = await fetch(`${API_BASE}/smflow-assets?tenant_id=${TENANT.id}&action=list&limit=20`);
+    const d    = await res.json();
+    const assets = d.assets || [];
+    if (!assets.length) {
+      reel.innerHTML = '<div class="photo-reel-drop-hint">No photos yet.<br>Sync from Google Drive in Settings.</div>';
+      return;
+    }
+    reel.innerHTML = assets.map(a => {
+      const url = a.file_url || a.thumbnail_url || '';
+      if (!url) return '';
+      return `<div class="photo-reel-item" draggable="true"
+          title="${a.file_name||''}"
+          ondragstart="onReelDragStart(event,'${url}','${a.id}','${cardId}','${postId}')"
+          ondragend="this.classList.remove('drag-active')"
+          onclick="applyReelPhoto('${url}','${a.id}','${cardId}','${postId}')">
+          <img src="${url}" alt="${a.alt_text||''}" loading="lazy"
+            onerror="this.parentElement.style.display='none'">
+        </div>`;
+    }).join('') + '<div class="photo-reel-drop-hint">Click or drag photo to preview →</div>';
+  } catch(e) {
+    reel.innerHTML = '<div class="photo-reel-drop-hint">Could not load photos</div>';
+  }
+}
+
+function onReelDragStart(event, url, assetId, cardId, postId) {
+  event.target.classList.add('drag-active');
+  event.dataTransfer.setData('text/plain', JSON.stringify({ url, assetId, cardId, postId }));
+  event.dataTransfer.effectAllowed = 'copy';
+}
+
+function applyReelPhoto(url, assetId, cardId, postId) {
+  // Apply photo to the post card preview
+  const card      = document.querySelector(`[data-card-id='${cardId}']`);
+  const previewEl = document.getElementById(`preview-${cardId}`);
+  if (!previewEl) return;
+  // Update preview with photo
+  const bodyEl   = card?.querySelector('.post-body');
+  const platEl   = card?.querySelector('.plat-name');
+  const platform = platEl?.textContent?.trim() || 'Instagram';
+  const label    = previewEl.querySelector('.preview-platform-label')?.outerHTML || '';
+  previewEl.innerHTML = label + buildPlatformPreview({ content: bodyEl?.textContent||'', platform, status:'draft' }, url);
+  // Also store as selected for this card
+  if (card) card.dataset.selectedImage = url;
+  // Update post in DB if we have post_id
+  if (postId) {
+    fetch(`${API_BASE}/smflow-posts`, {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ action:'update_image', tenant_id: TENANT.id, post_id: postId, image_url: url }),
+    }).catch(e => console.warn('update_image non-fatal:', e.message));
+  }
+  toast('✓ Photo applied to preview');
+}
+
+// Allow dropping reel photo onto preview panel
+function onPreviewDragOver(event) { event.preventDefault(); event.dataTransfer.dropEffect = 'copy'; }
+function onPreviewDrop(event, cardId, postId) {
+  event.preventDefault();
+  try {
+    const data = JSON.parse(event.dataTransfer.getData('text/plain'));
+    applyReelPhoto(data.url, data.assetId, cardId, postId);
+  } catch(e) { console.warn('drop error', e); }
 }
 
 function openCanvaWithContent(btn) {
