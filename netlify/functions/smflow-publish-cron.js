@@ -60,7 +60,12 @@ async function publishToInstagram(post, account) {
   const token    = account.access_token;
   const caption  = post.content;
 
-  if (!post.image_url) throw new Error('Instagram requires an image');
+  // Instagram API requires an image — skip gracefully if none attached
+  // User should generate an AI image before scheduling to Instagram
+  if (!post.image_url) {
+    console.warn(`Instagram post ${post.id} skipped — no image_url. Generate an AI image first.`);
+    throw new Error('Instagram skipped: no image attached. Use ✦ AI button to generate one first.');
+  }
 
   // Step 1: create container
   const containerRes = await fetch(`https://graph.facebook.com/v19.0/${igUserId}/media`, {

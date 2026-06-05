@@ -146,6 +146,26 @@ exports.handler = async function (event) {
         return { statusCode: 200, headers: HEADERS, body: JSON.stringify({ usage }) };
       }
 
+      // ── update_image: save image URL back to post ──────
+      if (action === 'update_image') {
+        const { post_id, image_url } = body;
+        if (!post_id) return { statusCode: 400, headers: HEADERS, body: JSON.stringify({ error: 'post_id required' }) };
+
+        const check = await sb(`smflow_posts?id=eq.${post_id}&tenant_id=eq.${tenant_id}&select=id&limit=1`);
+        if (!check.length) return { statusCode: 404, headers: HEADERS, body: JSON.stringify({ error: 'Post not found' }) };
+
+        await sb(`smflow_posts?id=eq.${post_id}&tenant_id=eq.${tenant_id}`, {
+          method: 'PATCH',
+          prefer: 'return=minimal',
+          body: {
+            image_url:  image_url || null,
+            updated_at: new Date().toISOString(),
+          },
+        });
+
+        return { statusCode: 200, headers: HEADERS, body: JSON.stringify({ success: true }) };
+      }
+
       // ── update_canva: save Canva URL back to post ─────
       if (action === 'update_canva') {
         const { post_id, canva_url, image_url } = body;
