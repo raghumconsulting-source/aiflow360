@@ -29,13 +29,19 @@ const FB_SCOPES = [
 ].join(',');
 
 // ── LinkedIn scopes ────────────────────────────────────────
-// Only request scopes that are auto-approved for new apps
-// Organization scopes require LinkedIn partnership review
+// Phase 1: Only OpenID scopes (always available) for initial connect
+// Phase 2: Add w_member_social after enabling "Share on LinkedIn" product
+//          in LinkedIn Developer Portal → Products tab
 const LINKEDIN_SCOPES = [
-  'openid',          // basic identity
-  'profile',         // name, photo
-  'email',           // email address
-  'w_member_social', // post as member — auto-approved
+  'openid',   // basic identity — always available
+  'profile',  // name, photo — always available
+  'email',    // email address — always available
+].join(' ');
+
+// Extended scopes for posting — requires "Share on LinkedIn" product enabled
+// Once enabled in LinkedIn Developer Portal, change above to include 'w_member_social'
+const LINKEDIN_POST_SCOPES = [
+  'openid', 'profile', 'email', 'w_member_social',
 ].join(' ');
 
 // ── YouTube / Google scopes ────────────────────────────────
@@ -91,7 +97,8 @@ exports.handler = async function (event) {
     oauthUrl.searchParams.set('response_type', 'code');
     oauthUrl.searchParams.set('client_id',     LINKEDIN_CLIENT_ID);
     oauthUrl.searchParams.set('redirect_uri',  CALLBACK_URL);
-    oauthUrl.searchParams.set('scope',         LINKEDIN_SCOPES);
+    // Use post scopes if 'Share on LinkedIn' product is enabled in LinkedIn Developer Portal
+    oauthUrl.searchParams.set('scope', LINKEDIN_POST_SCOPES);
     oauthUrl.searchParams.set('state',         state);
   }
 

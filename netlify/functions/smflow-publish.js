@@ -146,9 +146,53 @@ async function publishToInstagram({ account, post }) {
 
 // ── LinkedIn publisher (Sprint 6) ─────────────────────────
 async function publishToLinkedIn({ account, post }) {
-  // TODO Sprint 6 — LinkedIn API v2
-  // Requires: organisation URN, access_token with w_member_social scope
-  throw new Error('LinkedIn publishing coming in Sprint 6');
+  // LinkedIn UGC Posts API v2
+  // Requires w_member_social scope + "Share on LinkedIn" product enabled
+  const token     = account.access_token;
+  const authorUrn = account.account_type === 'organization'
+    ? `urn:li:organization:${account.platform_account_id.replace('org_','')}`
+    : `urn:li:person:${account.platform_account_id}`;
+
+  const body = {
+    author:         authorUrn,
+    lifecycleState: 'PUBLISHED',
+    specificContent: {
+      'com.linkedin.ugc.ShareContent': {
+        shareCommentary:    { text: post.content || '' },
+        shareMediaCategory: post.image_url ? 'IMAGE' : 'NONE',
+        ...(post.image_url ? {
+          media: [{
+            status:      'READY',
+            description: { text: (post.content||'').slice(0,200) },
+            originalUrl: post.image_url,
+          }],
+        } : {}),
+      },
+    },
+    visibility: {
+      'com.linkedin.ugc.MemberNetworkVisibility': 'PUBLIC',
+    },
+  };
+
+  const res = await fetch('https://api.linkedin.com/v2/ugcPosts', {
+    method:  'POST',
+    headers: {
+      'Authorization':  `Bearer ${token}`,
+      'Content-Type':   'application/json',
+      'X-Restli-Protocol-Version': '2.0.0',
+    },
+    body: JSON.stringify(body),
+  });
+
+  const data = await res.json();
+  if (!res.ok) {
+    throw new Error(`LinkedIn publish failed (${res.status}): ${data.message || JSON.stringify(data)}`);
+  }
+
+  return {
+    platform_post_id:  data.id || data.value,
+    platform_post_url: data.id ? `https://www.linkedin.com/feed/update/${data.id}` : null,
+  };
 }
 
 // ── Twitter/X publisher (Sprint 6) ────────────────────────
