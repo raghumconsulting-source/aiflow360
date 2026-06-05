@@ -118,20 +118,22 @@ function buildPrompt({ post_content, flavor, industry_code, brand_voice, target_
   return prompt;
 }
 
-// ── Call Gemini Imagen 3 ───────────────────────────────────
+// ── Call Gemini 2.5 Flash Image (free tier, 500 images/day) ──
 async function generateWithGemini(prompt) {
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/imagen-3.0-generate-001:predict?key=${GEMINI_API_KEY}`;
+  // Uses gemini-2.5-flash-image-preview (Nano Banana) — free tier
+  // Standard generateContent endpoint, returns inline base64 image
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${GEMINI_API_KEY}`;
 
   const res = await fetch(url, {
     method:  'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
-      instances: [{ prompt }],
-      parameters: {
-        sampleCount:    1,
-        aspectRatio:    '1:1',
-        safetyFilterLevel: 'block_few',
-        personGeneration: 'allow_adult',
+      contents: [{
+        parts: [{ text: prompt }],
+      }],
+      generationConfig: {
+        responseModalities: ['IMAGE', 'TEXT'],
+        responseMimeType:   'text/plain',
       },
     }),
   });
@@ -142,13 +144,16 @@ async function generateWithGemini(prompt) {
     throw new Error(`Gemini API error (${res.status}): ${JSON.stringify(data).slice(0, 300)}`);
   }
 
-  // Gemini returns base64 image
-  const prediction = data.predictions?.[0];
-  if (!prediction?.bytesBase64Encoded) {
-    throw new Error('Gemini returned no image data');
+  // Extract base64 image from inline_data part
+  const parts = data.candidates?.[0]?.content?.parts || [];
+  const imagePart = parts.find(p => p.inline_data?.mime_type?.startsWith('image/'));
+  if (!imagePart?.inline_data?.data) {
+    // Log full response for debugging
+    console.error('Gemini response:', JSON.stringify(data).slice(0, 500));
+    throw new Error('Gemini returned no image data. Check API key permissions.');
   }
 
-  return prediction.bytesBase64Encoded; // base64 string
+  return imagePart.inline_data.data; // base64 string
 }
 
 // ── Save image to Supabase Storage ────────────────────────

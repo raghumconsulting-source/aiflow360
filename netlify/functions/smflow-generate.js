@@ -201,8 +201,10 @@ Return ONLY valid JSON (no markdown, no backticks, no extra text):
       const content = posts[platform];
       if (!content) continue;
 
-      const canvaQuery = encodeURIComponent(`${canvaBriefs[platform] || topic} SMflow`);
-      const canvaUrl   = `https://www.canva.com/design/new?type=${canva_design_type}&q=${canvaQuery}`;
+      // Canva URL: no type param (causes 400), brief truncated to 80 chars
+      const briefText  = (canvaBriefs[platform] || topic).slice(0, 80);
+      const canvaQuery = encodeURIComponent(briefText);
+      const canvaUrl   = `https://www.canva.com/design/new?q=${canvaQuery}`;
 
       try {
         const inserted = await sb('smflow_posts', {
@@ -225,7 +227,6 @@ Return ONLY valid JSON (no markdown, no backticks, no extra text):
             output_tokens: Math.round(outputTokens / active_platforms.length),
             total_tokens:  Math.round(totalTokens  / active_platforms.length),
             status:        'draft',
-            is_saved:      true,
             created_at:    now,
           },
         });
@@ -246,7 +247,7 @@ Return ONLY valid JSON (no markdown, no backticks, no extra text):
           platform,
           content,
           canva_brief: canvaBriefs[platform] || null,
-          canva_url:   `https://www.canva.com/design/new?q=${encodeURIComponent(topic)}`,
+          canva_url:   `https://www.canva.com/design/new?q=${encodeURIComponent(topic.slice(0,80))}`,
           status:      'draft',
           save_error:  saveErr.message,
         });

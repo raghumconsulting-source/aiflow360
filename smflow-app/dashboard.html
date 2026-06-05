@@ -1738,21 +1738,32 @@ async function onCalDrop(event, el, dateStr, dow) {
   el.classList.remove('drag-over');
   if (!calDragPost || !TENANT) return;
 
-  const bestTime = getBestTime(dow);
+  const bestTime   = getBestTime(dow);
   const scheduledAt = `${dateStr}T${bestTime}:00+10:00`; // AEST
+  const col         = PLAT_COLORS_CAL[calDragPost.platform] || '#888';
+  const preview     = calDragPost.content.slice(0, 22);
+  const postId      = calDragPost.id;
+  const platform    = calDragPost.platform;
 
-  // Immediately show chip (optimistic UI)
-  const col     = PLAT_COLORS_CAL[calDragPost.platform] || '#888';
-  const preview = calDragPost.content.slice(0, 22);
-  const chip    = document.createElement('div');
-  chip.className = 'cal-post-chip';
-  chip.style.cssText = `background:${col}18;border-color:${col}44;color:var(--text)`;
-  chip.innerHTML = `<span class="chip-dot" style="background:${col}"></span><span>${preview}</span>`;
-  el.appendChild(chip);
+  // 1. Add to local calScheduled state so chip survives re-renders
+  if (!calScheduled[dateStr]) calScheduled[dateStr] = [];
+  calScheduled[dateStr].push({
+    id: postId, platform, content: calDragPost.content,
+    flavor: calDragPost.flavor, status: 'scheduled',
+    scheduled_at: scheduledAt,
+  });
 
-  // Remove from queue
-  const qCard = document.querySelector(`.queue-card[data-post-id="${calDragPost.id}"]`);
+  // 2. Rebuild just this day cell (not whole calendar) for instant feedback
+  buildCalDays();
+
+  // 3. Remove from queue
+  const qCard = document.querySelector(`.queue-card[data-post-id="${postId}"]`);
   if (qCard) qCard.remove();
+  const remaining = document.querySelectorAll('.queue-card').length;
+  const qCount = document.getElementById('queue-count');
+  if (qCount) qCount.textContent = remaining ? `${remaining} posts` : '';
+
+  calDragPost = null;
 
   try {
     await fetch(`${API_BASE}/smflow-schedule`, {
@@ -1760,21 +1771,18 @@ async function onCalDrop(event, el, dateStr, dow) {
       body: JSON.stringify({
         action:       'schedule_post',
         tenant_id:    TENANT.id,
-        post_id:      calDragPost.id,
+        post_id:      postId,
         scheduled_at: scheduledAt,
       }),
     });
-    // Open slot modal so user can adjust time + platforms
-    openPostSlot(calDragPost.id, dateStr, bestTime);
-    calDragPost = null;
+    // Open slot modal so user can fine-tune time + platforms
+    openPostSlot(postId, dateStr, bestTime);
   } catch(e) {
-    chip.remove();
+    // Rollback local state on failure
+    calScheduled[dateStr] = (calScheduled[dateStr] || []).filter(p => p.id !== postId);
+    buildCalDays();
     toast('Failed to schedule: ' + e.message);
   }
-  // Refresh queue count
-  const remaining = document.querySelectorAll('.queue-card').length;
-  const qCount = document.getElementById('queue-count');
-  if (qCount) qCount.textContent = remaining ? `${remaining} posts` : '';
 }
 
 // ── Post slot modal (time + platform picker) ───────────
@@ -1837,8 +1845,11 @@ async function saveSlot(postId, dateStr) {
       }),
     });
     document.getElementById('cal-modal')?.remove();
-    toast('✓ Post scheduled for ' + new Date(scheduledAt).toLocaleString('en-AU', {dateStyle:'medium', timeStyle:'short'}));
-    renderCalendar();
+    // Update local state with confirmed time — don't re-fetch (chips would flicker)
+    const entry = (calScheduled[dateStr] || []).find(p => p.id === postId);
+    if (entry) entry.scheduled_at = scheduledAt;
+    buildCalDays();
+    toast('✓ Scheduled for ' + new Date(scheduledAt).toLocaleString('en-AU', {dateStyle:'medium', timeStyle:'short'}));
   } catch(e) { toast('Save failed: ' + e.message); }
 }
 
@@ -1849,8 +1860,12 @@ async function removeFromCalendar(postId, dateStr) {
       body: JSON.stringify({ action:'unschedule_post', tenant_id: TENANT.id, post_id: postId }),
     });
     document.getElementById('cal-modal')?.remove();
-    toast('Post returned to queue');
-    renderCalendar();
+    // Remove from local state
+    if (calScheduled[dateStr]) {
+      calScheduled[dateStr] = calScheduled[dateStr].filter(p => p.id !== postId);
+    }
+    buildCalDays();
+    toast('Post returned to approved queue');
     loadApprovedQueue();
   } catch(e) { toast('Error: ' + e.message); }
 }
