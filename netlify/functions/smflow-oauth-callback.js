@@ -1,26 +1,26 @@
 // netlify/functions/smflow-oauth-callback.js
-// Handles the Meta OAuth redirect after user grants permissions.
+// Handles OAuth redirect for all platforms:
+// Facebook/Instagram, LinkedIn, YouTube
 //
 // Flow:
-// 1. Meta redirects here with ?code=&state=
-// 2. Exchange code for short-lived user access token
-// 3. Exchange for long-lived user access token (60 days)
-// 4. Get list of Facebook Pages the user manages
-// 5. Get Page-specific long-lived token for each page
-// 6. Get Instagram Business Account linked to each page
-// 7. Save to smflow_social_accounts (one row per platform per tenant)
-// 8. Redirect back to SMflow dashboard with success/error param
+// 1. Verify state param (tenant_id + platform)
+// 2. Exchange code for access token
+// 3. Fetch account/page details
+// 4. Save to smflow_social_accounts (scoped to tenant_id)
+// 5. Redirect back to dashboard with success/error message
 
-const SUPABASE_URL         = process.env.SUPABASE_URL;
-const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY;
-const META_APP_ID          = process.env.META_APP_ID;
-const META_APP_SECRET      = process.env.META_APP_SECRET;
-const SITE_URL             = 'https://aiflow360.com';
-const CALLBACK_URL         = `${SITE_URL}/.netlify/functions/smflow-oauth-callback`;
-const DASHBOARD_URL        = `${SITE_URL}/smflow-app/dashboard.html`;
-const GRAPH_URL            = 'https://graph.facebook.com/v19.0';
+const SUPABASE_URL          = process.env.SUPABASE_URL;
+const SUPABASE_SERVICE_KEY  = process.env.SUPABASE_SERVICE_KEY;
+const META_APP_ID           = process.env.META_APP_ID;
+const META_APP_SECRET       = process.env.META_APP_SECRET;
+const LINKEDIN_CLIENT_ID    = process.env.LINKEDIN_CLIENT_ID;
+const LINKEDIN_CLIENT_SECRET= process.env.LINKEDIN_CLIENT_SECRET;
+const YOUTUBE_CLIENT_ID     = process.env.YOUTUBE_CLIENT_ID;
+const YOUTUBE_CLIENT_SECRET = process.env.YOUTUBE_CLIENT_SECRET;
+const SITE_URL              = 'https://aiflow360.com';
+const CALLBACK_URL          = `${SITE_URL}/.netlify/functions/smflow-oauth-callback`;
 
-// ── Supabase REST helper ──────────────────────────────────
+// ── Supabase helper ────────────────────────────────────────
 async function sb(path, options = {}) {
   const url    = `${SUPABASE_URL}/rest/v1/${path}`;
   const method = options.method || 'GET';
@@ -31,266 +31,327 @@ async function sb(path, options = {}) {
       'Authorization': `Bearer ${SUPABASE_SERVICE_KEY}`,
       'Content-Type':  'application/json',
       'Prefer':        options.prefer || (method === 'GET' ? '' : 'return=representation'),
-      ...options.headers,
     },
     body: options.body ? JSON.stringify(options.body) : undefined,
   });
   const text = await res.text();
-  if (!res.ok) throw new Error(`Supabase ${res.status} on ${path}: ${text.slice(0, 200)}`);
+  if (!res.ok) throw new Error(`Supabase ${res.status}: ${text.slice(0, 200)}`);
   if (!text || text === 'null') return method === 'GET' ? [] : null;
-  const parsed = JSON.parse(text);
-  return Array.isArray(parsed) ? parsed : parsed;
+  return JSON.parse(text);
 }
 
-// ── Meta Graph API helper ─────────────────────────────────
-async function graph(path, params = {}) {
-  const url = new URL(`${GRAPH_URL}/${path}`);
-  Object.entries(params).forEach(([k, v]) => url.searchParams.set(k, v));
-  const res  = await fetch(url.toString());
-  const data = await res.json();
-  if (data.error) throw new Error(`Meta API ${path}: ${data.error.message} (code ${data.error.code})`);
-  return data;
+// ── Upsert social account ──────────────────────────────────
+async function upsertAccount(tenantId, platform, accountData) {
+  const now = new Date().toISOString();
+  // Check if account already exists for this tenant + platform + account_id
+  const existing = await sb(
+    `smflow_social_accounts?tenant_id=eq.${tenantId}&platform=eq.${platform}&platform_account_id=eq.${accountData.platform_account_id}&select=id&limit=1`
+  );
+
+  const payload = {
+    tenant_id:           tenantId,
+    platform,
+    ...accountData,
+    is_active:           true,
+    is_verified:         true,
+    updated_at:          now,
+  };
+
+  if (existing.length) {
+    await sb(
+      `smflow_social_accounts?tenant_id=eq.${tenantId}&platform=eq.${platform}&platform_account_id=eq.${accountData.platform_account_id}`,
+      { method: 'PATCH', prefer: 'return=minimal', body: payload }
+    );
+  } else {
+    await sb('smflow_social_accounts', {
+      method: 'POST', prefer: 'return=minimal',
+      body: { ...payload, connected_at: now },
+    });
+  }
 }
 
-// ── Save or update social account in DB ───────────────────
-async function upsertAccount({
-  tenant_id, platform, platform_account_id, account_name, account_type,
-  access_token, refresh_token, token_expires_at, token_scopes,
-  meta_page_id, meta_ig_account_id,
-}) {
-  // Deactivate existing account for this platform
-  await sb(
-    `smflow_social_accounts?tenant_id=eq.${tenant_id}&platform=eq.${encodeURIComponent(platform)}`,
-    { method: 'PATCH', prefer: 'return=minimal', body: { is_active: false, updated_at: new Date().toISOString() } }
-  ).catch(() => {}); // non-fatal if none exists
+// ══════════════════════════════════════════════════════════
+// FACEBOOK + INSTAGRAM HANDLER
+// ══════════════════════════════════════════════════════════
+async function handleFacebook(code, tenantId) {
+  // 1. Exchange code for short-lived token
+  const tokenRes = await fetch(
+    `https://graph.facebook.com/v19.0/oauth/access_token?` +
+    `client_id=${META_APP_ID}&client_secret=${META_APP_SECRET}` +
+    `&redirect_uri=${encodeURIComponent(CALLBACK_URL)}&code=${code}`
+  );
+  const tokenData = await tokenRes.json();
+  if (!tokenData.access_token) throw new Error(`Meta token exchange failed: ${JSON.stringify(tokenData)}`);
 
-  // Insert new
-  await sb('smflow_social_accounts', {
+  // 2. Upgrade to long-lived token (60 days)
+  const llRes = await fetch(
+    `https://graph.facebook.com/v19.0/oauth/access_token?` +
+    `grant_type=fb_exchange_token&client_id=${META_APP_ID}` +
+    `&client_secret=${META_APP_SECRET}&fb_exchange_token=${tokenData.access_token}`
+  );
+  const llData = await llRes.json();
+  const longToken = llData.access_token || tokenData.access_token;
+  const expiresAt = llData.expires_in
+    ? new Date(Date.now() + llData.expires_in * 1000).toISOString()
+    : null;
+
+  // 3. Get all Facebook Pages the user manages
+  const pagesRes = await fetch(
+    `https://graph.facebook.com/v19.0/me/accounts?access_token=${longToken}&fields=id,name,access_token,category`
+  );
+  const pagesData = await pagesRes.json();
+  const pages = pagesData.data || [];
+
+  let fbCount = 0, igCount = 0;
+
+  for (const page of pages) {
+    // Save Facebook Page
+    await upsertAccount(tenantId, 'Facebook', {
+      platform_account_id: page.id,
+      account_name:        page.name,
+      account_type:        'page',
+      access_token:        page.access_token,
+      token_expires_at:    expiresAt,
+      meta_page_id:        page.id,
+    });
+    fbCount++;
+
+    // Check for linked Instagram Business account
+    const igRes = await fetch(
+      `https://graph.facebook.com/v19.0/${page.id}?fields=instagram_business_account&access_token=${page.access_token}`
+    );
+    const igData = await igRes.json();
+    if (igData.instagram_business_account?.id) {
+      const igId = igData.instagram_business_account.id;
+      // Get Instagram username
+      const igInfoRes = await fetch(
+        `https://graph.facebook.com/v19.0/${igId}?fields=username,name&access_token=${page.access_token}`
+      );
+      const igInfo = await igInfoRes.json();
+      await upsertAccount(tenantId, 'Instagram', {
+        platform_account_id: igId,
+        account_name:        igInfo.username || igInfo.name || igId,
+        account_type:        'business',
+        access_token:        page.access_token,
+        token_expires_at:    expiresAt,
+        meta_page_id:        page.id,
+        meta_ig_account_id:  igId,
+      });
+      igCount++;
+    }
+  }
+
+  const parts = [];
+  if (fbCount) parts.push(`Facebook (${fbCount} page${fbCount > 1 ? 's' : ''})`);
+  if (igCount) parts.push(`Instagram (${igCount} account${igCount > 1 ? 's' : ''})`);
+  return parts.join(' + ') || 'Facebook connected';
+}
+
+// ══════════════════════════════════════════════════════════
+// LINKEDIN HANDLER
+// ══════════════════════════════════════════════════════════
+async function handleLinkedIn(code, tenantId) {
+  // 1. Exchange code for access token
+  const tokenRes = await fetch('https://www.linkedin.com/oauth/v2/accessToken', {
     method: 'POST',
-    prefer: 'return=minimal',
-    body: {
-      tenant_id,
-      platform,
-      platform_account_id,
-      account_name:       account_name       || null,
-      account_type:       account_type       || 'page',
-      access_token,
-      refresh_token:      refresh_token      || null,
-      token_expires_at:   token_expires_at   || null,
-      token_scopes:       token_scopes       || [],
-      meta_page_id:       meta_page_id       || null,
-      meta_ig_account_id: meta_ig_account_id || null,
-      is_active:          true,
-      is_verified:        false,
-      connected_at:       new Date().toISOString(),
-      updated_at:         new Date().toISOString(),
-    },
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: new URLSearchParams({
+      grant_type:    'authorization_code',
+      code,
+      redirect_uri:  CALLBACK_URL,
+      client_id:     LINKEDIN_CLIENT_ID,
+      client_secret: LINKEDIN_CLIENT_SECRET,
+    }),
   });
+  const tokenData = await tokenRes.json();
+  if (!tokenData.access_token) throw new Error(`LinkedIn token exchange failed: ${JSON.stringify(tokenData)}`);
+
+  const accessToken = tokenData.access_token;
+  const refreshToken = tokenData.refresh_token || null;
+  const expiresAt = tokenData.expires_in
+    ? new Date(Date.now() + tokenData.expires_in * 1000).toISOString()
+    : null;
+
+  // 2. Get member profile
+  const profileRes = await fetch('https://api.linkedin.com/v2/userinfo', {
+    headers: { 'Authorization': `Bearer ${accessToken}` },
+  });
+  const profile = await profileRes.json();
+
+  // 3. Save personal LinkedIn account
+  await upsertAccount(tenantId, 'LinkedIn', {
+    platform_account_id: profile.sub || profile.id,
+    account_name:        profile.name || `${profile.given_name} ${profile.family_name}`,
+    account_type:        'personal',
+    access_token:        accessToken,
+    refresh_token:       refreshToken,
+    token_expires_at:    expiresAt,
+    token_scopes:        ['w_member_social', 'r_organization_social', 'w_organization_social'],
+  });
+
+  // 4. Try to get LinkedIn Company Pages the member admins
+  let pageCount = 0;
+  try {
+    const orgsRes = await fetch(
+      `https://api.linkedin.com/v2/organizationAcls?q=roleAssignee&role=ADMINISTRATOR&state=APPROVED&count=50`,
+      { headers: { 'Authorization': `Bearer ${accessToken}` } }
+    );
+    const orgsData = await orgsRes.json();
+    const orgs = orgsData.elements || [];
+
+    for (const org of orgs) {
+      const orgId = org.organization?.split(':').pop();
+      if (!orgId) continue;
+      // Get org details
+      const orgRes = await fetch(
+        `https://api.linkedin.com/v2/organizations/${orgId}`,
+        { headers: { 'Authorization': `Bearer ${accessToken}` } }
+      );
+      const orgData = await orgRes.json();
+      await upsertAccount(tenantId, 'LinkedIn', {
+        platform_account_id: `org_${orgId}`,
+        account_name:        orgData.localizedName || `LinkedIn Page ${orgId}`,
+        account_type:        'organization',
+        access_token:        accessToken,
+        refresh_token:       refreshToken,
+        token_expires_at:    expiresAt,
+        token_scopes:        ['w_organization_social'],
+      });
+      pageCount++;
+    }
+  } catch(e) {
+    console.warn('LinkedIn org pages non-fatal:', e.message);
+  }
+
+  return pageCount
+    ? `LinkedIn (profile + ${pageCount} company page${pageCount > 1 ? 's' : ''})`
+    : `LinkedIn (${profile.name || 'profile'})`;
 }
 
+// ══════════════════════════════════════════════════════════
+// YOUTUBE HANDLER
+// ══════════════════════════════════════════════════════════
+async function handleYouTube(code, tenantId) {
+  // 1. Exchange code for tokens
+  const tokenRes = await fetch('https://oauth2.googleapis.com/token', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: new URLSearchParams({
+      code,
+      client_id:     YOUTUBE_CLIENT_ID,
+      client_secret: YOUTUBE_CLIENT_SECRET,
+      redirect_uri:  CALLBACK_URL,
+      grant_type:    'authorization_code',
+    }),
+  });
+  const tokenData = await tokenRes.json();
+  if (!tokenData.access_token) throw new Error(`YouTube token exchange failed: ${JSON.stringify(tokenData)}`);
+
+  const accessToken  = tokenData.access_token;
+  const refreshToken = tokenData.refresh_token || null;
+  const expiresAt    = tokenData.expires_in
+    ? new Date(Date.now() + tokenData.expires_in * 1000).toISOString()
+    : null;
+
+  // 2. Get YouTube channel info
+  const channelRes = await fetch(
+    'https://www.googleapis.com/youtube/v3/channels?part=snippet,contentDetails&mine=true',
+    { headers: { 'Authorization': `Bearer ${accessToken}` } }
+  );
+  const channelData = await channelRes.json();
+  const channel = channelData.items?.[0];
+
+  if (!channel) throw new Error('No YouTube channel found for this Google account');
+
+  const channelId   = channel.id;
+  const channelName = channel.snippet?.title || 'YouTube Channel';
+
+  // 3. Save YouTube channel
+  await upsertAccount(tenantId, 'YouTube', {
+    platform_account_id: channelId,
+    account_name:        channelName,
+    account_type:        'channel',
+    access_token:        accessToken,
+    refresh_token:       refreshToken,
+    token_expires_at:    expiresAt,
+    token_scopes:        ['youtube.upload', 'youtube'],
+  });
+
+  return `YouTube (${channelName})`;
+}
+
+// ══════════════════════════════════════════════════════════
+// MAIN HANDLER
+// ══════════════════════════════════════════════════════════
 exports.handler = async function (event) {
   const params = event.queryStringParameters || {};
-  const { code, state, error: oauthError, error_description } = params;
+  const code   = params.code;
+  const error  = params.error;
 
-  // ── OAuth error from Meta ─────────────────────────────
-  if (oauthError) {
-    console.error('Meta OAuth error:', oauthError, error_description);
-    return {
-      statusCode: 302,
-      headers: { Location: `${DASHBOARD_URL}?tab=settings&connect_error=${encodeURIComponent(error_description || oauthError)}` },
-      body: '',
-    };
-  }
-
-  if (!code || !state) {
-    return {
-      statusCode: 302,
-      headers: { Location: `${DASHBOARD_URL}?tab=settings&connect_error=missing_code` },
-      body: '',
-    };
-  }
-
-  // ── Decode state ──────────────────────────────────────
-  let stateData;
+  // Decode state
+  let stateData = {};
   try {
-    stateData = JSON.parse(Buffer.from(state, 'base64').toString('utf8'));
-  } catch (e) {
-    return {
-      statusCode: 302,
-      headers: { Location: `${DASHBOARD_URL}?tab=settings&connect_error=invalid_state` },
-      body: '',
-    };
+    stateData = JSON.parse(Buffer.from(params.state || '', 'base64').toString('utf8'));
+  } catch {
+    return { statusCode: 400, body: 'Invalid state parameter' };
   }
 
   const { tenant_id, platform, redirect_back } = stateData;
-  const dashboardReturn = redirect_back || DASHBOARD_URL;
+  const dashboardReturn = redirect_back || `${SITE_URL}/smflow-app/dashboard.html`;
+
+  // Handle user-denied / OAuth errors
+  if (error || !code) {
+    const msg = error === 'access_denied' ? 'Access denied — please try again' : (error || 'OAuth failed');
+    return {
+      statusCode: 302,
+      headers: { Location: `${dashboardReturn}?tab=settings&connect_error=${encodeURIComponent(msg)}` },
+      body: '',
+    };
+  }
 
   if (!tenant_id) {
     return {
       statusCode: 302,
-      headers: { Location: `${dashboardReturn}?tab=settings&connect_error=missing_tenant` },
+      headers: { Location: `${dashboardReturn}?tab=settings&connect_error=${encodeURIComponent('Missing tenant_id')}` },
       body: '',
     };
   }
 
   try {
-    // ── Step 1: Exchange code for short-lived user token ──
-    const tokenRes = await fetch(`${GRAPH_URL}/oauth/access_token`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body: new URLSearchParams({
-        client_id:     META_APP_ID,
-        client_secret: META_APP_SECRET,
-        redirect_uri:  CALLBACK_URL,
-        code,
-      }).toString(),
-    });
-    const tokenData = await tokenRes.json();
-    if (tokenData.error) throw new Error(`Token exchange: ${tokenData.error.message}`);
-    const shortLivedToken = tokenData.access_token;
+    let successMsg = '';
 
-    // ── Step 2: Exchange for long-lived user token (60d) ──
-    const longTokenData = await graph('oauth/access_token', {
-      grant_type:        'fb_exchange_token',
-      client_id:         META_APP_ID,
-      client_secret:     META_APP_SECRET,
-      fb_exchange_token: shortLivedToken,
-    });
-    const userToken      = longTokenData.access_token;
-    const tokenExpiresIn = longTokenData.expires_in || 5184000; // default 60 days
-    const tokenExpiresAt = new Date(Date.now() + tokenExpiresIn * 1000).toISOString();
-
-    // ── Step 3: Get user info ─────────────────────────────
-    const userInfo = await graph('me', {
-      fields:       'id,name,email',
-      access_token: userToken,
-    });
-
-    // ── Step 4: Get Facebook Pages the user manages ───────
-    const pagesData = await graph('me/accounts', {
-      fields:       'id,name,access_token,instagram_business_account',
-      access_token: userToken,
-    });
-    const pages = pagesData.data || [];
-
-    if (!pages.length) {
-      // No pages found — save user token at minimum
-      console.warn('No Facebook Pages found for user:', userInfo.id);
-      return {
-        statusCode: 302,
-        headers: { Location: `${dashboardReturn}?tab=settings&connect_error=no_pages&connect_hint=Please+ensure+you+have+a+Facebook+Page+and+are+an+admin` },
-        body: '',
-      };
+    if (platform === 'facebook' || platform === 'instagram') {
+      successMsg = await handleFacebook(code, tenant_id);
+    } else if (platform === 'linkedin') {
+      successMsg = await handleLinkedIn(code, tenant_id);
+    } else if (platform === 'youtube') {
+      successMsg = await handleYouTube(code, tenant_id);
+    } else {
+      throw new Error(`Unsupported platform: ${platform}`);
     }
 
-    let facebookConnected  = 0;
-    let instagramConnected = 0;
-
-    for (const page of pages) {
-      const pageToken = page.access_token; // already long-lived when user token is long-lived
-      const pageId    = page.id;
-      const pageName  = page.name;
-
-      // ── Step 5: Save Facebook Page account ───────────────
-      await upsertAccount({
-        tenant_id,
-        platform:            'Facebook',
-        platform_account_id: pageId,
-        account_name:        pageName,
-        account_type:        'page',
-        access_token:        pageToken,
-        token_expires_at:    tokenExpiresAt,
-        token_scopes:        ['pages_manage_posts', 'pages_read_engagement'],
-        meta_page_id:        pageId,
-      });
-      facebookConnected++;
-
-      // ── Step 6: Check for linked Instagram Business Account
-      let igAccountId = page.instagram_business_account?.id;
-
-      if (!igAccountId) {
-        // Try fetching it directly
-        try {
-          const igData = await graph(`${pageId}`, {
-            fields:       'instagram_business_account',
-            access_token: pageToken,
-          });
-          igAccountId = igData.instagram_business_account?.id;
-        } catch (igErr) {
-          console.warn(`No Instagram linked to page ${pageName}:`, igErr.message);
-        }
-      }
-
-      if (igAccountId) {
-        // Get Instagram account details
-        try {
-          const igInfo = await graph(igAccountId, {
-            fields:       'id,name,username,profile_picture_url',
-            access_token: pageToken,
-          });
-
-          // ── Step 7: Save Instagram account ───────────────
-          await upsertAccount({
-            tenant_id,
-            platform:            'Instagram',
-            platform_account_id: igAccountId,
-            account_name:        igInfo.username || igInfo.name || pageName,
-            account_type:        'business',
-            access_token:        pageToken, // Page token is used for IG publishing
-            token_expires_at:    tokenExpiresAt,
-            token_scopes:        ['instagram_basic', 'instagram_content_publish'],
-            meta_page_id:        pageId,
-            meta_ig_account_id:  igAccountId,
-          });
-          instagramConnected++;
-        } catch (igSaveErr) {
-          console.warn('Instagram save error (non-fatal):', igSaveErr.message);
-        }
-      }
-    }
-
-    // ── Audit log ─────────────────────────────────────────
-    await sb('audit_logs', {
-      method: 'POST',
-      prefer: 'return=minimal',
+    // Audit log
+    sb('audit_logs', {
+      method: 'POST', prefer: 'return=minimal',
       body: {
         tenant_id,
-        action:        'create',
+        action:        'connect',
         resource_type: 'smflow_social_accounts',
-        metadata: {
-          platforms_connected: ['Facebook', instagramConnected > 0 ? 'Instagram' : null].filter(Boolean),
-          pages_found:         pages.length,
-          fb_connected:        facebookConnected,
-          ig_connected:        instagramConnected,
-          meta_user_id:        userInfo.id,
-        },
+        metadata:      { platform, success: successMsg },
       },
     }).catch(e => console.warn('audit log non-fatal:', e.message));
 
-    // ── Build success message ─────────────────────────────
-    const connected = [];
-    if (facebookConnected  > 0) connected.push(`Facebook (${facebookConnected} page${facebookConnected > 1 ? 's' : ''})`);
-    if (instagramConnected > 0) connected.push(`Instagram (${instagramConnected} account${instagramConnected > 1 ? 's' : ''})`);
-    const successMsg = connected.length
-      ? `Connected: ${connected.join(' + ')}`
-      : 'Connected successfully';
-
-    // ── Redirect back to dashboard with success ───────────
     return {
       statusCode: 302,
-      headers: {
-        Location: `${dashboardReturn}?tab=settings&connect_success=${encodeURIComponent(successMsg)}`,
-      },
+      headers: { Location: `${dashboardReturn}?tab=settings&connect_success=${encodeURIComponent('✓ Connected: ' + successMsg)}` },
       body: '',
     };
 
   } catch (err) {
-    console.error('smflow-oauth-callback error:', err.message);
+    console.error(`smflow-oauth-callback [${platform}] error:`, err.message);
     return {
       statusCode: 302,
-      headers: {
-        Location: `${dashboardReturn}?tab=settings&connect_error=${encodeURIComponent(err.message)}`,
-      },
+      headers: { Location: `${dashboardReturn}?tab=settings&connect_error=${encodeURIComponent(err.message)}` },
       body: '',
     };
   }
