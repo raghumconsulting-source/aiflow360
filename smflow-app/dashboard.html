@@ -721,9 +721,33 @@ textarea.sct:focus{border-color:var(--violet)}
           <div>
             <label style="font-size:11px;color:var(--muted);display:block;margin-bottom:4px;text-transform:uppercase;letter-spacing:.05em">Timezone</label>
             <select class="sct" id="tz-select" style="width:100%">
-              <option>AEST — Sydney/Melbourne</option>
-              <option>AWST — Perth</option>
-              <option>ACST — Adelaide</option>
+              <optgroup label="Australia">
+                <option value="Australia/Sydney">AEST/AEDT — Sydney/Melbourne</option>
+                <option value="Australia/Perth">AWST — Perth</option>
+                <option value="Australia/Adelaide">ACST/ACDT — Adelaide</option>
+                <option value="Australia/Brisbane">AEST — Brisbane (no DST)</option>
+                <option value="Australia/Darwin">ACST — Darwin (no DST)</option>
+              </optgroup>
+              <optgroup label="New Zealand">
+                <option value="Pacific/Auckland">NZST/NZDT — Auckland/Wellington</option>
+                <option value="Pacific/Chatham">CHAST — Chatham Islands</option>
+              </optgroup>
+              <optgroup label="Asia">
+                <option value="Asia/Singapore">SGT — Singapore</option>
+                <option value="Asia/Kuala_Lumpur">MYT — Kuala Lumpur</option>
+                <option value="Asia/Dubai">GST — Dubai</option>
+                <option value="Asia/Kolkata">IST — India</option>
+              </optgroup>
+              <optgroup label="Europe">
+                <option value="Europe/London">GMT/BST — London</option>
+                <option value="Europe/Paris">CET/CEST — Paris/Berlin</option>
+              </optgroup>
+              <optgroup label="Americas">
+                <option value="America/New_York">EST/EDT — New York</option>
+                <option value="America/Los_Angeles">PST/PDT — Los Angeles</option>
+                <option value="America/Chicago">CST/CDT — Chicago</option>
+                <option value="UTC">UTC — Universal</option>
+              </optgroup>
             </select>
           </div>
           <div>
@@ -1034,7 +1058,7 @@ textarea.sct:focus{border-color:var(--violet)}
 
 <script>
 // ══════════════════════════════════════════════════════════
-// CONFIG — loaded from server to avoid hardcoded secrets
+// CONFIG
 // ══════════════════════════════════════════════════════════
 const API_BASE = '/.netlify/functions';
 let SUPABASE_URL = null;
@@ -1126,6 +1150,32 @@ async function init() {
   loadPendingCount();
 }
 
+// ── Tenant timezone helper — always use this, never hardcode ──
+function getTenantTZ() {
+  return CONFIG?.timezone || 'Australia/Sydney';
+}
+
+function toTenantTZOffset(dateStr, timeStr) {
+  // Returns ISO string with correct UTC offset for tenant timezone
+  // e.g. "2026-06-05", "22:00" -> "2026-06-05T22:00:00+10:00"
+  const tz = getTenantTZ();
+  const d = new Date(`${dateStr}T${timeStr}:00`);
+  const utc = new Date(d.toLocaleString('en-US', {timeZone: 'UTC'}));
+  const local = new Date(d.toLocaleString('en-US', {timeZone: tz}));
+  const diffHrs = Math.round((utc - local) / 36e5);
+  const sign = diffHrs <= 0 ? '+' : '-';
+  const h = String(Math.abs(diffHrs)).padStart(2, '0');
+  return `${dateStr}T${timeStr}:00${sign}${h}:00`;
+}
+
+function formatInTenantTZ(isoString) {
+  // Format a UTC ISO string into tenant local time for display
+  return new Date(isoString).toLocaleTimeString('en-AU', {
+    hour: '2-digit', minute: '2-digit', hour12: true,
+    timeZone: getTenantTZ()
+  });
+}
+
 // ══════════════════════════════════════════════════════════
 // AUDIENCE DROPDOWN — industry-aware
 // ══════════════════════════════════════════════════════════
@@ -1184,6 +1234,10 @@ async function loadConfig() {
       // cfg-audience dropdown populated by populateAudienceDropdown() below with correct selection
       document.getElementById('cfg-context').value    = CONFIG.extra_context    || '';
       document.getElementById('cfg-canva-type').value = CONFIG.canva_design_type|| 'instagram_post';
+      if (CONFIG.timezone) {
+        const tzEl = document.getElementById('tz-select');
+        if (tzEl) tzEl.value = CONFIG.timezone;
+      }
       if (CONFIG.active_platforms) {
         Object.entries(CONFIG.active_platforms).forEach(([k,v]) => {
           const platMap = {li:'LinkedIn',fb:'Facebook',ig:'Instagram',wa:'WhatsApp',tw:'Twitter/X',yt:'YouTube'};
@@ -1225,6 +1279,7 @@ async function saveConfig() {
         target_audience:   document.getElementById('cfg-audience').value,
         extra_context:     document.getElementById('cfg-context').value,
         canva_design_type: document.getElementById('cfg-canva-type').value,
+        timezone:          document.getElementById('tz-select')?.value || 'Australia/Sydney',
         active_platforms:  platObj,
       }),
     });
@@ -2291,7 +2346,7 @@ function buildCalDays() {
     const chipsHtml = posts.slice(0, 3).map(p => {
       const col     = PLAT_COLORS_CAL[p.platform] || '#888';
       const preview = (p.content || '').slice(0, 18);
-      const time    = p.scheduled_at ? new Date(p.scheduled_at).toLocaleTimeString('en-AU',{hour:'2-digit',minute:'2-digit',hour12:true}) : '';
+      const time    = p.scheduled_at ? formatInTenantTZ(p.scheduled_at) : '';
       const isDone  = p.status === 'published';
       const chipStyle = isDone
         ? 'background:var(--color-background-success);border-color:var(--color-border-success);color:var(--color-text-success)'
@@ -2358,7 +2413,7 @@ async function onCalDrop(event, el, dateStr, dow) {
   }
 
   const bestTime   = getBestTime(dow);
-  const scheduledAt = `${dateStr}T${bestTime}:00+10:00`; // AEST
+  const scheduledAt = toTenantTZOffset(dateStr, bestTime);
   const col         = PLAT_COLORS_CAL[calDragPost.platform] || '#888';
   const preview     = calDragPost.content.slice(0, 22);
   const postId      = calDragPost.id;
@@ -2463,7 +2518,7 @@ function openPostSlot(postId, dateStr, defaultTime) {
 async function saveSlot(postId, dateStr) {
   const time      = document.getElementById('slot-time')?.value || '12:00';
   const platforms = [...document.querySelectorAll('.plat-chk:checked')].map(c => c.value);
-  const scheduledAt = `${dateStr}T${time}:00+10:00`;
+  const scheduledAt = toTenantTZOffset(dateStr, time);
 
   try {
     await fetch(`${API_BASE}/smflow-schedule`, {
@@ -2481,7 +2536,7 @@ async function saveSlot(postId, dateStr) {
     const entry = (calScheduled[dateStr] || []).find(p => p.id === postId);
     if (entry) { entry.scheduled_at = scheduledAt; entry.scheduled_platforms = platforms; }
     buildCalDays();
-    toast('✓ Scheduled for ' + new Date(scheduledAt).toLocaleString('en-AU', {dateStyle:'medium', timeStyle:'short'}));
+    toast('✓ Scheduled for ' + new Date(scheduledAt).toLocaleString('en-AU', {dateStyle:'medium', timeStyle:'short', timeZone: getTenantTZ()}));
   } catch(e) { toast('Save failed: ' + e.message); }
 }
 
@@ -2557,7 +2612,7 @@ async function loadHistoryTab() {
   const flavor   = document.getElementById('hist-flavor').value;
   const status   = document.getElementById('hist-status').value;
   try {
-    let url = `${API_BASE}/smflow-posts?tenant_id=${TENANT.id}&limit=40&status=neq.deleted`;
+    let url = `${API_BASE}/smflow-posts?tenant_id=${TENANT.id}&limit=40`;
     if (platform) url += `&platform=${encodeURIComponent(platform)}`;
     if (flavor)   url += `&flavor=${encodeURIComponent(flavor)}`;
     if (status)   url += `&status=${encodeURIComponent(status)}`;

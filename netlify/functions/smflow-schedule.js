@@ -248,9 +248,9 @@ exports.handler = async function (event) {
           return { statusCode: 400, headers: HEADERS, body: JSON.stringify({ error: 'date_from and date_to required' }) };
         }
         const posts = await sb(
-          `smflow_posts?tenant_id=eq.${tenant_id}&status=eq.scheduled` +
+          `smflow_posts?tenant_id=eq.${tenant_id}&status=in.(scheduled,published)` +
           `&scheduled_at=gte.${date_from}&scheduled_at=lte.${date_to}` +
-          `&select=id,platform,content,flavor,image_url,status,scheduled_at&order=scheduled_at.asc`
+          `&select=id,platform,content,flavor,image_url,status,scheduled_at,scheduled_platforms,published_at&order=scheduled_at.asc`
         );
         // Group by date (YYYY-MM-DD)
         const byDay = {};
