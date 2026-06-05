@@ -2557,7 +2557,7 @@ async function loadHistoryTab() {
   const flavor   = document.getElementById('hist-flavor').value;
   const status   = document.getElementById('hist-status').value;
   try {
-    let url = `${API_BASE}/smflow-posts?tenant_id=${TENANT.id}&limit=40`;
+    let url = `${API_BASE}/smflow-posts?tenant_id=${TENANT.id}&limit=40&status=neq.deleted`;
     if (platform) url += `&platform=${encodeURIComponent(platform)}`;
     if (flavor)   url += `&flavor=${encodeURIComponent(flavor)}`;
     if (status)   url += `&status=${encodeURIComponent(status)}`;
