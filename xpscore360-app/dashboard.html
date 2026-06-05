@@ -690,13 +690,21 @@ canvas{display:block;width:100%!important}
 </div>
 
 <script>
-// ── Config ─────────────────────────────────────────
-const SUPABASE_URL = 'https://iroseywidzacqinmjtdc.supabase.co';
-const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imlyb3NleXdpZHphY3Fpbm1qdGRjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg5MTgwMTQsImV4cCI6MjA5NDQ5NDAxNH0.x66R6jOUcU8eaXxxXL2OtUX9rJ3ddntQTYLrOdnpzOk';
-const API_BASE     = '/.netlify/functions';
+// ── Config — loaded from server to avoid hardcoded secrets ─
+const API_BASE = '/.netlify/functions';
+let SUPABASE_URL = null;
+let SUPABASE_KEY = null;
+let sb = null;
 
-const { createClient } = supabase;
-const sb = createClient(SUPABASE_URL, SUPABASE_KEY);
+async function initSupabase() {
+  const res = await fetch(`${API_BASE}/smflow-config-public`);
+  if (!res.ok) throw new Error('Configuration loading failed');
+  const cfg = await res.json();
+  SUPABASE_URL = cfg.supabase_url;
+  SUPABASE_KEY = cfg.supabase_anon;
+  const { createClient } = supabase;
+  sb = createClient(SUPABASE_URL, SUPABASE_KEY);
+}
 
 // ── State ───────────────────────────────────────────
 let SESSION   = null;
@@ -787,6 +795,7 @@ async function sendResetEmail() {
 }
 
 async function init() {
+  await initSupabase();
   const { data: { session } } = await sb.auth.getSession();
   if (!session) {
     document.getElementById('auth-overlay').style.display = 'flex';
@@ -830,7 +839,7 @@ async function init() {
             Complete onboarding →
           </a>
           <div style="margin-top:16px;font-size:12px;color:#888880">
-            Signed in as ${session.user.email} · <a href="#" onclick="supabase.createClient('https://iroseywidzacqinmjtdc.supabase.co','${SUPABASE_KEY}').auth.signOut().then(()=>location.reload())" style="color:#0F0F0D">Sign out</a>
+            Signed in as ${session.user.email} · <a href="#" onclick="sb.auth.signOut().then(()=>location.reload())" style="color:#0F0F0D">Sign out</a>
           </div>
         </div>
       </div>`;
