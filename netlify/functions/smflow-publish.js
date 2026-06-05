@@ -379,7 +379,7 @@ exports.handler = async function (event) {
         // Find all posts scheduled for now or earlier
         const duePosts = await sb(
           `smflow_posts?tenant_id=eq.${tenant_id}&status=eq.scheduled` +
-          `&scheduled_at=lte.${now}&is_saved=eq.true` +
+          `&scheduled_at=lte.${now}` +
           `&order=scheduled_at.asc&limit=50`
         );
 
