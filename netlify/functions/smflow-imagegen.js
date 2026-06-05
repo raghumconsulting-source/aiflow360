@@ -103,7 +103,7 @@ exports.handler = async function (event) {
     // Build form data — ONLY the fields documented: prompt, style, aspect_ratio
     const formData = new FormData();
     formData.append('prompt',       prompt);
-    formData.append('style',        'realistic');
+    formData.append('style',        'imagine-turbo'); // imagine-turbo works on all plans
     formData.append('aspect_ratio', aspectRatio);
 
     const res = await fetch('https://api.vyro.ai/v2/image/generations', {
