@@ -171,6 +171,16 @@ body{font-family:'Geist',sans-serif;font-size:14px;color:var(--text);line-height
 .post-split{display:grid;grid-template-columns:1fr 220px 1fr;gap:0;border:.5px solid var(--border);border-radius:var(--radius-lg);overflow:hidden;margin-bottom:12px;min-height:320px}
 .post-split-mid{border-right:.5px solid var(--border);background:var(--surface);display:flex;flex-direction:column;overflow:hidden;min-width:140px;max-width:280px;resize:horizontal}
 .post-split-mid-hdr{font-size:11px;font-weight:500;color:var(--muted);padding:8px 10px;border-bottom:.5px solid var(--border);text-transform:uppercase;letter-spacing:.05em;flex-shrink:0}
+.img-gen-loading{width:100%;aspect-ratio:1;background:linear-gradient(90deg,var(--surface) 0%,var(--border) 50%,var(--surface) 100%);background-size:200% 100%;animation:shimmer 1.5s infinite;border-radius:8px;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:8px;font-size:12px;color:var(--muted)}
+@keyframes shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}
+.img-gen-spinner{width:28px;height:28px;border:2.5px solid var(--border);border-top-color:var(--violet);border-radius:50%;animation:spin .8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.post-img-panwrap{position:relative;overflow:hidden;border-radius:8px;cursor:grab;user-select:none}
+.post-img-panwrap:active{cursor:grabbing}
+.post-img-panwrap img{display:block;width:100%;transform-origin:center;transition:transform .1s}
+.pan-controls{display:flex;gap:4px;padding:4px 0;justify-content:center}
+.pan-btn{background:var(--surface);border:.5px solid var(--border);border-radius:4px;padding:2px 7px;font-size:11px;cursor:pointer;color:var(--text)}
+.pan-btn:hover{background:var(--bg)}
 .photo-reel{display:grid;grid-template-columns:1fr 1fr;gap:6px;padding:8px;overflow-y:auto;flex:1;max-height:600px;align-content:start}
 .photo-reel-item{border-radius:6px;overflow:hidden;cursor:grab;position:relative;aspect-ratio:1;border:.5px solid var(--border);transition:border-color .15s}
 .photo-reel-item img{width:100%;height:100%;object-fit:cover;display:block}
@@ -612,7 +622,7 @@ textarea.sct:focus{border-color:var(--violet)}
     </div>
 
     <div style="display:flex;gap:8px">
-      <button class="btn btn-outline btn-sm" id="gen-selected-btn" onclick="generateSelected()" title="Generate only for the highlighted platform">⚡ Selected</button>
+      <button class="btn btn-violet btn-sm" id="gen-selected-btn" onclick="generateSelected()" style="min-width:120px" title="Generate for focused platform only">⚡ Selected</button>
       <button class="btn btn-violet" id="gen-btn" onclick="generatePosts()" style="flex:1">⚡ Generate All Channels</button>
       <button class="btn btn-outline btn-sm" onclick="generateBatch()" title="Generate all 6 flavors in sequence">📦 Batch</button>
     </div>
@@ -883,10 +893,7 @@ textarea.sct:focus{border-color:var(--violet)}
             <div><div class="card-title">Canva</div><div class="card-sub">AI-assisted design — no account connection needed</div></div>
           </div>
           <div class="card-body">
-            <div style="background:var(--violet-bg);border:.5px solid var(--violet);border-radius:var(--radius);padding:10px 14px;margin-bottom:12px;font-size:12px;color:var(--text);line-height:1.6">
-              <strong>How it works:</strong> When you click 🎨 Canva on any post, SMflow copies the post text to your clipboard and opens Canva. Paste the text into <strong>Canva AI → Design for me</strong> and Canva will generate a design from your post content. Make sure you're logged into Canva in your browser.
-              <div style="margin-top:8px"><a href="https://www.canva.com" target="_blank" style="color:var(--violet-t);text-decoration:none;font-weight:500">→ Open Canva ↗</a></div>
-            </div>
+
             <div class="setting-row" style="border:none;padding-top:0">
               <div><div class="setting-lbl">Default design type</div><div class="setting-sub">Used when opening Canva for a new design</div></div>
               <select class="sct" id="cfg-canva-type">
@@ -1263,6 +1270,13 @@ function togPlat(p) {
   activePlats.has(p) ? activePlats.delete(p) : activePlats.add(p);
   const el = document.getElementById('pt-'+p.replace('/',''));
   el?.classList.toggle('on', activePlats.has(p));
+  if (activePlats.has(p)) window._lastClickedPlatform = p;
+  // Update Selected button label to show which platform is focused
+  const selBtn = document.getElementById('gen-selected-btn');
+  if (selBtn) {
+    const single = activePlats.size === 1 ? [...activePlats][0] : (window._lastClickedPlatform || null);
+    selBtn.textContent = single && activePlats.has(single) ? `⚡ ${single}` : '⚡ Selected';
+  }
 }
 
 // ══════════════════════════════════════════════════════════
@@ -1270,9 +1284,17 @@ function togPlat(p) {
 // ══════════════════════════════════════════════════════════
 async function generateSelected() {
   // Generate only for the currently highlighted/selected platform
-  const activePlat = document.querySelector('.plat-tog.on')?.dataset?.platform;
-  if (!activePlat) {
-    toast('⚠ Click a platform first to select it, then hit Generate Selected');
+  // Use single active platform — if multiple active, use the last clicked one
+  const activePlatsList = [...activePlats];
+  const activePlat = activePlatsList.length === 1
+    ? activePlatsList[0]
+    : window._lastClickedPlatform;
+  if (!activePlat || !activePlats.has(activePlat)) {
+    // Show helper tooltip on the button
+    const btn = document.getElementById('gen-selected-btn');
+    btn.textContent = '⚠ Pick 1 platform';
+    setTimeout(() => { btn.textContent = '⚡ Selected'; btn.disabled = false; }, 2000);
+    toast('⚠ Deselect other platforms — keep only one active, then click Selected');
     return;
   }
   if (!currentFlavor) return toast('Select a content flavor first');
@@ -1532,7 +1554,9 @@ function renderPostCard(post, flavor, container) {
           <button class="post-act violet" onclick="openCanvaWithContent(this)"
             data-content="${(post.content||'').replace(/`/g,"'").replace(/["]/g,'&quot;').slice(0,500)}"
             data-url="${post.canva_url || 'https://www.canva.com/design/new?type=instagram_post'}"
-            title="Copy text &amp; open Canva">🎨</button>
+            title="Copy post text &amp; open Canva to design">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="flex-shrink:0"><circle cx="12" cy="12" r="11" fill="#7B47FF"/><path d="M15.5 8.5c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5c0 .55.3 1.03.74 1.29L11.5 14H9.5l-1-2.5H7l2 5h8l-1.5-8.21c.58-.23 1-.79 1-1.79zM14 7.5c.28 0 .5.22.5.5s-.22.5-.5.5-.5-.22-.5-.5.22-.5.5-.5z" fill="white"/></svg>
+          Canva</button>
         </div>
       </div>
       <div class="post-body" contenteditable="false" data-card="${cardId}" oninput="updatePreview(this,'${post.post_id || ''}','${cardId}')">${post.content || ''}</div>
@@ -1583,6 +1607,12 @@ async function generateImage(btn, postId, platform) {
 
   btn.textContent = '⏳ Generating...';
   btn.disabled    = true;
+
+  // Show shimmer loading state in the preview panel
+  const previewEl = document.getElementById(`preview-${cardId || ''}`);
+  const previewLabel = previewEl?.querySelector('.preview-platform-label')?.outerHTML || '';
+  const shimmerHtml = `${previewLabel}<div class="img-gen-loading"><div class="img-gen-spinner"></div><span>Generating image…</span></div>`;
+  if (previewEl) previewEl.innerHTML = shimmerHtml;
 
   try {
     const res = await fetch(`${API_BASE}/smflow-imagegen`, {
@@ -1823,8 +1853,20 @@ async function handleImageUpload(input, postId) {
       if (body) body.parentNode.insertBefore(imgWrap, body);
     }
     imgWrap.innerHTML = `
-      <img src="${publicUrl}" style="width:100%;height:200px;object-fit:cover">
-      <button onclick="removePostImage(this,'${postId}')" style="position:absolute;top:8px;right:8px;background:rgba(0,0,0,.55);color:#fff;border:none;border-radius:6px;padding:4px 10px;font-size:11px;cursor:pointer">✕ Remove</button>`;
+      <div class="post-img-panwrap" id="panwrap-${postId||'tmp'}" style="aspect-ratio:1;position:relative">
+        <img src="${publicUrl}" id="panimg-${postId||'tmp'}" 
+          style="width:100%;height:100%;object-fit:cover;object-position:center"
+          draggable="false">
+        <button onclick="removePostImage(this,'${postId}')" 
+          style="position:absolute;top:6px;right:6px;background:rgba(0,0,0,.6);color:#fff;border:none;border-radius:6px;padding:3px 8px;font-size:11px;cursor:pointer;z-index:2">✕</button>
+      </div>
+      <div class="pan-controls">
+        <button class="pan-btn" onclick="zoomImg('${postId||'tmp'}',1.1)" title="Zoom in">＋</button>
+        <button class="pan-btn" onclick="zoomImg('${postId||'tmp'}',0.9)" title="Zoom out">－</button>
+        <button class="pan-btn" onclick="resetImg('${postId||'tmp'}')" title="Reset">↺</button>
+      </div>`;
+    // Enable drag-to-pan
+    initPan(`panwrap-${postId||'tmp'}`, `panimg-${postId||'tmp'}`);
     // Refresh right preview with new image
     const previewEl = card.querySelector('.post-split-right');
     if (previewEl) {
@@ -1936,6 +1978,69 @@ function onPreviewDrop(event, cardId, postId) {
     const data = JSON.parse(event.dataTransfer.getData('text/plain'));
     applyReelPhoto(data.url, data.assetId, cardId, postId);
   } catch(e) { console.warn('drop error', e); }
+}
+
+// ── Image pan/zoom controls ───────────────────────────────
+const _panState = {};
+
+function initPan(wrapId, imgId) {
+  const wrap = document.getElementById(wrapId);
+  const img  = document.getElementById(imgId);
+  if (!wrap || !img) return;
+  _panState[imgId] = { x: 0, y: 0, scale: 1, dragging: false, startX: 0, startY: 0 };
+
+  wrap.addEventListener('mousedown', e => {
+    const s = _panState[imgId];
+    s.dragging = true; s.startX = e.clientX - s.x; s.startY = e.clientY - s.y;
+    e.preventDefault();
+  });
+  window.addEventListener('mousemove', e => {
+    const s = _panState[imgId];
+    if (!s?.dragging) return;
+    s.x = e.clientX - s.startX;
+    s.y = e.clientY - s.startY;
+    applyTransform(img, s);
+  });
+  window.addEventListener('mouseup', () => {
+    if (_panState[imgId]) _panState[imgId].dragging = false;
+  });
+  // Touch support
+  wrap.addEventListener('touchstart', e => {
+    const s = _panState[imgId];
+    s.dragging = true;
+    s.startX = e.touches[0].clientX - s.x;
+    s.startY = e.touches[0].clientY - s.y;
+  }, {passive:true});
+  wrap.addEventListener('touchmove', e => {
+    const s = _panState[imgId];
+    if (!s?.dragging) return;
+    s.x = e.touches[0].clientX - s.startX;
+    s.y = e.touches[0].clientY - s.startY;
+    applyTransform(img, s);
+  }, {passive:true});
+  wrap.addEventListener('touchend', () => { if (_panState[imgId]) _panState[imgId].dragging = false; });
+}
+
+function applyTransform(img, s) {
+  img.style.transform = `translate(${s.x}px, ${s.y}px) scale(${s.scale})`;
+}
+
+function zoomImg(postId, factor) {
+  const imgId = `panimg-${postId}`;
+  const img   = document.getElementById(imgId);
+  const s     = _panState[imgId];
+  if (!img || !s) return;
+  s.scale = Math.max(0.5, Math.min(4, s.scale * factor));
+  applyTransform(img, s);
+}
+
+function resetImg(postId) {
+  const imgId = `panimg-${postId}`;
+  const img   = document.getElementById(imgId);
+  const s     = _panState[imgId];
+  if (!img || !s) return;
+  s.x = 0; s.y = 0; s.scale = 1;
+  applyTransform(img, s);
 }
 
 function openCanvaWithContent(btn) {
