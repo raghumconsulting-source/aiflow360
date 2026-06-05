@@ -1344,7 +1344,7 @@ function renderPostCard(post, flavor, container) {
         <button class="post-act" onclick="editPost(this)">Edit</button>
         ${post.post_id ? `<button class="post-act" onclick="submitApproval('${post.post_id}')">→ Approve</button>` : ''}
         <button class="post-act violet" onclick="openCanvaWithContent(this)" 
-          data-content="${(post.content||'').replace(/`/g,"'").replace(/"/g,'&quot;').slice(0,500)}"
+          data-content="${(post.content||'').replace(/`/g,"'").replace(/["][/]g,'&quot;').slice(0,500)}"
           data-url="${post.canva_url || 'https://www.canva.com/design/new?type=instagram_post'}"
           title="Copy text &amp; open Canva AI">🎨 Canva</button>
       </div>
@@ -1531,7 +1531,7 @@ function openPostPreview(postId, platform, status, flavor, encodedContent, canva
         </div>
         <button class="btn btn-outline btn-sm" onclick="document.getElementById('post-preview-overlay').remove()">✕</button>
       </div>
-      <div class="post-preview-body" id="preview-content-${postId}">${content.replace(/</g,'&lt;').replace(/
+      <div class="post-preview-body" id="preview-content-${postId}">${content.replace(/[<]/g,'&lt;').replace(/
 /g,'<br>')}</div>
       <div class="post-preview-ftr">
         ${isPending ? `
@@ -1802,7 +1802,7 @@ async function loadApprovedQueue() {
     qBody.innerHTML = posts.map(p => {
       const color   = PLAT_COLORS_CAL[p.platform] || '#888';
       const flavor  = FLAVORS.find(f => f.id === p.flavor) || {icon:'📝', name: p.flavor || ''};
-      const preview = (p.content || '').slice(0, 80).replace(/</g,'&lt;');
+      const preview = (p.content || '').slice(0, 80).replace(/[<]/g,'&lt;');
       return `<div class="queue-card" draggable="true"
           data-post-id="${p.id}"
           data-platform="${p.platform}"
@@ -2169,7 +2169,7 @@ async function loadHistoryTab() {
             <div class="hist-meta">${p.platform} · ${p.flavor_name||p.flavor} · <span class="status-pill status-${p.status}">${p.status}</span> · ${new Date(p.created_at).toLocaleDateString('en-AU')}</div>
           </div>
           <div style="display:flex;gap:6px;align-items:center">
-            <button class="post-act" onclick="navigator.clipboard.writeText(this.dataset.c);toast('✓ Copied')" data-c="${(p.content||'').replace(/"/g,'&quot;').replace(/\n/g,' ')}">Copy</button>
+            <button class="post-act" onclick="navigator.clipboard.writeText(this.dataset.c);toast('✓ Copied')" data-c="${(p.content||'').replace(/["][/]g,'&quot;').replace(/[\n]/g,' ')}">Copy</button>
             ${['approved','scheduled'].includes(p.status) ? `<button class="post-act" style="color:var(--violet-t);border-color:var(--violet)" onclick="publishNow('${p.id}','${p.platform}')">⚡ Publish</button>` : ''}
             ${p.publish_error ? `<span title="${p.publish_error}" style="font-size:11px;color:var(--red-t)">⚠ Error</span>` : ''}
           </div>
