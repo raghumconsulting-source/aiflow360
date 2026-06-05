@@ -1344,7 +1344,7 @@ function renderPostCard(post, flavor, container) {
         <button class="post-act" onclick="editPost(this)">Edit</button>
         ${post.post_id ? `<button class="post-act" onclick="submitApproval('${post.post_id}')">→ Approve</button>` : ''}
         <button class="post-act violet" onclick="openCanvaWithContent(this)" 
-          data-content="${(post.content||'').replace(/`/g,"'").replace(/["][/]g,'&quot;').slice(0,500)}"
+          data-content="${(post.content||'').replace(/`/g,"'").replace(/["]/g,'&quot;').slice(0,500)}"
           data-url="${post.canva_url || 'https://www.canva.com/design/new?type=instagram_post'}"
           title="Copy text &amp; open Canva AI">🎨 Canva</button>
       </div>
@@ -2169,7 +2169,7 @@ async function loadHistoryTab() {
             <div class="hist-meta">${p.platform} · ${p.flavor_name||p.flavor} · <span class="status-pill status-${p.status}">${p.status}</span> · ${new Date(p.created_at).toLocaleDateString('en-AU')}</div>
           </div>
           <div style="display:flex;gap:6px;align-items:center">
-            <button class="post-act" onclick="navigator.clipboard.writeText(this.dataset.c);toast('✓ Copied')" data-c="${(p.content||'').replace(/["][/]g,'&quot;').replace(/[\n]/g,' ')}">Copy</button>
+            <button class="post-act" onclick="navigator.clipboard.writeText(this.dataset.c);toast('✓ Copied')" data-c="${(p.content||'').replace(/["]/g,'&quot;').replace(/[\n]/g,' ')}">Copy</button>
             ${['approved','scheduled'].includes(p.status) ? `<button class="post-act" style="color:var(--violet-t);border-color:var(--violet)" onclick="publishNow('${p.id}','${p.platform}')">⚡ Publish</button>` : ''}
             ${p.publish_error ? `<span title="${p.publish_error}" style="font-size:11px;color:var(--red-t)">⚠ Error</span>` : ''}
           </div>
