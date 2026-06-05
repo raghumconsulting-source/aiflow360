@@ -5,6 +5,25 @@
 [build.environment]
   SECRETS_SCAN_ENABLED = "false"
 
+[functions]
+  directory = "netlify/functions"
+  node_bundler = "esbuild"
+
+[functions."smflow-generate"]
+  timeout = 26
+
+[functions."smflow-imagegen"]
+  timeout = 26
+
+[functions."smflow-publish"]
+  timeout = 26
+
+[functions."smflow-assets"]
+  timeout = 26
+
+[functions."smflow-publish-cron"]
+  schedule = "*/15 * * * *"
+
 [[headers]]
   for = "/*"
   [headers.values]
@@ -22,6 +41,3 @@
   to = "/XPscore360/:splat"
   status = 200
   force = false
-
-[functions]
-  node_bundler = "esbuild"
