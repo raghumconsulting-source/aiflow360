@@ -109,8 +109,11 @@ exports.handler = async () => {
         `smflow_social_accounts?tenant_id=eq.${post.tenant_id}&is_active=eq.true&select=*`
       );
 
+
+        let postPublished = 0;
+        let postFailed    = 0;
       for (const platform of platforms) {
-        const account = accounts.find(a => a.platform === platform);
+        const account = accounts.find(a => a.platform.toLowerCase() === platform.toLowerCase());
         if (!account) {
           console.log(`No active account for platform ${platform} on tenant ${post.tenant_id}`);
           continue;
@@ -120,9 +123,10 @@ exports.handler = async () => {
         let errorMsg    = null;
 
         try {
-          if (platform === 'facebook') {
+          const platformLower = platform.toLowerCase();
+          if (platformLower === 'facebook') {
             publishedId = await publishToFacebook(post, account);
-          } else if (platform === 'instagram') {
+          } else if (platformLower === 'instagram') {
             publishedId = await publishToInstagram(post, account);
           } else {
             console.log(`Platform ${platform} not yet supported in cron`);
@@ -141,6 +145,7 @@ exports.handler = async () => {
             }
           });
 
+          postPublished++;
           totalPublished++;
           console.log(`Published post ${post.id} to ${platform}: ${publishedId}`);
 
@@ -160,12 +165,13 @@ exports.handler = async () => {
             }
           });
 
+          postFailed++;
           totalFailed++;
         }
       }
 
-      // Update post status to published (or failed if all failed)
-      const newStatus = totalFailed === platforms.length ? 'failed' : 'published';
+      // Update post status based on THIS post's results only
+      const newStatus = postPublished > 0 ? 'published' : 'failed';
       await sb(`smflow_posts?id=eq.${post.id}`, {
         method: 'PATCH',
         body: {
