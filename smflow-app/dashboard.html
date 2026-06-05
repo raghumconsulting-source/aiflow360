@@ -166,6 +166,30 @@ body{font-family:'Geist',sans-serif;font-size:14px;color:var(--text);line-height
 .plat-toggle.on .plat-dot{background:var(--violet)}
 
 /* ── Post output cards ────────────────────────────── */
+/* Split panel post card */
+.post-split{display:grid;grid-template-columns:1fr 1fr;gap:0;border:.5px solid var(--border);border-radius:var(--radius-lg);overflow:hidden;margin-bottom:12px;min-height:300px}
+.post-split-left{border-right:.5px solid var(--border);display:flex;flex-direction:column}
+.post-split-right{background:var(--surface);display:flex;flex-direction:column;align-items:center;justify-content:flex-start;padding:16px;overflow:hidden}
+.preview-frame{border-radius:12px;overflow:hidden;box-shadow:0 4px 20px rgba(0,0,0,.12);width:100%;max-width:280px}
+.preview-phone{background:#000;border-radius:20px;padding:8px;box-shadow:0 8px 32px rgba(0,0,0,.3);width:100%;max-width:260px}
+.preview-screen{background:#fff;border-radius:14px;overflow:hidden}
+.preview-header{padding:8px 10px;display:flex;align-items:center;gap:8px;border-bottom:.5px solid #f0f0f0}
+.preview-avatar{width:28px;height:28px;border-radius:50%;background:var(--violet-bg);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:600;color:var(--violet-t);flex-shrink:0}
+.preview-name{font-size:11px;font-weight:600;color:#000;line-height:1.2}
+.preview-sub{font-size:10px;color:#666}
+.preview-img{width:100%;aspect-ratio:1;object-fit:cover;background:var(--surface);display:block}
+.preview-img-placeholder{width:100%;aspect-ratio:1;background:linear-gradient(135deg,var(--surface) 0%,var(--border) 100%);display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:11px;flex-direction:column;gap:4px}
+.preview-caption{padding:8px 10px;font-size:11px;line-height:1.4;color:#000;max-height:80px;overflow:hidden;display:-webkit-box;-webkit-line-clamp:4;-webkit-box-orient:vertical}
+.preview-actions{padding:6px 10px;display:flex;gap:12px;border-top:.5px solid #f0f0f0}
+.preview-action-icon{font-size:14px;cursor:pointer;opacity:.7}
+.preview-platform-label{font-size:11px;color:var(--muted);margin-bottom:8px;font-weight:500;text-align:center}
+.preview-linkedin{background:#f3f2ef}
+.preview-linkedin .preview-screen{background:#fff;border:1px solid #e0e0e0}
+.preview-twitter{background:#000;color:#fff}
+.preview-twitter .preview-screen{background:#000}
+.preview-twitter .preview-name{color:#fff}
+.preview-twitter .preview-caption{color:#fff}
+@media(max-width:700px){.post-split{grid-template-columns:1fr}.post-split-right{display:none}}
 .post-out{
   background:var(--surface);border:0.5px solid var(--border);
   border-radius:var(--r);overflow:hidden;
@@ -1318,47 +1342,145 @@ async function generateBatch() {
   loadPendingCount();
 }
 
+// Platform preview configs
+const PLATFORM_PREVIEW = {
+  Instagram: {
+    bg: '#fafafa', headerBg: '#fff', icon: '📷',
+    actions: ['🤍','💬','↗','🔖'], aspect: '1:1',
+    font: '-apple-system,BlinkMacSystemFont,sans-serif',
+  },
+  Facebook: {
+    bg: '#f0f2f5', headerBg: '#fff', icon: '👍',
+    actions: ['👍 Like','💬 Comment','↗ Share'], aspect: '1.91:1',
+    font: 'Helvetica,Arial,sans-serif',
+  },
+  LinkedIn: {
+    bg: '#f3f2ef', headerBg: '#fff', icon: 'in',
+    actions: ['👍 Like','💬 Comment','↗ Share','📤 Send'], aspect: '1.91:1',
+    font: '-apple-system,BlinkMacSystemFont,sans-serif',
+  },
+  'Twitter/X': {
+    bg: '#000', headerBg: '#000', icon: '𝕏',
+    actions: ['💬','🔁','🤍','📊','↗'], aspect: '16:9',
+    font: 'TwitterChirp,Helvetica,sans-serif', dark: true,
+  },
+  WhatsApp: {
+    bg: '#0d1117', headerBg: '#1f2c34', icon: '✆',
+    actions: ['😊','📎','🎤'], aspect: '1:1', dark: true,
+    font: 'Helvetica,Arial,sans-serif',
+  },
+  YouTube: {
+    bg: '#0f0f0f', headerBg: '#0f0f0f', icon: '▶',
+    actions: ['👍','👎','↗ Share','⊕ Save'], aspect: '16:9', dark: true,
+    font: 'Roboto,Arial,sans-serif',
+  },
+};
+
+function buildPlatformPreview(post, imageUrl) {
+  const cfg     = PLATFORM_PREVIEW[post.platform] || PLATFORM_PREVIEW.Instagram;
+  const isDark  = cfg.dark || false;
+  const txtCol  = isDark ? '#e7e9ea' : '#000';
+  const subCol  = isDark ? '#71767b' : '#65676b';
+  const bgCol   = cfg.bg;
+  const venueName = TENANT?.display_name || 'Your Business';
+  const initials  = venueName.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
+  const content   = (post.content || '').slice(0, 280);
+
+  // Aspect ratio for image placeholder
+  const aspectMap = {'1:1':'100%','1.91:1':'52.4%','16:9':'56.25%'};
+  const paddingTop = aspectMap[cfg.aspect] || '100%';
+
+  const imgSection = imageUrl
+    ? `<img class="preview-img" src="${imageUrl}" style="width:100%;aspect-ratio:${cfg.aspect.replace(':','/')};object-fit:cover">`
+    : `<div class="preview-img-placeholder" style="padding-top:${paddingTop};position:relative">
+        <div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;color:${subCol}">
+          <span style="font-size:24px">🖼</span>
+          <span style="font-size:10px">Add image</span>
+        </div>
+      </div>`;
+
+  const actionsHtml = (cfg.actions||[]).map(a =>
+    `<span class="preview-action-icon" style="color:${subCol};font-size:${typeof a==='string'&&a.length>2?'11px':'16px'}">${a}</span>`
+  ).join('');
+
+  return `
+    <div style="background:${bgCol};border-radius:12px;overflow:hidden;width:100%;font-family:${cfg.font}">
+      <div style="background:${cfg.headerBg};padding:8px 10px;display:flex;align-items:center;gap:8px">
+        <div style="width:32px;height:32px;border-radius:50%;background:var(--violet-bg);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:var(--violet-t);flex-shrink:0">${initials}</div>
+        <div style="flex:1;min-width:0">
+          <div style="font-size:12px;font-weight:600;color:${txtCol};white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${venueName}</div>
+          <div style="font-size:10px;color:${subCol}">Just now · ${post.platform === 'LinkedIn' ? '🌐' : post.platform === 'Facebook' ? '👥' : ''}</div>
+        </div>
+        <span style="font-size:14px;color:${subCol}">•••</span>
+      </div>
+      ${imgSection}
+      <div style="padding:8px 10px 4px;font-size:11px;line-height:1.5;color:${txtCol};display:-webkit-box;-webkit-line-clamp:5;-webkit-box-orient:vertical;overflow:hidden">${content}</div>
+      ${post.platform !== 'WhatsApp' ? `<div style="padding:6px 10px;display:flex;gap:${isDark?'16':'12'}px;border-top:.5px solid ${isDark?'#2f3336':'#e4e6ea'};margin-top:4px">${actionsHtml}</div>` : ''}
+    </div>`;
+}
+
 function renderPostCard(post, flavor, container) {
   const color  = PLAT_COLORS[post.platform] || '#888';
   const chars  = post.content?.length || 0;
   const limits = {LinkedIn:3000,Facebook:63000,Instagram:2200,WhatsApp:1000,'Twitter/X':280,YouTube:5000};
   const max    = limits[post.platform] || 3000;
   const over   = chars > max;
-  const div    = document.createElement('div');
-  div.className = 'post-out';
-  const imgHtml = (post.image_url || selectedAssetUrl)
-    ? `<div style="width:100%;max-height:180px;overflow:hidden;background:var(--surface);border-bottom:0.5px solid var(--border)"><img src="${post.image_url || selectedAssetUrl}" style="width:100%;height:180px;object-fit:cover" onerror="this.parentElement.style.display='none'"></div>`
-    : '';
-  div.innerHTML = `${imgHtml}
-    <div class="post-hdr">
-      <div class="post-plat">
-        <span class="post-dot" style="background:${color}"></span>
-        ${post.platform}
-        <span class="post-flavor">${flavor.icon} ${flavor.name}</span>
-        <span class="status-pill status-${post.status || 'draft'}">${post.status || 'draft'}</span>
+  const imgUrl = post.image_url || selectedAssetUrl || null;
+
+  const div = document.createElement('div');
+  div.className = 'post-split';
+  div.id = `postcard-${post.post_id || Math.random().toString(36).slice(2)}`;
+
+  div.innerHTML = `
+    <!-- LEFT: Edit panel -->
+    <div class="post-split-left">
+      <div class="post-hdr">
+        <div class="post-plat">
+          <span class="post-dot" style="background:${color}"></span>
+          ${post.platform}
+          <span class="post-flavor">${flavor.icon} ${flavor.name}</span>
+          <span class="status-pill status-${post.status || 'draft'}">${post.status || 'draft'}</span>
+        </div>
+        <div class="post-actions" style="flex-wrap:wrap;gap:4px">
+          <button class="post-act gen-img-btn" data-flavor="${flavor.id}" onclick="generateImage(this,'${post.post_id || ''}','${post.platform}')">✦ AI</button>
+          <button class="post-act" onclick="triggerImageUpload(this,'${post.post_id || ''}')" title="Upload image">⬆</button>
+          <button class="post-act" onclick="copyPost(this)">Copy</button>
+          <button class="post-act" onclick="editPost(this)">Edit</button>
+          ${post.post_id ? `<button class="post-act" onclick="submitApproval('${post.post_id}')">→ Approve</button>` : ''}
+          <button class="post-act violet" onclick="openCanvaWithContent(this)"
+            data-content="${(post.content||'').replace(/`/g,"'").replace(/["]/g,'&quot;').slice(0,500)}"
+            data-url="${post.canva_url || 'https://www.canva.com/design/new?type=instagram_post'}"
+            title="Copy text &amp; open Canva">🎨</button>
+        </div>
       </div>
-      <div class="post-actions">
-        <button class="post-act gen-img-btn" data-flavor="${flavor.id}" onclick="generateImage(this,'${post.post_id || ''}','${post.platform}')">✦ AI Image</button>
-        <button class="post-act" onclick="triggerImageUpload(this,'${post.post_id || ''}')" title="Upload image from Canva or device">⬆ Upload</button>
-        <button class="post-act" onclick="copyPost(this)">Copy</button>
-        <button class="post-act" onclick="editPost(this)">Edit</button>
-        ${post.post_id ? `<button class="post-act" onclick="submitApproval('${post.post_id}')">→ Approve</button>` : ''}
-        <button class="post-act violet" onclick="openCanvaWithContent(this)" 
-          data-content="${(post.content||'').replace(/`/g,"'").replace(/["]/g,'&quot;').slice(0,500)}"
-          data-url="${post.canva_url || 'https://www.canva.com/design/new?type=instagram_post'}"
-          title="Copy text &amp; open Canva AI">🎨 Canva</button>
+      <div class="post-body" contenteditable="false" oninput="updatePreview(this,'${post.post_id || ''}')">${post.content || ''}</div>
+      <input type="file" class="post-img-upload" accept="image/png,image/jpeg,image/webp,image/gif"
+        style="display:none" onchange="handleImageUpload(this,'${post.post_id || ''}')">
+      <div class="post-foot">
+        <span class="char-c" style="color:${over?'var(--red)':'var(--muted)'}">${chars}/${max}${over?' ⚠':' ✓'}</span>
       </div>
     </div>
-    <div class="post-body" contenteditable="false">${post.content || ''}</div>
-    <input type="file" class="post-img-upload" accept="image/png,image/jpeg,image/webp,image/gif" 
-      style="display:none" onchange="handleImageUpload(this,'${post.post_id || ''}')">
-    <div class="post-foot">
-      <span class="char-c" style="color:${over?'var(--red)':'var(--muted)'}">${chars}/${max}${over?' ⚠':' ✓'}</span>
-      ${post.canva_url ? `<a class="canva-lnk" href="${post.canva_url}" target="_blank">✎ Open in Canva</a>` : ''}
+    <!-- RIGHT: Live preview -->
+    <div class="post-split-right" id="preview-${post.post_id || ''}">
+      <div class="preview-platform-label">${post.platform} preview</div>
+      ${buildPlatformPreview(post, imgUrl)}
     </div>`;
+
   container.appendChild(div);
 }
 
+// Live update preview when editing
+function updatePreview(editEl, postId) {
+  const card      = editEl.closest('.post-split');
+  if (!card) return;
+  const previewEl = card.querySelector('.post-split-right');
+  if (!previewEl) return;
+  const platform  = card.querySelector('.post-plat .post-dot')?.nextSibling?.textContent?.trim()?.split(' ')[0];
+  const imgEl     = card.querySelector('.post-img-wrap img');
+  const fakePost  = { content: editEl.textContent, platform, post_id: postId, status: 'draft' };
+  const label     = previewEl.querySelector('.preview-platform-label')?.outerHTML || '';
+  previewEl.innerHTML = label + buildPlatformPreview(fakePost, imgEl?.src || null);
+}
 async function generateImage(btn, postId, platform) {
   if (!TENANT) return;
   const card     = btn.closest('.post-out');
@@ -1596,17 +1718,26 @@ async function handleImageUpload(input, postId) {
 
     const publicUrl = `${SUPABASE_URL}/storage/v1/object/public/tenant-assets/${path}`;
 
-    // Show image on card immediately
+    // Show image in left panel
     let imgWrap = card.querySelector('.post-img-wrap');
     if (!imgWrap) {
       imgWrap = document.createElement('div');
       imgWrap.className = 'post-img-wrap';
       imgWrap.style.cssText = 'width:100%;max-height:200px;overflow:hidden;background:var(--surface);border-bottom:.5px solid var(--border);position:relative';
-      card.insertBefore(imgWrap, card.firstChild);
+      const body = card.querySelector('.post-body');
+      if (body) body.parentNode.insertBefore(imgWrap, body);
     }
     imgWrap.innerHTML = `
       <img src="${publicUrl}" style="width:100%;height:200px;object-fit:cover">
       <button onclick="removePostImage(this,'${postId}')" style="position:absolute;top:8px;right:8px;background:rgba(0,0,0,.55);color:#fff;border:none;border-radius:6px;padding:4px 10px;font-size:11px;cursor:pointer">✕ Remove</button>`;
+    // Refresh right preview with new image
+    const previewEl = card.querySelector('.post-split-right');
+    if (previewEl) {
+      const platform = card.querySelector('.post-dot')?.nextSibling?.textContent?.trim()?.split(' ')[0];
+      const bodyEl   = card.querySelector('.post-body');
+      const label    = previewEl.querySelector('.preview-platform-label')?.outerHTML || '';
+      previewEl.innerHTML = label + buildPlatformPreview({ content: bodyEl?.textContent||'', platform, status:'draft' }, publicUrl);
+    }
 
     // Update smflow_posts.image_url if we have a post_id
     if (postId) {
