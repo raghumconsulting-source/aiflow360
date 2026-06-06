@@ -100,11 +100,12 @@ exports.handler = async function (event) {
     console.log('ImagineArt prompt:', prompt.slice(0, 200));
     console.log('Aspect ratio:', aspectRatio);
 
-    // Build form data — ONLY the fields documented: prompt, style, aspect_ratio
+    // Build form data — variation=1 is required (undocumented but mandatory)
     const formData = new FormData();
     formData.append('prompt',       prompt);
-    formData.append('style',        'imagine-turbo'); // imagine-turbo works on all plans
+    formData.append('style',        'realistic');
     formData.append('aspect_ratio', aspectRatio);
+    formData.append('variation',    '1');
 
     const res = await fetch('https://api.vyro.ai/v2/image/generations', {
       method:  'POST',
