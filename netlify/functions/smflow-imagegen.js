@@ -4,7 +4,7 @@
 
 const SUPABASE_URL         = process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY;
-const IMAGINE_ART_API_KEY  = process.env.imagine_art_smflow_app;
+const GEMINI_API_KEY = process.env.Gemini_SMflow_API_Key;
 const STORAGE_BUCKET       = 'tenant-assets';
 
 const HEADERS = {
@@ -91,44 +91,34 @@ exports.handler = async function (event) {
   const { tenant_id, post_id, post_content, flavor, industry_code, brand_voice, target_audience, platform, tenant_name } = body;
 
   if (!tenant_id) return { statusCode: 400, headers: HEADERS, body: JSON.stringify({ error: 'tenant_id required' }) };
-  if (!IMAGINE_ART_API_KEY) return { statusCode: 500, headers: HEADERS, body: JSON.stringify({ error: 'IMAGINE_ART_API_KEY not configured' }) };
+  if (!GEMINI_API_KEY) return { statusCode: 500, headers: HEADERS, body: JSON.stringify({ error: 'GEMINI_API_KEY not configured' }) };
 
   try {
     const prompt      = buildPrompt({ post_content, flavor, industry_code, platform, tenant_name });
     const aspectRatio = PLATFORM_ASPECT_RATIO[platform] || PLATFORM_ASPECT_RATIO._default;
 
-    console.log('ImagineArt prompt:', prompt.slice(0, 200));
-    console.log('Aspect ratio:', aspectRatio);
+    console.log('Gemini prompt:', prompt.slice(0, 200));
 
-    // Build form data — variation=1 is required (undocumented but mandatory)
-    const formData = new FormData();
-    formData.append('prompt',       prompt);
-    formData.append('style',        'realistic');
-    formData.append('aspect_ratio', aspectRatio);
-    formData.append('variation',    'text_to_image');
-
-    const res = await fetch('https://api.vyro.ai/v2/image/generations', {
+    const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-image:generateContent?key=${GEMINI_API_KEY}`;
+    const res = await fetch(geminiUrl, {
       method:  'POST',
-      headers: { 'Authorization': `Bearer ${IMAGINE_ART_API_KEY}` },
-      body:    formData,
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        contents: [{ parts: [{ text: prompt }] }],
+        generationConfig: { responseModalities: ['IMAGE'] },
+      }),
     });
 
-    console.log('ImagineArt status:', res.status);
-    console.log('ImagineArt content-type:', res.headers.get('content-type'));
+    const data = await res.json();
+    if (!res.ok) throw new Error(`Gemini error (${res.status}): ${JSON.stringify(data).slice(0,300)}`);
 
-    if (!res.ok) {
-      const errText = await res.text();
-      console.error('ImagineArt error response:', errText);
-      throw new Error(`ImagineArt error (${res.status}): ${errText.slice(0, 300)}`);
-    }
+    const parts = data.candidates?.[0]?.content?.parts || [];
+    const imagePart = parts.find(p => p.inline_data?.mime_type?.startsWith('image/'));
+    if (!imagePart?.inline_data?.data) throw new Error('Gemini returned no image data');
 
-    // Response is binary image directly
-    const contentType = res.headers.get('content-type') || 'image/jpeg';
-    const buffer      = await res.arrayBuffer();
-    const base64      = Buffer.from(buffer).toString('base64');
-    const mimeType    = contentType.includes('image/') ? contentType.split(';')[0].trim() : 'image/jpeg';
-
-    console.log('Image received, size:', buffer.byteLength, 'bytes');
+    const base64   = imagePart.inline_data.data;
+    const mimeType = imagePart.inline_data.mime_type || 'image/png';
+    console.log('Gemini image received successfully');
 
     // Save to Supabase Storage
     const ext       = mimeType === 'image/png' ? 'png' : 'jpg';
@@ -185,7 +175,7 @@ exports.handler = async function (event) {
     return {
       statusCode: 200,
       headers:    HEADERS,
-      body:       JSON.stringify({ success: true, image_url: publicUrl, storage_path: path, provider: 'imagineArt' }),
+      body:       JSON.stringify({ success: true, image_url: publicUrl, storage_path: path, provider: 'gemini-flash' }),
     };
 
   } catch (err) {
