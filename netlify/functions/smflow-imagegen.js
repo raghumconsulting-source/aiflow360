@@ -105,7 +105,7 @@ exports.handler = async function (event) {
     formData.append('prompt',       prompt);
     formData.append('style',        'realistic');
     formData.append('aspect_ratio', aspectRatio);
-    formData.append('variation',    '1');
+    formData.append('variation',    'text_to_image');
 
     const res = await fetch('https://api.vyro.ai/v2/image/generations', {
       method:  'POST',
