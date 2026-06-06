@@ -66,18 +66,16 @@ const FLAVOR_MOOD = {
 };
 
 function buildPrompt({ post_content, flavor, industry_code, platform, tenant_name }) {
-  const industryStyle = INDUSTRY_STYLE[industry_code] || INDUSTRY_STYLE._default;
-  const flavorMood    = FLAVOR_MOOD[flavor] || FLAVOR_MOOD._default;
-  const content       = (post_content || '').replace(/[#@]/g,'').trim().slice(0, 120);
-  const business      = tenant_name || 'Australian small business';
+  const style = {
+    accommodation_food: 'appetizing food photography, restaurant setting, warm lighting',
+    beauty: 'beauty product photography, clean aesthetic, soft lighting',
+    arts_recreation: 'fitness photography, active lifestyle, energetic',
+    retail_trade: 'product photography, clean background, professional',
+    _default: 'professional business photography, clean modern setting',
+  }[industry_code] || 'professional business photography, clean modern setting';
 
-  return [
-    `Professional social media marketing photo for ${business}.`,
-    industryStyle + '.',
-    flavorMood + '.',
-    content ? `Visual theme: ${content}.` : '',
-    'Photorealistic. No text. No logos. No watermarks. High quality.',
-  ].filter(Boolean).join(' ');
+  const content = (post_content || '').replace(/[#@*]/g, '').trim().slice(0, 80);
+  return `A professional marketing photo: ${style}. ${content ? 'Theme: ' + content + '.' : ''} High quality, photorealistic, no text, no logos.`;
 }
 
 exports.handler = async function (event) {
