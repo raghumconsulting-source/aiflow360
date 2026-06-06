@@ -97,26 +97,28 @@ exports.handler = async function (event) {
 
     console.log('Gemini prompt:', prompt.slice(0, 200));
 
-    const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-image:generateContent?key=${GEMINI_API_KEY}`;
+    const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/imagen-3.0-generate-002:predict?key=${GEMINI_API_KEY}`;
     const res = await fetch(geminiUrl, {
       method:  'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        contents: [{ parts: [{ text: prompt }] }],
-        generationConfig: { responseModalities: ['IMAGE'] },
+        instances: [{ prompt }],
+        parameters: { sampleCount: 1, aspectRatio: aspectRatio || '1:1' },
       }),
     });
 
     const data = await res.json();
-    if (!res.ok) throw new Error(`Gemini error (${res.status}): ${JSON.stringify(data).slice(0,300)}`);
+    if (!res.ok) throw new Error(`Imagen error (${res.status}): ${JSON.stringify(data).slice(0,300)}`);
 
-    const parts = data.candidates?.[0]?.content?.parts || [];
-    const imagePart = parts.find(p => p.inline_data?.mime_type?.startsWith('image/'));
-    if (!imagePart?.inline_data?.data) throw new Error('Gemini returned no image data');
+    const prediction = data.predictions?.[0];
+    if (!prediction?.bytesBase64Encoded) {
+      console.error('Imagen response:', JSON.stringify(data).slice(0, 500));
+      throw new Error('Imagen returned no image data');
+    }
 
-    const base64   = imagePart.inline_data.data;
-    const mimeType = imagePart.inline_data.mime_type || 'image/png';
-    console.log('Gemini image received successfully');
+    const base64   = prediction.bytesBase64Encoded;
+    const mimeType = prediction.mimeType || 'image/png';
+    console.log('Imagen image received successfully');
 
     // Save to Supabase Storage
     const ext       = mimeType === 'image/png' ? 'png' : 'jpg';
