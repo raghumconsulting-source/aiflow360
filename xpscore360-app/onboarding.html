@@ -278,27 +278,28 @@ textarea{resize:vertical;min-height:80px}
 .spec.on{border-color:var(--p-accent);color:var(--p-accent);background:var(--p-light)}
 
 /* Plan cards */
-.plans{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:32px}
+.plans{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:24px}
 @media(max-width:560px){.plans{grid-template-columns:1fr}}
 
 .plan{
-  border:1.5px solid var(--border);border-radius:14px;
-  padding:24px 20px;cursor:pointer;transition:all .2s;
-  position:relative;background:var(--bg);
+  border:1.5px solid var(--border);border-radius:12px;
+  padding:16px 14px;cursor:pointer;transition:all .2s;
+  position:relative;background:var(--bg);display:flex;flex-direction:column;
 }
 .plan:hover{border-color:var(--border-d);transform:translateY(-2px)}
 .plan.on{border-color:var(--p-accent);box-shadow:0 0 0 1px var(--p-accent)}
 .plan-tag{
   display:inline-block;font-size:10px;font-weight:600;letter-spacing:.05em;
   text-transform:uppercase;padding:3px 10px;border-radius:var(--pill);
-  background:var(--p-accent);color:var(--p-light);margin-bottom:16px;
+  background:var(--p-accent);color:var(--p-light);margin-bottom:10px;
 }
-.plan-name{font-size:16px;font-weight:500;letter-spacing:-.02em;margin-bottom:4px}
-.plan-price{font-size:26px;font-weight:500;letter-spacing:-.03em;margin-bottom:4px}
-.plan-price span{font-size:13px;font-weight:400;color:var(--muted)}
-.plan-desc{font-size:12px;color:var(--muted);margin-bottom:16px;line-height:1.5}
-.plan-feats{list-style:none;display:flex;flex-direction:column;gap:6px}
-.plan-feats li{font-size:12px;color:var(--muted);display:flex;align-items:center;gap:7px}
+.plan-name{font-size:15px;font-weight:500;letter-spacing:-.02em;margin-bottom:2px}
+.plan-price{font-size:22px;font-weight:500;letter-spacing:-.03em;margin-bottom:2px;line-height:1.2}
+.plan-price span{font-size:12px;font-weight:400;color:var(--muted)}
+.plan-was{font-size:11px;color:var(--muted);text-decoration:line-through;margin-bottom:4px}
+.plan-desc{font-size:11px;color:var(--muted);margin-bottom:10px;line-height:1.4}
+.plan-feats{list-style:none;display:flex;flex-direction:column;gap:4px;flex:1}
+.plan-feats li{font-size:11px;color:var(--muted);display:flex;align-items:flex-start;gap:6px;line-height:1.3}
 .plan-feats li::before{content:'—';color:var(--border-d);flex-shrink:0}
 .plan-feats li.y::before{content:'✓';color:var(--green);font-weight:600}
 
@@ -717,17 +718,6 @@ textarea{resize:vertical;min-height:80px}
             <span class="hint">Find yours at <a href="https://developers.google.com/maps/documentation/javascript/examples/places-placeid-finder" target="_blank" style="color:var(--text)">Google Place ID Finder</a> — links to your Google Reviews page</span>
           </div>
         </div>
-        <div class="field" style="margin-bottom:8px">
-          <label>Known for <span style="color:var(--muted);font-weight:400">(select all that apply)</span></label>
-        </div>
-        <div class="spec-wrap" id="specs"></div>
-        <div class="grid one" style="margin-top:16px">
-          <div class="field">
-            <label>One-line description</label>
-            <input type="text" id="kf" placeholder="Wood-fired cuisine and intimate atmosphere"/>
-            <span class="hint">AI uses this to personalise guest conversations</span>
-          </div>
-        </div>
         <div class="btn-row">
           <button class="btn btn-ghost" onclick="show(4)">← Back</button>
           <button class="btn btn-primary" onclick="go4()">
@@ -783,6 +773,17 @@ textarea{resize:vertical;min-height:80px}
           <div class="order-row" id="order-saving-row" style="display:none">
             <span style="color:var(--green)">Annual saving</span>
             <span id="order-saving" style="color:var(--green);font-weight:500"></span>
+          </div>
+        </div>
+
+        <!-- Client promo code entry -->
+        <div style="margin-bottom:20px">
+          <div class="field">
+            <label>Promo / referral code <span style="color:var(--muted);font-weight:400">(optional)</span></label>
+            <input type="text" id="promo-code" placeholder="e.g. WELCOME20"
+              oninput="S.clientPromo=this.value.trim().toUpperCase()"
+              style="letter-spacing:.04em"/>
+            <span class="hint">Have a promo code? Enter it here and it'll be applied at checkout.</span>
           </div>
         </div>
 
@@ -1180,6 +1181,7 @@ const S = {
   industry_code:'', business_type_code:'', plan:'pro',
   interval:'monthly',   // 'monthly' | 'annual'
   adminCoupon:'',       // admin override coupon code
+  clientPromo:'',       // client-entered promo code
   fn:'',em:'',ph:'',jt:'',pw:'',
   bn:'',abn:'',bt:'',ws:'',be:'',a1:'',sb:'',st:'',pc:'',
   dn:'',logoFile:null,color:'#0F0F0D',theme:'dark',
@@ -1230,7 +1232,6 @@ const S = {
   }
 
   buildPlans();
-  buildSpecs('');
 })()
 
 function applyProduct(prod) {
@@ -1295,12 +1296,14 @@ function buildPlans() {
     const perLabel     = isAnnual ? '/mo AUD (billed yearly)' : p.per;
     const feats        = p.feats.map(f => `<li class="y">${f}</li>`).join('');
     const nope         = (p.no||[]).map(f => `<li>${f}</li>`).join('');
-    const saveBadge    = isAnnual ? `<div style="font-size:10px;color:var(--green);font-weight:600;margin-bottom:6px">✓ Save 20% annually</div>` : '';
+    const saveBadge    = isAnnual ? `<div style="font-size:10px;color:var(--green);font-weight:600;margin-bottom:4px">✓ Save 20% annually</div>` : '';
+    const wasPrice     = isAnnual ? `<div class="plan-was">${p.price}/mo billed monthly</div>` : '';
     grid.innerHTML += `
       <div class="plan${isOn?' on':''}" id="pl-${p.id}" onclick="pickPlan('${p.id}',this)">
         ${p.popular ? `<div class="plan-tag">Most popular</div>` : ''}
         ${saveBadge}
         <div class="plan-name">${p.name}</div>
+        ${wasPrice}
         <div class="plan-price">${displayPrice}<span>${perLabel}</span></div>
         <div class="plan-desc">${p.desc}</div>
         <ul class="plan-feats">${feats}${nope}</ul>
@@ -1319,9 +1322,8 @@ function pickPlan(id, el) {
 
 // ── Specialties ────────────────────────────────────────
 function buildSpecs(type) {
-  const t = type.toLowerCase();
-  const key = Object.keys(SPECS).find(k => t.includes(k)) || 'default';
   const wrap = document.getElementById('specs');
+  if (!wrap) return;  // specs removed from Step 4
   wrap.innerHTML = '';
   SPECS[key].forEach(s => {
     const chip = document.createElement('div');
@@ -1576,7 +1578,7 @@ async function go6(){
         product:          S.product,
         tier:             S.plan,
         interval:         S.interval,
-        adminCoupon:      S.adminCoupon || '',
+        adminCoupon:      S.adminCoupon || S.clientPromo || '',
       }),
     });
     const checkoutData = await checkoutRes.json();
