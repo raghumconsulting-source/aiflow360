@@ -494,6 +494,18 @@ textarea{resize:vertical;min-height:80px}
               <div class="pc-name">AIflow360</div>
               <div class="pc-desc">AI workflow automation for small and medium businesses</div>
             </div>
+            <div class="product-card" id="pc-smflow" onclick="pickProduct('smflow',this)">
+              <div class="pc-check">✓</div>
+              <div class="pc-badge" id="pcb-smflow">🚀 Social Media</div>
+              <div class="pc-name">SMflow</div>
+              <div class="pc-desc">AI social media posting engine with real photos + auto-publish</div>
+            </div>
+            <div class="product-card" id="pc-tapee360" onclick="pickProduct('tapee360',this)">
+              <div class="pc-check">✓</div>
+              <div class="pc-badge" id="pcb-tapee360">📱 Table Ordering</div>
+              <div class="pc-name">Tapee360</div>
+              <div class="pc-desc">NFC table ordering for hospitality venues & restaurants</div>
+            </div>
           </div>
         </div>
 
@@ -728,14 +740,26 @@ textarea{resize:vertical;min-height:80px}
       <div class="panel" id="p5" style="display:none">
         <div class="eyebrow">Step 5 of 6 · Plan</div>
         <h1 class="heading">Choose your<br><em>plan</em></h1>
-        <p class="subhead">Start free. Upgrade anytime. No lock-in contracts.</p>
+        <p class="subhead">All plans include a 20% discount when billed annually. No lock-in contracts.</p>
+
+        <!-- Monthly / Annual toggle -->
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:28px">
+          <button id="tog-m" onclick="setInterval('monthly')"
+            style="padding:8px 20px;border-radius:999px;font-size:13px;font-weight:500;font-family:'Geist',sans-serif;cursor:pointer;border:1.5px solid var(--p-accent);background:var(--p-accent);color:var(--p-light);transition:all .2s">
+            Monthly
+          </button>
+          <button id="tog-a" onclick="setInterval('annual')"
+            style="padding:8px 20px;border-radius:999px;font-size:13px;font-weight:500;font-family:'Geist',sans-serif;cursor:pointer;border:1.5px solid var(--border);background:transparent;color:var(--muted);transition:all .2s">
+            Yearly <span style="font-size:11px;color:var(--green);font-weight:600">Save 20%</span>
+          </button>
+        </div>
 
         <div class="plans" id="plan-grid"><!-- filled by JS --></div>
 
         <div class="btn-row">
           <button class="btn btn-ghost" onclick="show(4)">← Back</button>
           <button class="btn btn-primary" onclick="go5()">
-            <span class="btn-txt" id="plan-btn">Continue with Pro</span><div class="spin"></div>
+            <span class="btn-txt" id="plan-btn">Continue with Professional</span><div class="spin"></div>
           </button>
         </div>
       </div>
@@ -743,109 +767,56 @@ textarea{resize:vertical;min-height:80px}
       <!-- ══ STEP 6: Payment ══════════════════════════ -->
       <div class="panel" id="p6" style="display:none">
         <div class="eyebrow">Step 6 of 6 · Payment</div>
-        <h1 class="heading" id="pay-h">Payment<br><em>details</em></h1>
-        <p class="subhead" id="pay-s">Your subscription starts today. Cancel anytime.</p>
+        <h1 class="heading" id="pay-h">Secure<br><em>payment</em></h1>
+        <p class="subhead" id="pay-s">You'll be taken to Stripe's secure checkout. Cancel anytime.</p>
 
-        <div id="pay-free" style="display:none">
-          <div class="free-notice">
-            <p>No payment required</p>
-            <p>Free plan — no credit card needed. Upgrade anytime from your dashboard.</p>
+        <!-- Order summary -->
+        <div class="order-summary" id="order-summary">
+          <div class="order-row">
+            <span id="order-label">XPscore360 Professional — Monthly</span>
+            <span id="order-price">$99.00 AUD</span>
+          </div>
+          <div class="order-row">
+            <span id="order-interval-note">Billed monthly · cancel anytime</span>
+            <span>+ GST</span>
+          </div>
+          <div class="order-row" id="order-saving-row" style="display:none">
+            <span style="color:var(--green)">Annual saving</span>
+            <span id="order-saving" style="color:var(--green);font-weight:500"></span>
           </div>
         </div>
 
-        <div id="pay-paid">
-          <div class="pay-box">
-            <h3>Card details</h3>
-            <div class="grid one" style="margin-bottom:14px">
-              <div class="field" id="f-cn">
-                <label>Name on card <span class="req">*</span></label>
-                <input type="text" id="cn" placeholder="Alex Johnson" autocomplete="cc-name"/>
-                <span class="err-msg">Name on card required</span>
-              </div>
-            </div>
-            <div class="grid one" style="margin-bottom:14px">
-              <div class="field card-wrap" id="f-cc">
-                <label>Card number <span class="req">*</span></label>
-                <input type="text" id="cc" placeholder="1234 5678 9012 3456"
-                  maxlength="19" oninput="fmtCard(this)" autocomplete="cc-number" style="padding-right:76px"/>
-                <div class="card-icons">
-                  <div class="card-ico" id="ci-v">VISA</div>
-                  <div class="card-ico" id="ci-m">MC</div>
-                </div>
-                <span class="err-msg">Valid card number required</span>
-              </div>
-            </div>
-            <div class="card-row">
-              <div class="field" id="f-ex">
-                <label>Expiry <span class="req">*</span></label>
-                <input type="text" id="ex" placeholder="MM / YY" maxlength="7" oninput="fmtExp(this)" autocomplete="cc-exp"/>
-                <span class="err-msg">Valid expiry required</span>
-              </div>
-              <div class="field" id="f-cv">
-                <label>CVV <span class="req">*</span></label>
-                <input type="text" id="cv" placeholder="•••" maxlength="4" autocomplete="cc-csc"/>
-                <span class="err-msg">CVV required</span>
-              </div>
-            </div>
-            <div class="sec-row">
-              <div class="sec-item">🔒 256-bit SSL</div>
-              <div class="sec-item">✓ PCI-DSS compliant</div>
-              <div class="sec-item">⚡ Powered by Stripe</div>
-            </div>
-          </div>
-
-          <div class="pay-box">
-            <h3>Billing address</h3>
-            <div class="grid one" style="margin-bottom:14px">
-              <div class="field">
-                <label>Full name</label>
-                <input type="text" id="bln" autocomplete="billing name"/>
-              </div>
-            </div>
-            <div class="grid one" style="margin-bottom:14px">
-              <div class="field">
-                <label>Street address</label>
-                <input type="text" id="bla" autocomplete="billing street-address"/>
-              </div>
-            </div>
-            <div class="grid three">
-              <div class="field"><label>Suburb</label><input type="text" id="blsb"/></div>
-              <div class="field">
-                <label>State</label>
-                <select id="blst">
-                  <option value="">State</option>
-                  <option>NSW</option><option>VIC</option><option>QLD</option>
-                  <option>WA</option><option>SA</option><option>TAS</option>
-                  <option>ACT</option><option>NT</option>
-                </select>
-              </div>
-              <div class="field"><label>Postcode</label><input type="text" id="blpc" maxlength="4"/></div>
-            </div>
-          </div>
-
-          <div class="order-summary" id="order-summary">
-            <div class="order-row">
-              <span id="order-label">XPscore360 Pro — Monthly</span>
-              <span id="order-price">$49.00 AUD</span>
-            </div>
-            <div class="order-row">
-              <span>Billed monthly · cancel anytime</span>
-              <span>+ GST</span>
+        <!-- Admin coupon override (hidden by default — toggle in URL with ?admin=1) -->
+        <div id="admin-coupon-block" style="display:none;margin-bottom:24px">
+          <div class="pay-box" style="border-color:var(--border-d)">
+            <h3 style="color:var(--muted)">🔑 Admin — Custom pricing override</h3>
+            <div class="field" style="margin-top:12px">
+              <label>Stripe coupon / promo code</label>
+              <input type="text" id="admin-coupon" placeholder="e.g. REFERENCE25"
+                oninput="S.adminCoupon=this.value.trim()"
+                style="font-family:monospace;letter-spacing:.03em"/>
+              <span class="hint">Leave blank to show the standard promo code box at Stripe Checkout</span>
             </div>
           </div>
         </div>
 
-        <div class="check-row">
-          <input type="checkbox" id="bill-terms"/>
-          <label for="bill-terms">I authorise <span id="auth-product">XPscore360</span> to charge this card for my subscription. I can cancel anytime from my dashboard. <span class="req">*</span></label>
+        <!-- Security badges -->
+        <div class="sec-row" style="margin-bottom:28px">
+          <div class="sec-item">🔒 256-bit SSL</div>
+          <div class="sec-item">✓ PCI-DSS compliant</div>
+          <div class="sec-item">⚡ Powered by Stripe</div>
         </div>
 
         <div class="btn-row">
           <button class="btn btn-ghost" onclick="show(5)">← Back</button>
           <button class="btn btn-primary" id="complete-btn" onclick="go6()">
-            <span class="btn-txt" id="complete-lbl">Complete setup</span><div class="spin"></div>
+            <span class="btn-txt" id="complete-lbl">Continue to payment →</span><div class="spin"></div>
           </button>
         </div>
+        <p style="font-size:12px;color:var(--muted);margin-top:16px;line-height:1.6">
+          Your account is created first, then you'll complete payment on Stripe's secure hosted page.
+          Your subscription activates immediately after payment.
+        </p>
       </div>
 
       <!-- ══ SUCCESS ═══════════════════════════════ -->
@@ -871,52 +842,100 @@ textarea{resize:vertical;min-height:80px}
 // ── Product configs ────────────────────────────────────
 const PRODUCTS = {
   xpscore360: {
-    name:       'XPscore360',
-    icon:       'XP',
-    accent:     '#0F0F0D',
-    light:      '#FFFFFF',
-    heading:    'Set up your\naccount',
-    sub:        'Get your AI-powered guest feedback platform live in minutes.',
-    dashboard:  '/xpscore360-app/dashboard.html',
+    name:      'XPscore360',
+    icon:      'XP',
+    accent:    '#0F0F0D',
+    light:     '#FFFFFF',
+    heading:   'Set up your\naccount',
+    sub:       'Get your AI-powered guest feedback platform live in minutes.',
+    dashboard: '/xpscore360-app/dashboard.html',
     plans: [
-      { id:'free',     name:'Free',     price:'$0',   per:'/mo',
-        desc:'Perfect for testing before committing.',
-        feats:['1 venue','100 sessions / mo','7-day analytics'],
-        no:['Google review drafts','Manager alerts'] },
-      { id:'pro',      name:'Pro',      price:'$49',  per:'/mo AUD', popular:true,
-        desc:'For venues serious about Google Reviews.',
-        feats:['3 venues','1,000 sessions / mo','90-day analytics','Google review drafts','Manager alerts'],
-        no:['CSV export'] },
-      { id:'business', name:'Business', price:'$149', per:'/mo AUD',
-        desc:'Multi-location groups at unlimited scale.',
-        feats:['Unlimited venues','Unlimited sessions','Full analytics + export','Google review drafts','Manager alerts','API access'],
+      { id:'essentials', name:'Essentials', price:'$49',  priceAnnual:'$470',  per:'/mo AUD',
+        desc:'Get more Google reviews fast.',
+        feats:['1 venue','NFC + QR review cards','Google review direct link','5-star sentiment gate','Up to 3 NFC tap points','Email support','2 NFC cards included'],
+        no:['Recovery workflows','KPI benchmarking'] },
+      { id:'pro', name:'Professional', price:'$99', priceAnnual:'$950', per:'/mo AUD', popular:true,
+        desc:'Full feedback loop with recovery workflows.',
+        feats:['3–5 venues','Unlimited NFC tap points','Custom survey questions','Multi-platform (Google, TripAdvisor, Facebook)','3-tier recovery workflow','Staff/manager SMS alerts','Goodwill gesture vouchers','Real-time KPI dashboard','19 industry KPI definitions'],
+        no:[] },
+      { id:'multisite', name:'Multi-site', price:'$199', priceAnnual:'$1,910', per:'/mo AUD',
+        desc:'Chains, groups & franchises at unlimited scale.',
+        feats:['Unlimited venues','White-label branding','Custom domain','AI-suggested response drafts','Automated review response','Cross-venue analytics','Trend & sentiment analysis','Custom branded PDF reports','Dedicated account manager'],
         no:[] },
     ],
     defaultPlan: 'pro',
   },
-  aiflow360: {
-    name:       'AIflow360',
-    icon:       'AF',
-    accent:     '#1A1A2E',
-    light:      '#FFFFFF',
-    heading:    'Set up your\nworkspace',
-    sub:        'Get your AI automation platform configured in minutes.',
-    dashboard:  '/aiflow360-app/dashboard.html',
+  tapee360: {
+    name:      'Tapee360',
+    icon:      'T3',
+    accent:    '#1A5C38',
+    light:     '#FFFFFF',
+    heading:   'Set up your\nvenue',
+    sub:       'NFC table ordering for hospitality — live in minutes.',
+    dashboard: '/tapee360-app/dashboard.html',
     plans: [
-      { id:'free',     name:'Starter',  price:'$0',   per:'/mo',
-        desc:'Explore automations with no commitment.',
-        feats:['3 automations','500 runs / mo','Basic templates'],
-        no:['Custom integrations','Priority support'] },
-      { id:'pro',      name:'Growth',   price:'$79',  per:'/mo AUD', popular:true,
-        desc:'For teams running real business workflows.',
-        feats:['Unlimited automations','10,000 runs / mo','All integrations','Custom templates','Priority support'],
+      { id:'starter', name:'Starter', price:'$99', priceAnnual:'$950', per:'/mo AUD',
+        desc:'Single venue, essential ordering.',
+        feats:['QR + NFC table ordering','Up to 20 tables','Digital menu (up to 50 items)','Real-time order notifications','Square POS integration','Card + Apple/Google Pay','Daily sales summary','Email support','1 NFC kit included'],
+        no:['Split bills','Advanced analytics'] },
+      { id:'growth', name:'Growth', price:'$199', priceAnnual:'$1,910', per:'/mo AUD', popular:true,
+        desc:'Multi-area venues & full service.',
+        feats:['Everything in Starter','Unlimited tables','Unlimited menu items','Modifiers & variants','Multi-area (indoor/outdoor/bar)','Split bills','Tab management','Tipping prompts','Real-time dashboard','Item performance reports','Priority chat support','3 NFC kits included'],
         no:[] },
-      { id:'business', name:'Scale',    price:'$199', per:'/mo AUD',
-        desc:'Enterprise-grade automation at scale.',
-        feats:['Unlimited everything','Dedicated support','SLA guarantee','Custom AI models','API access'],
+      { id:'enterprise', name:'Enterprise', price:'$299', priceAnnual:'$2,870', per:'/mo AUD',
+        desc:'Multi-venue chains & groups.',
+        feats:['Everything in Growth','Multi-venue management','Custom branding & domain','Upsell & recommendation engine','Xero / MYOB accounting sync','Inventory management','Kitchen display system (KDS)','Cross-venue analytics','Staff performance reports','Dedicated account manager','10 NFC kits + on-site setup'],
         no:[] },
     ],
-    defaultPlan: 'pro',
+    defaultPlan: 'growth',
+  },
+  smflow: {
+    name:      'SMflow',
+    icon:      'SM',
+    accent:    '#1A1A2E',
+    light:     '#FFFFFF',
+    heading:   'Set up your\nSMflow',
+    sub:       'AI social media content engine — start publishing in minutes.',
+    dashboard: '/smflow-app/dashboard.html',
+    plans: [
+      { id:'grow', name:'Grow', price:'$199', priceAnnual:'$1,910', per:'/mo AUD',
+        desc:'One business, consistent presence.',
+        feats:['5 platforms (FB, IG, LinkedIn, WhatsApp, YouTube)','12 content flavors','3 guru frameworks','50 AI-generated posts / month','AI image generation (50/mo)','Drag-and-drop calendar','Best-time recommendations','Auto-publish to connected platforms','Google Drive photo sync','1 brand / 1 user'],
+        no:[] },
+      { id:'scale', name:'Scale', price:'$499', priceAnnual:'$4,790', per:'/mo AUD', popular:true,
+        desc:'Agencies & multi-brand businesses.',
+        feats:['Everything in Grow','All 19 content flavors','All 5 guru frameworks','Unlimited AI-generated posts','AI image generation (500/mo)','Batch generation (6 flavors at once)','Up to 5 brands / clients','4-week rotation planner','Auto-rotate flavors','Publish log & error recovery','Approval workflow','3 team members','Client-facing review links','Priority chat + email','Onboarding session (1hr)'],
+        no:[] },
+      { id:'dominate', name:'Dominate', price:'$750', priceAnnual:'$7,200', per:'/mo AUD',
+        desc:'Full-service AI marketing engine.',
+        feats:['Everything in Scale','Unlimited brands / clients','Unlimited AI image generation','Custom brand voice training','ARIA AI agent (autonomous posting)','Engagement analytics per post','Platform performance comparison','Content flavor ROI tracking','Monthly branded PDF report','White-label dashboard','Custom domain','Reseller pricing available','Dedicated account manager','Monthly strategy session','SLA — 4hr response'],
+        no:[] },
+    ],
+    defaultPlan: 'scale',
+  },
+  aiflow360: {
+    name:      'AIflow360',
+    icon:      'AF',
+    accent:    '#4F46E5',
+    light:     '#FFFFFF',
+    heading:   'Set up your\nworkspace',
+    sub:       'AI workflow automation for small and medium businesses.',
+    dashboard: '/aiflow360-app/dashboard.html',
+    plans: [
+      { id:'basic', name:'Basic', price:'$99', priceAnnual:'$950', per:'/mo AUD',
+        desc:'For startups and small teams getting started with AI.',
+        feats:['Up to 1 AI Agent','Core AI tools & templates','Email support','Basic analytics & reporting','Documentation & guides'],
+        no:['API access & integrations','Advanced analytics','SSO & security controls'] },
+      { id:'business', name:'Business', price:'$199', priceAnnual:'$1,910', per:'/mo AUD', popular:true,
+        desc:'For growing companies scaling AI across operations.',
+        feats:['Up to 15 AI Agents','API access & integrations','Priority support','Advanced analytics & dashboards','Custom workflows & automation','Dedicated onboarding'],
+        no:['SSO & security controls','Unlimited agents'] },
+      { id:'team', name:'Team', price:'$299', priceAnnual:'$2,870', per:'/mo AUD',
+        desc:'For teams and organisations that need collaboration & control.',
+        feats:['Unlimited AI Agents','Team seats & role-based access','SSO & security controls','Everything in Business','Dedicated success manager','SLA & custom contracts'],
+        no:[] },
+    ],
+    defaultPlan: 'business',
   },
 };
 
@@ -1159,41 +1178,69 @@ function go3() {
 const S = {
   step:1, product:'xpscore360',
   industry_code:'', business_type_code:'', plan:'pro',
+  interval:'monthly',   // 'monthly' | 'annual'
+  adminCoupon:'',       // admin override coupon code
   fn:'',em:'',ph:'',jt:'',pw:'',
   bn:'',abn:'',bt:'',ws:'',be:'',a1:'',sb:'',st:'',pc:'',
   dn:'',logoFile:null,color:'#0F0F0D',theme:'dark',
   vn:'',va:'',vsb:'',vst:'',vpc:'',vt:'',gp:'',specs:[],kf:'',
-  tenantId:null,
+  tenantId:null, stripeCustomerId:null,
 };
 
 // ── Init ───────────────────────────────────────────────
 (function init() {
   const params = new URLSearchParams(location.search);
-  const prod = params.get('product');
+  const prod   = params.get('product');
+
+  // ── Handle Stripe Checkout return ──────────────────
+  if (params.get('checkout') === 'success') {
+    // Show success panel directly — webhook has already activated the tenant
+    document.getElementById('p1').style.display = 'none';
+    const okPanel = document.getElementById('p-ok');
+    okPanel.style.display = 'block';
+    document.getElementById('prog').style.width = '100%';
+    document.querySelectorAll('.step').forEach(el => el.className = 'step done');
+    document.getElementById('ok-heading').innerHTML = 'Welcome —<br><em>you\'re all set!</em>';
+    document.getElementById('ok-sub').textContent = 'Your subscription is active. Head to your dashboard to get started.';
+    const tenantParam = params.get('tenant');
+    if (tenantParam) {
+      document.getElementById('ok-summary').innerHTML = `
+        <div class="sum-row"><span>Status</span><span style="color:var(--green)">✓ Active</span></div>
+        <div class="sum-row"><span>Tenant ID</span><span style="font-family:monospace;font-size:11px">${tenantParam}</span></div>
+      `;
+    }
+    return;
+  }
+
+  if (params.get('checkout') === 'cancel') {
+    // Returned from Stripe after cancelling — stay on step 6
+    applyProduct(prod && PRODUCTS[prod] ? prod : 'xpscore360');
+    show(6, false);
+    toast('Payment cancelled — you can try again when ready.', 'ok');
+    return;
+  }
 
   if (prod && PRODUCTS[prod]) {
     S.product = prod;
     applyProduct(prod);
   } else {
-    // Show product selector in step 1
     document.getElementById('product-selector').style.display = 'block';
-    // Default to xpscore360
     applyProduct('xpscore360');
     document.getElementById('pc-xpscore360').classList.add('selected');
   }
 
   buildPlans();
   buildSpecs('');
-})();
+})()
 
 function applyProduct(prod) {
   const cfg = PRODUCTS[prod];
   S.product = prod;
-  S.plan = cfg.defaultPlan;
+  S.plan    = cfg.defaultPlan;
 
   // CSS vars
   document.documentElement.style.setProperty('--p-accent', cfg.accent);
-  document.documentElement.style.setProperty('--p-light', cfg.light);
+  document.documentElement.style.setProperty('--p-light',  cfg.light);
 
   // Sidebar
   document.getElementById('sb-icon').textContent = cfg.icon;
@@ -1206,10 +1253,7 @@ function applyProduct(prod) {
   document.getElementById('mob-icon').textContent = cfg.icon;
   document.getElementById('mob-name').textContent = cfg.name;
 
-  // Payment auth label
-  document.getElementById('auth-product').textContent = cfg.name;
-
-  // Success
+  // Success panel product name
   document.getElementById('ok-product').textContent = cfg.name;
 
   // Plan grid
@@ -1222,20 +1266,42 @@ function pickProduct(prod, el) {
   applyProduct(prod);
 }
 
+// ── Interval toggle ─────────────────────────────────────
+function setInterval(iv) {
+  S.interval = iv;
+  const tm = document.getElementById('tog-m');
+  const ta = document.getElementById('tog-a');
+  if (!tm || !ta) return;
+  if (iv === 'annual') {
+    ta.style.background  = 'var(--p-accent)'; ta.style.color = 'var(--p-light)'; ta.style.borderColor = 'var(--p-accent)';
+    tm.style.background  = 'transparent';     tm.style.color = 'var(--muted)';   tm.style.borderColor = 'var(--border)';
+  } else {
+    tm.style.background  = 'var(--p-accent)'; tm.style.color = 'var(--p-light)'; tm.style.borderColor = 'var(--p-accent)';
+    ta.style.background  = 'transparent';     ta.style.color = 'var(--muted)';   ta.style.borderColor = 'var(--border)';
+  }
+  buildPlans();
+}
+
 // ── Plan grid ──────────────────────────────────────────
 function buildPlans() {
-  const cfg = PRODUCTS[S.product];
+  const cfg  = PRODUCTS[S.product];
   const grid = document.getElementById('plan-grid');
+  if (!grid) return;
   grid.innerHTML = '';
   cfg.plans.forEach(p => {
-    const isOn = p.id === S.plan;
-    const feats = p.feats.map(f => `<li class="y">${f}</li>`).join('');
-    const nope  = p.no.map(f => `<li>${f}</li>`).join('');
+    const isOn         = p.id === S.plan;
+    const isAnnual     = S.interval === 'annual';
+    const displayPrice = isAnnual ? p.priceAnnual : p.price;
+    const perLabel     = isAnnual ? '/mo AUD (billed yearly)' : p.per;
+    const feats        = p.feats.map(f => `<li class="y">${f}</li>`).join('');
+    const nope         = (p.no||[]).map(f => `<li>${f}</li>`).join('');
+    const saveBadge    = isAnnual ? `<div style="font-size:10px;color:var(--green);font-weight:600;margin-bottom:6px">✓ Save 20% annually</div>` : '';
     grid.innerHTML += `
       <div class="plan${isOn?' on':''}" id="pl-${p.id}" onclick="pickPlan('${p.id}',this)">
         ${p.popular ? `<div class="plan-tag">Most popular</div>` : ''}
+        ${saveBadge}
         <div class="plan-name">${p.name}</div>
-        <div class="plan-price">${p.price}<span>${p.per}</span></div>
+        <div class="plan-price">${displayPrice}<span>${perLabel}</span></div>
         <div class="plan-desc">${p.desc}</div>
         <ul class="plan-feats">${feats}${nope}</ul>
       </div>`;
@@ -1246,10 +1312,8 @@ function pickPlan(id, el) {
   S.plan = id;
   document.querySelectorAll('.plan').forEach(c => c.classList.remove('on'));
   el.classList.add('on');
-  const labels = {free:'Continue with Free',pro:'Continue with Pro',business:'Continue with Business'};
   const cfg = PRODUCTS[S.product];
-  const p = cfg.plans.find(x => x.id === id);
-  // use product-specific plan name if available
+  const p   = cfg.plans.find(x => x.id === id);
   document.getElementById('plan-btn').textContent = `Continue with ${p.name}`;
 }
 
@@ -1426,75 +1490,104 @@ function go4(){
 
 // ── Step 5 ─────────────────────────────────────────────
 function go5(){
-  const isFree=S.plan==='free';
-  document.getElementById('pay-free').style.display=isFree?'block':'none';
-  document.getElementById('pay-paid').style.display=isFree?'none':'block';
-  document.getElementById('pay-h').innerHTML=isFree?'Almost<br><em>done!</em>':'Payment<br><em>details</em>';
-  document.getElementById('complete-lbl').textContent=isFree?'Launch my platform':'Start subscription';
+  const cfg = PRODUCTS[S.product];
+  const p   = cfg.plans.find(x => x.id === S.plan);
+  const isAnnual = S.interval === 'annual';
+  const displayPrice = isAnnual ? p.priceAnnual : p.price;
+  const intervalLabel = isAnnual ? 'Billed annually · cancel anytime' : 'Billed monthly · cancel anytime';
 
-  const cfg=PRODUCTS[S.product];
-  const p=cfg.plans.find(x=>x.id===S.plan);
-  document.getElementById('order-label').textContent=`${cfg.name} ${p.name} — Monthly`;
-  document.getElementById('order-price').textContent=`${p.price} AUD`;
-  if(!document.getElementById('bln').value) document.getElementById('bln').value=S.fn;
+  document.getElementById('order-label').textContent = `${cfg.name} ${p.name} — ${isAnnual ? 'Annual' : 'Monthly'}`;
+  document.getElementById('order-price').textContent = `${displayPrice} AUD`;
+  document.getElementById('order-interval-note').textContent = intervalLabel;
+
+  // Show annual saving row
+  const savingRow = document.getElementById('order-saving-row');
+  if (isAnnual && p.price && p.priceAnnual) {
+    const monthly = parseFloat(p.price.replace('$','').replace(',',''));
+    const annualTotal = parseFloat(p.priceAnnual.replace('$','').replace(',','')) * 12;
+    const saving = (monthly * 12) - annualTotal;
+    if (saving > 0) {
+      document.getElementById('order-saving').textContent = `-$${saving.toFixed(0)} AUD / year`;
+      savingRow.style.display = 'flex';
+    }
+  } else {
+    savingRow.style.display = 'none';
+  }
+
+  // Show admin coupon block if ?admin=1 in URL
+  const params = new URLSearchParams(location.search);
+  if (params.get('admin') === '1') {
+    document.getElementById('admin-coupon-block').style.display = 'block';
+  }
+
   show(6);
 }
 
 // ── Step 6 ─────────────────────────────────────────────
 async function go6(){
-  if(!document.getElementById('bill-terms').checked){toast('Please accept the billing terms','err');return;}
-  const isFree=S.plan==='free';
-  if(!isFree){
-    clearErrs('cn','cc','ex','cv');
-    let ok=true;
-    if(!v('cn')){setErr('cn',true);ok=false;}
-    if(v('cc').replace(/\s/g,'').length<13){setErr('cc',true);ok=false;}
-    if(v('ex').replace(/\s/g,'').length<4){setErr('ex',true);ok=false;}
-    if(!v('cv')){setErr('cv',true);ok=false;}
-    if(!ok) return;
-  }
-
-  const btn=document.getElementById('complete-btn');
-  btn.classList.add('loading');btn.disabled=true;
+  const btn = document.getElementById('complete-btn');
+  btn.classList.add('loading'); btn.disabled = true;
 
   try {
-    const payload={
+    // Step A — create tenant, user, venue, Stripe customer
+    const payload = {
       product:    S.product,
-      fullName:   S.fn, email:S.em, phone:S.ph, jobTitle:S.jt, password:S.pw,
-      bizName:    S.bn, abn:S.abn, bizType:S.bt, website:S.ws, contactEmail:S.be,
-      address:    {line1:S.a1, suburb:S.sb, state:S.st, postcode:S.pc, country:'AU'},
-      displayName:S.dn, primaryColor:S.color, widgetTheme:S.theme,
+      fullName:   S.fn, email: S.em, phone: S.ph, jobTitle: S.jt, password: S.pw,
+      bizName:    S.bn, abn: S.abn, bizType: S.bt, website: S.ws, contactEmail: S.be,
+      address:    { line1: S.a1, suburb: S.sb, state: S.st, postcode: S.pc, country: 'AU' },
+      displayName: S.dn, primaryColor: S.color, widgetTheme: S.theme,
       hasLogo:    !!S.logoFile,
-      venue:{
-        name:S.vn, type:S.vt,
-        address:{line1:S.va, suburb:S.vsb, state:S.vst, postcode:S.vpc},
-        googlePlaceId:S.gp, specialties:S.specs, knownFor:S.kf,
+      venue: {
+        name: S.vn, type: S.vt,
+        address: { line1: S.va, suburb: S.vsb, state: S.vst, postcode: S.vpc },
+        googlePlaceId: S.gp, specialties: S.specs, knownFor: S.kf,
       },
-      plan:S.plan, termsAccepted:true, termsVersion:'v1.0',
-      industry_code:     S.industry_code      || null,
-      business_type_code:S.business_type_code || null,
+      plan:     S.plan,
+      interval: S.interval,
+      termsAccepted:      true,
+      termsVersion:       'v1.0',
+      industry_code:      S.industry_code      || null,
+      business_type_code: S.business_type_code || null,
     };
 
-    const res=await fetch('/.netlify/functions/onboarding-complete',{
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body:JSON.stringify(payload),
+    const res  = await fetch('/.netlify/functions/onboarding-complete', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
     });
-    const data=await res.json();
-    if(!res.ok) throw new Error(data.error||'Something went wrong. Please try again.');
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Something went wrong. Please try again.');
 
-    S.tenantId=data.tenantId;
+    S.tenantId         = data.tenantId;
+    S.stripeCustomerId = data.stripeCustomerId;
 
-    // Upload logo
-    if(S.logoFile&&data.logoUploadUrl){
-      await fetch(data.logoUploadUrl,{method:'PUT',body:S.logoFile,headers:{'Content-Type':S.logoFile.type}});
+    // Upload logo if provided
+    if (S.logoFile && data.logoUploadUrl) {
+      await fetch(data.logoUploadUrl, { method: 'PUT', body: S.logoFile, headers: { 'Content-Type': S.logoFile.type } });
     }
 
-    showSuccess(data);
-  } catch(err){
-    toast(err.message,'err');
-  } finally {
-    btn.classList.remove('loading');btn.disabled=false;
+    // Step B — create Stripe Checkout Session and redirect
+    const checkoutRes  = await fetch('/.netlify/functions/stripe-checkout', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        tenantId:         S.tenantId,
+        stripeCustomerId: S.stripeCustomerId,
+        product:          S.product,
+        tier:             S.plan,
+        interval:         S.interval,
+        adminCoupon:      S.adminCoupon || '',
+      }),
+    });
+    const checkoutData = await checkoutRes.json();
+    if (!checkoutRes.ok) throw new Error(checkoutData.error || 'Payment setup failed. Please try again.');
+
+    // Redirect to Stripe hosted Checkout
+    window.location.href = checkoutData.checkoutUrl;
+
+  } catch(err) {
+    toast(err.message, 'err');
+    btn.classList.remove('loading'); btn.disabled = false;
   }
 }
 

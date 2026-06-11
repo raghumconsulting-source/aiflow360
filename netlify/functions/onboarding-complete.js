@@ -1,6 +1,7 @@
 // netlify/functions/onboarding-complete.js
 // Handles the final onboarding form submission.
 // Creates: tenant, user (via Supabase Auth), venue, Stripe customer.
+// Does NOT create Stripe subscription — that is handled by stripe-checkout.js
 // Called by: onboarding.html step 6 submit.
 
 const { createClient } = require('@supabase/supabase-js');
@@ -15,11 +16,39 @@ const stripe = process.env.STRIPE_SECRET_KEY
   ? require('stripe')(process.env.STRIPE_SECRET_KEY)
   : null;
 
-// ── Plan limits (must match platform_config in DB) ────
+// ── Plan limits per product + tier ─────────────────────
+// These gate feature access inside each product's dashboard
 const PLAN_LIMITS = {
-  free:     { seats: 1, venues: 1,   sessions: 100,   tokens: 50000  },
-  pro:      { seats: 5, venues: 3,   sessions: 1000,  tokens: 500000 },
-  business: { seats: 25,venues: 999, sessions: 10000, tokens: 0      }, // 0 = unlimited
+  xpscore360: {
+    essentials: { seats: 1,  venues: 1,   nfc_points: 3,   sessions_pm: 500,   analytics_days: 30  },
+    pro:        { seats: 3,  venues: 5,   nfc_points: 999, sessions_pm: 5000,  analytics_days: 90  },
+    multisite:  { seats: 10, venues: 999, nfc_points: 999, sessions_pm: 99999, analytics_days: 365 },
+  },
+  tapee360: {
+    starter:    { seats: 1,  venues: 1,   tables: 20,  menu_items: 50,  sessions_pm: 1000  },
+    growth:     { seats: 3,  venues: 1,   tables: 999, menu_items: 999, sessions_pm: 10000 },
+    enterprise: { seats: 10, venues: 999, tables: 999, menu_items: 999, sessions_pm: 99999 },
+  },
+  smflow: {
+    grow:     { seats: 1,  brands: 1,   posts_pm: 50,    images_pm: 50,    flavors: 12, gurus: 3 },
+    scale:    { seats: 3,  brands: 5,   posts_pm: 99999, images_pm: 500,   flavors: 19, gurus: 5 },
+    dominate: { seats: 10, brands: 999, posts_pm: 99999, images_pm: 99999, flavors: 19, gurus: 5 },
+  },
+  aiflow360: {
+    basic:    { seats: 1,   agents: 1,   runs_pm: 999,   api_access: false },
+    business: { seats: 5,   agents: 15,  runs_pm: 99999, api_access: true  },
+    team:     { seats: 999, agents: 999, runs_pm: 99999, api_access: true  },
+  },
+};
+
+// ── Monthly amounts in cents per product+tier ──────────
+// Used only for subscription_history initial record
+// Webhook will overwrite with real Stripe amounts on checkout.session.completed
+const MONTHLY_AMOUNTS = {
+  xpscore360: { essentials: 4900,  pro: 9900,  multisite: 19900 },
+  tapee360:   { starter: 9900,     growth: 19900, enterprise: 29900 },
+  smflow:     { grow: 19900,       scale: 49900,  dominate: 75000  },
+  aiflow360:  { basic: 9900,       business: 19900, team: 29900    },
 };
 
 // ── Helpers ────────────────────────────────────────────
@@ -42,7 +71,6 @@ function corsHeaders() {
 // ── Handler ────────────────────────────────────────────
 exports.handler = async (event) => {
 
-  // Handle CORS preflight
   if (event.httpMethod === 'OPTIONS') {
     return { statusCode: 204, headers: corsHeaders(), body: '' };
   }
@@ -59,7 +87,7 @@ exports.handler = async (event) => {
   }
 
   // ── 1. Validate required fields ──────────────────────
-  const required = ['fullName', 'email', 'password', 'bizName', 'abn', 'plan'];
+  const required = ['fullName', 'email', 'password', 'bizName', 'abn', 'plan', 'product'];
   for (const field of required) {
     if (!body[field]) {
       return {
@@ -68,6 +96,16 @@ exports.handler = async (event) => {
         body: JSON.stringify({ error: `Missing required field: ${field}` }),
       };
     }
+  }
+
+  // Validate product is known
+  const validProducts = ['xpscore360', 'tapee360', 'smflow', 'aiflow360'];
+  if (!validProducts.includes(body.product)) {
+    return {
+      statusCode: 400,
+      headers: corsHeaders(),
+      body: JSON.stringify({ error: `Unknown product: ${body.product}` }),
+    };
   }
 
   // ── 2. Check email not already registered ─────────────
@@ -94,7 +132,6 @@ exports.handler = async (event) => {
     .maybeSingle();
 
   if (slugCheck) {
-    // Append random suffix to ensure uniqueness
     slug = `${slug}-${Math.random().toString(36).slice(2, 6)}`;
   }
 
@@ -102,10 +139,8 @@ exports.handler = async (event) => {
   const { data: authData, error: authError } = await supabase.auth.admin.createUser({
     email: body.email,
     password: body.password,
-    email_confirm: true,  // auto-confirm — magic link sent separately
-    user_metadata: {
-      full_name: body.fullName,
-    },
+    email_confirm: true,
+    user_metadata: { full_name: body.fullName },
   });
 
   if (authError) {
@@ -118,15 +153,18 @@ exports.handler = async (event) => {
   }
 
   const authUserId = authData.user.id;
-  const limits = PLAN_LIMITS[body.plan] || PLAN_LIMITS.free;
+
+  // Resolve plan limits for this product + tier
+  const productLimits = PLAN_LIMITS[body.product] || {};
+  const limits = productLimits[body.plan] || {};
 
   // ── 5. Create Stripe customer ─────────────────────────
   let stripeCustomerId = null;
-  if (stripe && body.plan !== 'free') {
+  if (stripe) {
     try {
       const customer = await stripe.customers.create({
         email: body.email,
-        name: body.bizName,
+        name:  body.bizName,
         phone: body.phone || undefined,
         address: body.address ? {
           line1:       body.address.line1,
@@ -137,6 +175,7 @@ exports.handler = async (event) => {
         } : undefined,
         metadata: {
           tenant_slug: slug,
+          product:     body.product,
           plan:        body.plan,
           abn:         body.abn,
         },
@@ -144,7 +183,7 @@ exports.handler = async (event) => {
       stripeCustomerId = customer.id;
     } catch (stripeErr) {
       console.error('Stripe customer error:', stripeErr);
-      // Don't fail onboarding if Stripe fails — we can retry
+      // Non-fatal — onboarding continues, checkout will create customer if needed
     }
   }
 
@@ -157,9 +196,9 @@ exports.handler = async (event) => {
       display_name:         body.displayName || body.bizName,
       abn:                  body.abn,
       business_type:        body.bizType,
-      industry_code:        body.industry_code || null,
-      business_type_code:   body.business_type_code || null,
-      contact_email:        body.contactEmail || body.email,
+      industry_code:        body.industry_code        || null,
+      business_type_code:   body.business_type_code   || null,
+      contact_email:        body.contactEmail         || body.email,
       contact_phone:        body.phone,
       website_url:          body.website,
       address_line1:        body.address?.line1,
@@ -167,27 +206,31 @@ exports.handler = async (event) => {
       state:                body.address?.state,
       postcode:             body.address?.postcode,
       country:              'AU',
-      primary_color:        body.primaryColor || '#C9A84C',
-      widget_theme:         body.widgetTheme  || 'dark',
-      status:               'active',
-      onboarding_completed: true,
+      primary_color:        body.primaryColor         || '#C9A84C',
+      widget_theme:         body.widgetTheme          || 'dark',
+      // Billing — subscription_status starts as pending until checkout completes
+      status:               'pending_payment',
+      onboarding_completed: false,   // set to true after checkout.session.completed
       onboarding_step:      6,
       terms_accepted_at:    body.termsAccepted ? new Date().toISOString() : null,
       terms_version:        body.termsVersion  || 'v1.0',
       privacy_accepted_at:  body.termsAccepted ? new Date().toISOString() : null,
       stripe_customer_id:   stripeCustomerId,
       current_plan:         body.plan,
-      plan_seats:           limits.seats,
-      plan_venues:          limits.venues,
-      plan_sessions_pm:     limits.sessions,
-      plan_tokens_pm:       limits.tokens,
+      current_product:      body.product,
+      current_interval:     body.interval             || 'monthly',
+      subscription_status:  'pending_payment',
+      // Limit columns — product-specific, extras ignored gracefully
+      plan_seats:           limits.seats              || 1,
+      plan_venues:          limits.venues             || 1,
+      plan_sessions_pm:     limits.sessions_pm        || 0,
+      plan_tokens_pm:       limits.tokens             || 0,
     })
     .select('id')
     .single();
 
   if (tenantError) {
     console.error('Tenant create error:', tenantError);
-    // Clean up auth user on failure
     await supabase.auth.admin.deleteUser(authUserId);
     return {
       statusCode: 500,
@@ -198,25 +241,25 @@ exports.handler = async (event) => {
 
   const tenantId = tenant.id;
 
-  // ── 7. Create user record (extends Supabase Auth) ─────
+  // ── 7. Create user record ─────────────────────────────
   const { error: userError } = await supabase
     .from('users')
     .insert({
-      id:               authUserId,
-      tenant_id:        tenantId,
-      full_name:        body.fullName,
-      email:            body.email,
-      phone:            body.phone,
-      job_title:        body.jobTitle,
-      role:             'tenant_owner',
-      email_verified:   true,
+      id:                authUserId,
+      tenant_id:         tenantId,
+      full_name:         body.fullName,
+      email:             body.email,
+      phone:             body.phone,
+      job_title:         body.jobTitle,
+      role:              'tenant_owner',
+      email_verified:    true,
       terms_accepted_at: new Date().toISOString(),
-      terms_version:    body.termsVersion || 'v1.0',
+      terms_version:     body.termsVersion || 'v1.0',
     });
 
   if (userError) {
     console.error('User record error:', userError);
-    // Non-fatal — auth user exists, just log it
+    // Non-fatal — auth user exists, log and continue
   }
 
   // ── 8. Create first venue ─────────────────────────────
@@ -224,24 +267,24 @@ exports.handler = async (event) => {
   const { data: venue, error: venueError } = await supabase
     .from('venues')
     .insert({
-      tenant_id:      tenantId,
-      name:           body.venue?.name || body.bizName,
-      slug:           venueSlug,
-      status:         'active',
-      address_line1:  body.venue?.address?.line1,
-      suburb:         body.venue?.address?.suburb,
-      state:          body.venue?.address?.state,
-      postcode:       body.venue?.address?.postcode,
-      country:        'AU',
-      google_review_url: body.venue?.googlePlaceId || null,
-      display_name:   body.displayName || body.bizName,
-      venue_type:     body.venue?.type,
-      industry_code:  body.industry_code || null,
-      business_type_code: body.business_type_code || null,
-      specialties:    body.venue?.specialties || [],
-      known_for:      body.venue?.knownFor,
-      primary_color:  body.primaryColor || '#C9A84C',
-      widget_theme:   body.widgetTheme  || 'dark',
+      tenant_id:          tenantId,
+      name:               body.venue?.name          || body.bizName,
+      slug:               venueSlug,
+      status:             'active',
+      address_line1:      body.venue?.address?.line1,
+      suburb:             body.venue?.address?.suburb,
+      state:              body.venue?.address?.state,
+      postcode:           body.venue?.address?.postcode,
+      country:            'AU',
+      google_review_url:  body.venue?.googlePlaceId || null,
+      display_name:       body.displayName          || body.bizName,
+      venue_type:         body.venue?.type,
+      industry_code:      body.industry_code        || null,
+      business_type_code: body.business_type_code   || null,
+      specialties:        body.venue?.specialties   || [],
+      known_for:          body.venue?.knownFor,
+      primary_color:      body.primaryColor         || '#C9A84C',
+      widget_theme:       body.widgetTheme          || 'dark',
     })
     .select('id')
     .single();
@@ -266,17 +309,18 @@ exports.handler = async (event) => {
     }
   }
 
-  // ── 9. Seed subscription_history ─────────────────────
+  // ── 9. Seed subscription_history (pending record) ─────
+  const amountCents = (MONTHLY_AMOUNTS[body.product] || {})[body.plan] || 0;
   await supabase.from('subscription_history').insert({
     tenant_id:    tenantId,
     plan:         body.plan,
-    status:       'active',
-    amount_cents: body.plan === 'free' ? 0 : body.plan === 'pro' ? 4900 : 14900,
+    status:       'pending_payment',
+    amount_cents: amountCents,
     currency:     'AUD',
-    interval:     'month',
+    interval:     body.interval || 'month',
     period_start: new Date().toISOString(),
     period_end:   new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
-    change_reason:'initial_signup',
+    change_reason:'initial_signup_pending',
   });
 
   // ── 10. Audit log ─────────────────────────────────────
@@ -287,7 +331,9 @@ exports.handler = async (event) => {
     resource_type: 'tenant',
     resource_id:   tenantId,
     metadata: {
+      product:     body.product,
       plan:        body.plan,
+      interval:    body.interval || 'monthly',
       abn:         body.abn,
       venue_count: 1,
       source:      'onboarding_wizard',
@@ -303,7 +349,6 @@ exports.handler = async (event) => {
       .createSignedUploadUrl(logoPath);
     logoUploadUrl = uploadData?.signedUrl || null;
 
-    // Save logo URL back to tenant
     if (logoUploadUrl) {
       const publicUrl = `${process.env.SUPABASE_URL}/storage/v1/object/public/tenant-assets/${logoPath}`;
       await supabase.from('tenants').update({ logo_url: publicUrl }).eq('id', tenantId);
@@ -311,18 +356,21 @@ exports.handler = async (event) => {
   }
 
   // ── 12. Respond ───────────────────────────────────────
+  // Return stripeCustomerId so onboarding.html can pass it to stripe-checkout
   return {
     statusCode: 200,
     headers: corsHeaders(),
     body: JSON.stringify({
-      success:      true,
+      success:          true,
       tenantId,
-      venueId:      venue?.id || null,
+      venueId:          venue?.id          || null,
       slug,
-      plan:         body.plan,
+      product:          body.product,
+      plan:             body.plan,
+      interval:         body.interval      || 'monthly',
+      stripeCustomerId,
       logoUploadUrl,
-      dashboardUrl: '/dashboard',
-      message:      'Account created successfully',
+      message:          'Account created. Redirecting to payment...',
     }),
   };
 };
