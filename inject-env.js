@@ -31,4 +31,35 @@ FILES.forEach(file => {
   console.log(`${changed ? '✓' : '—'} ${file}`);
 });
 
+// ---------------------------------------------------------------------------
+// Google service account key → bundled file (NOT a function env var)
+//
+// The full service-account JSON (~2 KB) is far too large to live in the
+// per-function environment: AWS Lambda caps each function's environment
+// variables at 4 KB total, and Netlify injects every site variable into every
+// function. We keep GOOGLE_SERVICE_ACCOUNT_KEY scoped to the *build* only, read
+// it here at build time, and write it to a file that esbuild bundles into the
+// one function that needs it (smflow-assets). That removes ~2 KB from every
+// function's environment so the whole site stays under the 4 KB limit.
+//
+// The file is git-ignored; the secret only ever exists in the deployed bundle.
+// ---------------------------------------------------------------------------
+const GSA_KEY  = process.env.GOOGLE_SERVICE_ACCOUNT_KEY || '';
+const GSA_FILE = path.join(__dirname, 'netlify', 'functions', '_gsa.json');
+
+let gsaPayload = {};
+if (GSA_KEY) {
+  try {
+    gsaPayload = JSON.parse(GSA_KEY);
+    console.log('✓ Google service account key written to bundled file');
+  } catch (err) {
+    console.warn('⚠️  GOOGLE_SERVICE_ACCOUNT_KEY is not valid JSON — Drive features will be disabled:', err.message);
+  }
+} else {
+  console.warn('⚠️  GOOGLE_SERVICE_ACCOUNT_KEY not set at build time — Drive features will be disabled');
+}
+// Always write a valid JSON file so the function bundles cleanly even when the
+// key is absent (e.g. local dev or previews without the secret).
+fs.writeFileSync(GSA_FILE, JSON.stringify(gsaPayload));
+
 console.log('Injection complete.');

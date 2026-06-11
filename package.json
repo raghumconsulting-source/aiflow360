@@ -19,6 +19,7 @@
   },
   "homepage": "https://github.com/raghumconsulting-source/aiflow360#readme",
   "dependencies": {
+    "@netlify/aws-lambda-compat": "^1.0.2",
     "@supabase/supabase-js": "^2.106.1",
     "googleapis": "^173.0.0",
     "stripe": "^22.1.1"
