@@ -53,12 +53,12 @@ body{
 
 .sb-product{display:flex;align-items:center;gap:10px;margin-bottom:56px}
 .sb-icon{
-  width:34px;height:34px;border-radius:8px;
+  width:40px;height:40px;border-radius:10px;
   display:flex;align-items:center;justify-content:center;
-  font-size:13px;font-weight:600;
-  background:var(--p-accent);color:var(--p-light);
-  letter-spacing:-.02em;transition:background .3s;
+  overflow:hidden;transition:all .3s;flex-shrink:0;
+  background:#000;
 }
+.sb-icon img{width:40px;height:40px;object-fit:cover;border-radius:10px}
 .sb-name{font-size:15px;font-weight:500;letter-spacing:-.02em}
 
 .sb-heading{
@@ -120,8 +120,9 @@ body{
 }
 @media(max-width:860px){.mob-header{display:flex}}
 .mob-product{display:flex;align-items:center;gap:8px}
-.mob-icon{width:28px;height:28px;border-radius:7px;background:var(--p-accent);
-  display:flex;align-items:center;justify-content:center;font-size:11px;color:#fff;font-weight:600}
+.mob-icon{width:32px;height:32px;border-radius:8px;background:#000;
+  display:flex;align-items:center;justify-content:center;overflow:hidden;}
+.mob-icon img{width:32px;height:32px;object-fit:cover;border-radius:8px}
 .mob-name{font-size:14px;font-weight:500}
 .mob-step{font-size:12px;color:var(--muted)}
 
@@ -491,7 +492,7 @@ textarea{resize:vertical;min-height:80px}
   <!-- ── Sidebar ──────────────────────────────────── -->
   <aside class="sidebar">
     <div class="sb-product">
-      <div class="sb-icon" id="sb-icon">X</div>
+      <div class="sb-icon" id="sb-icon"><img src="/assets/logo-xpscore360.png" alt="XPscore360" style="width:40px;height:40px;object-fit:cover;border-radius:10px"/></div>
       <div class="sb-name" id="sb-name">XPscore360</div>
     </div>
     <div class="sb-heading" id="sb-heading">Set up your<br><em>account</em></div>
@@ -554,7 +555,7 @@ textarea{resize:vertical;min-height:80px}
 
     <div class="mob-header">
       <div class="mob-product">
-        <div class="mob-icon" id="mob-icon">X</div>
+        <div class="mob-icon" id="mob-icon"><img src="/assets/logo-xpscore360.png" alt="XPscore360" style="width:32px;height:32px;object-fit:cover;border-radius:8px"/></div>
         <div class="mob-name" id="mob-name">XPscore360</div>
       </div>
       <div class="mob-step" id="mob-step">Step 1 of 6</div>
@@ -574,25 +575,25 @@ textarea{resize:vertical;min-height:80px}
           <div class="product-grid">
             <div class="product-card" id="pc-xpscore360" onclick="pickProduct('xpscore360',this)">
               <div class="pc-check">✓</div>
-              <div class="pc-badge" id="pcb-xpscore360">⭐ Guest Feedback</div>
+              <img src="/assets/logo-xpscore360.png" alt="XPscore360" style="width:52px;height:52px;object-fit:cover;border-radius:10px;margin-bottom:12px"/>
               <div class="pc-name">XPscore360</div>
               <div class="pc-desc">AI-powered guest review platform for hospitality & retail</div>
             </div>
             <div class="product-card" id="pc-aiflow360" onclick="pickProduct('aiflow360',this)">
               <div class="pc-check">✓</div>
-              <div class="pc-badge" id="pcb-aiflow360">⚡ Automation</div>
+              <img src="/assets/logo-aiflow360.png" alt="AIflow360" style="width:52px;height:52px;object-fit:cover;border-radius:10px;margin-bottom:12px"/>
               <div class="pc-name">AIflow360</div>
               <div class="pc-desc">AI workflow automation for small and medium businesses</div>
             </div>
             <div class="product-card" id="pc-smflow" onclick="pickProduct('smflow',this)">
               <div class="pc-check">✓</div>
-              <div class="pc-badge" id="pcb-smflow">🚀 Social Media</div>
+              <img src="/assets/logo-smflow.png" alt="SMflow" style="width:52px;height:52px;object-fit:cover;border-radius:10px;margin-bottom:12px"/>
               <div class="pc-name">SMflow</div>
               <div class="pc-desc">AI social media posting engine with real photos + auto-publish</div>
             </div>
             <div class="product-card" id="pc-tapee360" onclick="pickProduct('tapee360',this)">
               <div class="pc-check">✓</div>
-              <div class="pc-badge" id="pcb-tapee360">📱 Table Ordering</div>
+              <img src="/assets/logo-tapee360.png" alt="Tapee360" style="width:52px;height:52px;object-fit:cover;border-radius:10px;margin-bottom:12px"/>
               <div class="pc-name">Tapee360</div>
               <div class="pc-desc">NFC table ordering for hospitality venues & restaurants</div>
             </div>
@@ -964,6 +965,7 @@ const PRODUCTS = {
   xpscore360: {
     name:      'XPscore360',
     icon:      'XP',
+    logo:      '/assets/logo-xpscore360.png',
     accent:    '#0F0F0D',
     light:     '#FFFFFF',
     heading:   'Set up your\naccount',
@@ -988,6 +990,7 @@ const PRODUCTS = {
   tapee360: {
     name:      'Tapee360',
     icon:      'T3',
+    logo:      '/assets/logo-tapee360.png',
     accent:    '#1A5C38',
     light:     '#FFFFFF',
     heading:   'Set up your\nvenue',
@@ -1012,6 +1015,7 @@ const PRODUCTS = {
   smflow: {
     name:      'SMflow',
     icon:      'SM',
+    logo:      '/assets/logo-smflow.png',
     accent:    '#1A1A2E',
     light:     '#FFFFFF',
     heading:   'Set up your\nSMflow',
@@ -1036,6 +1040,7 @@ const PRODUCTS = {
   aiflow360: {
     name:      'AIflow360',
     icon:      'AF',
+    logo:      '/assets/logo-aiflow360.png',
     accent:    '#4F46E5',
     light:     '#FFFFFF',
     heading:   'Set up your\nworkspace',
@@ -1362,15 +1367,15 @@ function applyProduct(prod) {
   document.documentElement.style.setProperty('--p-accent', cfg.accent);
   document.documentElement.style.setProperty('--p-light',  cfg.light);
 
-  // Sidebar
-  document.getElementById('sb-icon').textContent = cfg.icon;
+  // Sidebar — logo image
+  document.getElementById('sb-icon').innerHTML = `<img src="${cfg.logo}" alt="${cfg.name}" style="width:40px;height:40px;object-fit:cover;border-radius:10px" onerror="this.parentElement.textContent='${cfg.icon}'"/>`;
   document.getElementById('sb-name').textContent = cfg.name;
   const [h1, h2] = cfg.heading.split('\n');
   document.getElementById('sb-heading').innerHTML = `${h1}<br><em>${h2}</em>`;
   document.getElementById('sb-sub').textContent = cfg.sub;
 
-  // Mobile
-  document.getElementById('mob-icon').textContent = cfg.icon;
+  // Mobile — logo image
+  document.getElementById('mob-icon').innerHTML = `<img src="${cfg.logo}" alt="${cfg.name}" style="width:32px;height:32px;object-fit:cover;border-radius:8px" onerror="this.parentElement.textContent='${cfg.icon}'"/>`;
   document.getElementById('mob-name').textContent = cfg.name;
 
   // Success panel product name
