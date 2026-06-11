@@ -126,8 +126,8 @@ body{
 .mob-step{font-size:12px;color:var(--muted)}
 
 /* Content */
-.content{flex:1;padding:64px 72px;max-width:680px}
-@media(max-width:860px){.content{padding:40px 28px}}
+.content{flex:1;padding:48px 56px;max-width:860px}
+@media(max-width:860px){.content{padding:32px 24px}}
 
 /* Panels */
 .panel{width:100%;animation:up .3s var(--ease) both}
@@ -144,7 +144,7 @@ body{
   font-size:40px;line-height:1.1;letter-spacing:-.02em;
   color:var(--text);margin-bottom:8px;
 }
-.subhead{font-size:15px;color:var(--muted);margin-bottom:44px;line-height:1.6;max-width:480px}
+.subhead{font-size:15px;color:var(--muted);margin-bottom:36px;line-height:1.6;max-width:560px}
 
 /* Product selector (step 0) */
 .product-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:32px}
@@ -279,24 +279,35 @@ textarea{resize:vertical;min-height:80px}
 
 /* Plan cards */
 .plans{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:24px}
-@media(max-width:560px){.plans{grid-template-columns:1fr}}
+@media(max-width:640px){.plans{grid-template-columns:1fr}}
 
 .plan{
   border:1.5px solid var(--border);border-radius:12px;
-  padding:16px 14px;cursor:pointer;transition:all .2s;
+  padding:20px 16px;cursor:pointer;transition:all .25s;
   position:relative;background:var(--bg);display:flex;flex-direction:column;
 }
-.plan:hover{border-color:var(--border-d);transform:translateY(-2px)}
-.plan.on{border-color:var(--p-accent);box-shadow:0 0 0 1px var(--p-accent)}
+.plan:hover{border-color:var(--border-d);transform:translateY(-2px);box-shadow:0 8px 24px rgba(0,0,0,.06)}
+.plan.on{
+  border-color:var(--p-accent);
+  box-shadow:0 0 0 1px var(--p-accent);
+  background:color-mix(in srgb,var(--p-accent) 4%,var(--bg));
+}
+.plan.featured-card{
+  background:color-mix(in srgb,var(--p-accent) 5%,var(--bg));
+  border-color:color-mix(in srgb,var(--p-accent) 30%,var(--border));
+}
+.plan.featured-card.on{
+  background:color-mix(in srgb,var(--p-accent) 8%,var(--bg));
+}
 .plan-tag{
   display:inline-block;font-size:10px;font-weight:600;letter-spacing:.05em;
   text-transform:uppercase;padding:3px 10px;border-radius:var(--pill);
   background:var(--p-accent);color:var(--p-light);margin-bottom:10px;
 }
-.plan-name{font-size:15px;font-weight:500;letter-spacing:-.02em;margin-bottom:2px}
-.plan-price{font-size:22px;font-weight:500;letter-spacing:-.03em;margin-bottom:2px;line-height:1.2}
-.plan-price span{font-size:12px;font-weight:400;color:var(--muted)}
-.plan-was{font-size:11px;color:var(--muted);text-decoration:line-through;margin-bottom:4px}
+.plan-name{font-size:15px;font-weight:600;letter-spacing:-.02em;margin-bottom:2px}
+.plan-price{font-size:24px;font-weight:700;letter-spacing:-.04em;margin-bottom:2px;line-height:1.1}
+.plan-price span{font-size:12px;font-weight:400;color:var(--muted);letter-spacing:0}
+.plan-was{font-size:11px;color:var(--muted);text-decoration:line-through;margin-bottom:6px}
 .plan-desc{font-size:11px;color:var(--muted);margin-bottom:10px;line-height:1.4}
 .plan-feats{list-style:none;display:flex;flex-direction:column;gap:4px;flex:1}
 .plan-feats li{font-size:11px;color:var(--muted);display:flex;align-items:flex-start;gap:6px;line-height:1.3}
@@ -1407,7 +1418,7 @@ function buildPlans() {
     const saveBadge    = isAnnual ? `<div style="font-size:10px;color:var(--green);font-weight:600;margin-bottom:4px">✓ Save 20% annually</div>` : '';
     const wasPrice     = isAnnual ? `<div class="plan-was">${p.price}/mo billed monthly</div>` : '';
     grid.innerHTML += `
-      <div class="plan${isOn?' on':''}" id="pl-${p.id}" onclick="pickPlan('${p.id}',this)">
+      <div class="plan${isOn?' on':''}${p.popular?' featured-card':''}" id="pl-${p.id}" onclick="pickPlan('${p.id}',this)">
         ${p.popular ? `<div class="plan-tag">Most popular</div>` : ''}
         ${saveBadge}
         <div class="plan-name">${p.name}</div>
