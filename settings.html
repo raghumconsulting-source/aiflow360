@@ -1468,7 +1468,32 @@ function onPOSTypeChange(val) {
 function connectSquare() {
   if (!VENUE_ID) { toast('No venue selected', 'err'); return; }
   const oauthUrl = `/.netlify/functions/tapee360-square-oauth?action=authorize&venue_id=${VENUE_ID}`;
-  window.location.href = oauthUrl;
+  const popup = window.open(oauthUrl, '_blank');
+  if (!popup) {
+    window.location.href = oauthUrl;
+    return;
+  }
+  toast('Authorise Square in the new tab — this page updates automatically', 'ok');
+  const poll = setInterval(() => {
+    try {
+      const url = popup.location.href;
+      if (url && url.includes('pos_connected=square')) {
+        clearInterval(poll);
+        popup.close();
+        toast('Square connected!', 'ok');
+        loadPOS();
+      } else if (url && url.includes('pos_error')) {
+        clearInterval(poll);
+        popup.close();
+        const err = new URLSearchParams(new URL(url).search).get('pos_error');
+        toast('Connection failed: ' + err, 'err');
+      }
+    } catch(e) { /* cross-origin — still on squareupsandbox.com */ }
+    if (popup.closed) {
+      clearInterval(poll);
+      loadPOS();
+    }
+  }, 800);
 }
 
 async function disconnectSquare() {
