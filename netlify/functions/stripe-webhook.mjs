@@ -1,12 +1,10 @@
-import { withLambda } from '@netlify/aws-lambda-compat';
-import Stripe from 'stripe';
-
-// netlify/functions/stripe-webhook.js
+// netlify/functions/stripe-webhook.mjs
 // Handles Stripe billing events and writes state back to Supabase
 
-const stripe = Stripe(process.env.STRIPE_SECRET_KEY);
+import Stripe from 'stripe';
 import { buildPriceIndex } from '../lib/stripe-prices.mjs';
 
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 const SUPABASE_URL         = process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY;
 const WEBHOOK_SECRET       = process.env.STRIPE_WEBHOOK_SECRET;
@@ -56,7 +54,6 @@ const handler = async (event) => {
     return { statusCode: 400, body: `Webhook Error: ${err.message}` };
   }
 
-  // Build reverse price index from config file (no env vars needed)
   const PRICE_INDEX = buildPriceIndex();
 
   try {
@@ -102,8 +99,7 @@ const handler = async (event) => {
       case 'customer.subscription.updated': {
         const sub       = stripeEvent.data.object;
         const tenantId  = sub.metadata?.tenant_id;
-        if (!tenantId) { console.warn('subscription.updated: no tenant_id'); break; }
-
+        if (!tenantId) break;
         const priceId   = sub.items.data[0]?.price?.id;
         const priceInfo = PRICE_INDEX[priceId] || {};
 
@@ -115,66 +111,30 @@ const handler = async (event) => {
           subscription_status:    sub.status,
           status:                 sub.status === 'active' ? 'active' : 'past_due',
         });
-
-        await logSubscription({
-          tenant_id:    tenantId,
-          plan:         priceInfo.tier || 'unknown',
-          status:       sub.status,
-          amount_cents: sub.items.data[0]?.price?.unit_amount || 0,
-          currency:     'AUD',
-          interval:     priceInfo.interval || 'monthly',
-          period_start: new Date(sub.current_period_start * 1000).toISOString(),
-          period_end:   new Date(sub.current_period_end   * 1000).toISOString(),
-          change_reason:'subscription_updated',
-        });
         break;
       }
 
       case 'customer.subscription.deleted': {
         const sub      = stripeEvent.data.object;
         const tenantId = sub.metadata?.tenant_id;
-        if (!tenantId) { console.warn('subscription.deleted: no tenant_id'); break; }
-
-        await updateTenant(tenantId, {
-          subscription_status: 'cancelled',
-          status:              'cancelled',
-        });
-
-        await logSubscription({
-          tenant_id:    tenantId,
-          plan:         'cancelled',
-          status:       'cancelled',
-          amount_cents: 0,
-          currency:     'AUD',
-          interval:     'month',
-          period_start: new Date().toISOString(),
-          period_end:   new Date().toISOString(),
-          change_reason:'subscription_deleted',
-        });
+        if (!tenantId) break;
+        await updateTenant(tenantId, { subscription_status: 'cancelled', status: 'cancelled' });
         break;
       }
 
       case 'invoice.payment_succeeded': {
         const invoice  = stripeEvent.data.object;
         const tenantId = invoice.subscription_details?.metadata?.tenant_id || invoice.metadata?.tenant_id;
-        if (!tenantId) { console.warn('invoice.payment_succeeded: no tenant_id'); break; }
-
-        await updateTenant(tenantId, {
-          subscription_status: 'active',
-          status:              'active',
-        });
+        if (!tenantId) break;
+        await updateTenant(tenantId, { subscription_status: 'active', status: 'active' });
         break;
       }
 
       case 'invoice.payment_failed': {
         const invoice  = stripeEvent.data.object;
         const tenantId = invoice.subscription_details?.metadata?.tenant_id || invoice.metadata?.tenant_id;
-        if (!tenantId) { console.warn('invoice.payment_failed: no tenant_id'); break; }
-
-        await updateTenant(tenantId, {
-          subscription_status: 'past_due',
-          status:              'past_due',
-        });
+        if (!tenantId) break;
+        await updateTenant(tenantId, { subscription_status: 'past_due', status: 'past_due' });
         break;
       }
 
@@ -190,4 +150,4 @@ const handler = async (event) => {
   }
 };
 
-export default withLambda(handler);
+export default handler;

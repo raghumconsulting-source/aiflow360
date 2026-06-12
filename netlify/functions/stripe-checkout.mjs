@@ -1,10 +1,11 @@
-// netlify/functions/stripe-checkout.js
+// netlify/functions/stripe-checkout.mjs
 // POST { tenantId, stripeCustomerId, product, tier, interval, adminCoupon? }
 // Returns { checkoutUrl }
-// Called by onboarding.html Step 6 after onboarding-complete creates the tenant + Stripe customer
 
-const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
-const { resolvePriceId } = require('./stripe-prices');
+import Stripe from 'stripe';
+import { resolvePriceId } from '../lib/stripe-prices.mjs';
+
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 
 const HEADERS = {
   'Access-Control-Allow-Origin':  '*',
@@ -13,7 +14,7 @@ const HEADERS = {
   'Content-Type':                 'application/json',
 };
 
-exports.handler = async (event) => {
+const handler = async (event) => {
   if (event.httpMethod === 'OPTIONS') {
     return { statusCode: 204, headers: HEADERS, body: '' };
   }
@@ -28,9 +29,8 @@ exports.handler = async (event) => {
     return { statusCode: 400, headers: HEADERS, body: JSON.stringify({ error: 'Invalid JSON' }) };
   }
 
-  const { tenantId, stripeCustomerId, product, tier, interval, adminCoupon } = body;
+  const { tenantId, stripeCustomerId, product, tier, interval, adminCoupon, clientPromo } = body;
 
-  // ── Validate required fields ──────────────────────────
   if (!tenantId || !stripeCustomerId || !product || !tier) {
     return {
       statusCode: 400,
@@ -39,7 +39,6 @@ exports.handler = async (event) => {
     };
   }
 
-  // ── Resolve price ID from config file (not env vars) ──
   const priceId = resolvePriceId(product, tier, interval || 'monthly');
   if (!priceId) {
     return {
@@ -49,13 +48,12 @@ exports.handler = async (event) => {
     };
   }
 
-  // ── Build Stripe Checkout Session ─────────────────────
   const sessionParams = {
     customer:    stripeCustomerId,
     mode:        'subscription',
     line_items:  [{ price: priceId, quantity: 1 }],
-    success_url: `https://aiflow360.com/xpscore360-app/onboarding.html?checkout=success&tenant=${tenantId}&session_id={CHECKOUT_SESSION_ID}`,
-    cancel_url:  `https://aiflow360.com/xpscore360-app/onboarding.html?checkout=cancel&tenant=${tenantId}`,
+    success_url: `https://aiflow360.com/onboarding.html?checkout=success&tenant=${tenantId}&session_id={CHECKOUT_SESSION_ID}`,
+    cancel_url:  `https://aiflow360.com/onboarding.html?checkout=cancel&tenant=${tenantId}`,
     metadata: {
       tenant_id: tenantId,
       product,
@@ -74,8 +72,10 @@ exports.handler = async (event) => {
     customer_update:            { name: 'auto', address: 'auto' },
   };
 
-  if (adminCoupon && adminCoupon.trim()) {
-    sessionParams.discounts = [{ coupon: adminCoupon.trim() }];
+  // Admin pre-applied coupon OR client-entered promo — mutually exclusive
+  const couponCode = adminCoupon?.trim() || clientPromo?.trim() || '';
+  if (couponCode) {
+    sessionParams.discounts = [{ coupon: couponCode }];
   } else {
     sessionParams.allow_promotion_codes = true;
   }
@@ -96,3 +96,5 @@ exports.handler = async (event) => {
     };
   }
 };
+
+export default handler;
