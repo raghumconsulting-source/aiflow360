@@ -105,7 +105,9 @@ const handler = async (event) => {
 
     try {
       // 1. Exchange auth code for access token
-      const tokenRes = await fetch(`${SQUARE_API}/oauth2/token`, {
+      // NOTE: Square OAuth token endpoint is always connect.squareup.com even in sandbox
+      const SQUARE_TOKEN_URL = 'https://connect.squareup.com/oauth2/token';
+      const tokenRes = await fetch(SQUARE_TOKEN_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -121,10 +123,11 @@ const handler = async (event) => {
       if (!tokenRes.ok || !tokenData.access_token) {
         console.error('Square token exchange failed:', JSON.stringify(tokenData));
         const errorMsg = tokenData.message || tokenData.error || 'Token exchange failed';
+        const errBase = (returnUrl || SITE_URL + '/settings.html').split('?')[0];
         return {
           statusCode: 302,
           headers: {
-            Location: `${returnUrl || SITE_URL + '/settings.html'}?venue_id=${venueId}&pos_error=${encodeURIComponent(errorMsg)}`,
+            Location: `${errBase}?venue_id=${venueId}&pos_error=${encodeURIComponent(errorMsg)}`,
           },
           body: '',
         };
