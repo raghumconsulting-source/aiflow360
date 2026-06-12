@@ -66,12 +66,15 @@ const handler = async (event) => {
       return { statusCode: 400, body: 'venue_id required' };
     }
 
-    // state param = venue_id (returned in callback so we know which venue to update)
+    // Encode venue_id + return_url in state so callback knows where to redirect back
+    const returnUrl = params.return_url || `${SITE_URL}/settings.html`;
+    const statePayload = Buffer.from(JSON.stringify({ venueId, returnUrl })).toString('base64');
+
     const authorizeUrl = `${SQUARE_BASE}/oauth2/authorize`
       + `?client_id=${SQUARE_APP_ID}`
       + `&scope=${SCOPES}`
       + `&session=false`
-      + `&state=${venueId}`;
+      + `&state=${encodeURIComponent(statePayload)}`;
 
     return {
       statusCode: 302,
@@ -83,7 +86,18 @@ const handler = async (event) => {
   // ── MODE 2: Callback from Square ───────────────────
   if (params.code) {
     const authCode = params.code;
-    const venueId = params.state;
+
+    // Decode state — supports both legacy plain venue_id and new base64 JSON
+    let venueId, returnUrl;
+    try {
+      const decoded = JSON.parse(Buffer.from(decodeURIComponent(params.state), 'base64').toString('utf8'));
+      venueId  = decoded.venueId;
+      returnUrl = decoded.returnUrl || `${SITE_URL}/settings.html`;
+    } catch(e) {
+      // Legacy fallback: state is plain venue_id
+      venueId   = params.state;
+      returnUrl = `${SITE_URL}/settings.html`;
+    }
 
     if (!venueId) {
       return { statusCode: 400, body: 'Missing state (venue_id)' };
@@ -110,7 +124,7 @@ const handler = async (event) => {
         return {
           statusCode: 302,
           headers: {
-            Location: `${SITE_URL}/settings.html?venue_id=${venueId}&pos_error=${encodeURIComponent(errorMsg)}`,
+            Location: `${returnUrl || SITE_URL + '/settings.html'}?venue_id=${venueId}&pos_error=${encodeURIComponent(errorMsg)}`,
           },
           body: '',
         };
@@ -159,10 +173,17 @@ const handler = async (event) => {
         if (venues[0]) tenantId = venues[0].tenant_id;
       } catch (e) { /* non-fatal */ }
 
+      // Build return URL — append pos_connected to whatever URL was passed in
+      const redirectBase = returnUrl.split('?')[0];
+      const existingParams = new URLSearchParams(returnUrl.split('?')[1] || '');
+      existingParams.set('pos_connected', 'square');
+      if (tenantId) existingParams.set('tenant_id', tenantId);
+      existingParams.set('venue_id', venueId);
+
       return {
         statusCode: 302,
         headers: {
-          Location: `${SITE_URL}/settings.html?venue_id=${venueId}&tenant_id=${tenantId}&pos_connected=square`,
+          Location: `${redirectBase}?${existingParams.toString()}`,
         },
         body: '',
       };
