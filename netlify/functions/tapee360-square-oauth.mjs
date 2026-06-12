@@ -120,9 +120,16 @@ const handler = async (event) => {
 
       const tokenData = await tokenRes.json();
 
+      console.log('Square token response status:', tokenRes.status);
+      console.log('Square token response body:', JSON.stringify(tokenData));
+      console.log('Square APP_ID used:', SQUARE_APP_ID ? SQUARE_APP_ID.slice(0,20) + '...' : 'NOT SET');
+      console.log('Square APP_SECRET set:', SQUARE_APP_SECRET ? 'YES (' + SQUARE_APP_SECRET.slice(0,15) + '...)' : 'NOT SET');
+      console.log('Auth code used:', authCode ? authCode.slice(0,20) + '...' : 'MISSING');
+
       if (!tokenRes.ok || !tokenData.access_token) {
-        console.error('Square token exchange failed:', JSON.stringify(tokenData));
-        const errorMsg = tokenData.message || tokenData.error || 'Token exchange failed';
+        // Return full Square error detail in pos_error for debugging
+        const squareErrors = tokenData.errors ? JSON.stringify(tokenData.errors) : '';
+        const errorMsg = tokenData.message || tokenData.error || squareErrors || 'Token exchange failed';
         const errBase = (returnUrl || SITE_URL + '/settings.html').split('?')[0];
         return {
           statusCode: 302,
