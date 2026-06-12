@@ -1,13 +1,10 @@
-import { withLambda } from '@netlify/aws-lambda-compat';
-import Stripe from 'stripe';
-
 // netlify/functions/stripe-checkout.js
 // POST { tenantId, stripeCustomerId, product, tier, interval, adminCoupon? }
 // Returns { checkoutUrl }
 // Called by onboarding.html Step 6 after onboarding-complete creates the tenant + Stripe customer
 
-const stripe = Stripe(process.env.STRIPE_SECRET_KEY);
-import { resolvePriceId } from '../lib/stripe-prices.mjs';
+const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
+const { resolvePriceId } = require('./stripe-prices');
 
 const HEADERS = {
   'Access-Control-Allow-Origin':  '*',
@@ -16,7 +13,7 @@ const HEADERS = {
   'Content-Type':                 'application/json',
 };
 
-const handler = async (event) => {
+exports.handler = async (event) => {
   if (event.httpMethod === 'OPTIONS') {
     return { statusCode: 204, headers: HEADERS, body: '' };
   }
@@ -98,5 +95,3 @@ const handler = async (event) => {
     };
   }
 };
-
-export default withLambda(handler);
