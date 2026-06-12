@@ -1,6 +1,5 @@
 // netlify/functions/stripe-webhook.mjs
-// Handles Stripe billing events and writes state back to Supabase
-
+import { withLambda } from '@netlify/aws-lambda-compat';
 import Stripe from 'stripe';
 import { buildPriceIndex } from '../lib/stripe-prices.mjs';
 
@@ -50,7 +49,7 @@ const handler = async (event) => {
   try {
     stripeEvent = stripe.webhooks.constructEvent(event.body, sig, WEBHOOK_SECRET);
   } catch (err) {
-    console.error('Webhook signature verification failed:', err.message);
+    console.error('Webhook signature failed:', err.message);
     return { statusCode: 400, body: `Webhook Error: ${err.message}` };
   }
 
@@ -58,17 +57,13 @@ const handler = async (event) => {
 
   try {
     switch (stripeEvent.type) {
-
       case 'checkout.session.completed': {
-        const session   = stripeEvent.data.object;
-        const tenantId  = session.metadata?.tenant_id;
-        if (!tenantId) { console.warn('checkout.session.completed: no tenant_id'); break; }
-
-        const sub       = await stripe.subscriptions.retrieve(session.subscription);
-        const priceId   = sub.items.data[0]?.price?.id;
-        const priceInfo = PRICE_INDEX[priceId] || {};
-        const amountCents = sub.items.data[0]?.price?.unit_amount || 0;
-
+        const session  = stripeEvent.data.object;
+        const tenantId = session.metadata?.tenant_id;
+        if (!tenantId) break;
+        const sub        = await stripe.subscriptions.retrieve(session.subscription);
+        const priceId    = sub.items.data[0]?.price?.id;
+        const priceInfo  = PRICE_INDEX[priceId] || {};
         await updateTenant(tenantId, {
           stripe_customer_id:     session.customer,
           stripe_subscription_id: session.subscription,
@@ -79,75 +74,54 @@ const handler = async (event) => {
           status:                 'active',
           onboarding_completed:   true,
         });
-
         await logSubscription({
-          tenant_id:    tenantId,
-          plan:         priceInfo.tier || 'unknown',
-          status:       'active',
-          amount_cents: amountCents,
-          currency:     'AUD',
-          interval:     priceInfo.interval || 'monthly',
+          tenant_id: tenantId, plan: priceInfo.tier || 'unknown',
+          status: 'active', amount_cents: sub.items.data[0]?.price?.unit_amount || 0,
+          currency: 'AUD', interval: priceInfo.interval || 'monthly',
           period_start: new Date(sub.current_period_start * 1000).toISOString(),
           period_end:   new Date(sub.current_period_end   * 1000).toISOString(),
-          change_reason:'checkout_completed',
+          change_reason: 'checkout_completed',
         });
-
-        console.log(`Tenant ${tenantId} activated: ${priceInfo.product}/${priceInfo.tier}/${priceInfo.interval}`);
+        console.log(`Activated: ${tenantId} ${priceInfo.product}/${priceInfo.tier}`);
         break;
       }
-
       case 'customer.subscription.updated': {
-        const sub       = stripeEvent.data.object;
-        const tenantId  = sub.metadata?.tenant_id;
-        if (!tenantId) break;
-        const priceId   = sub.items.data[0]?.price?.id;
-        const priceInfo = PRICE_INDEX[priceId] || {};
-
-        await updateTenant(tenantId, {
-          stripe_subscription_id: sub.id,
-          current_plan:           priceInfo.tier     || 'unknown',
-          current_product:        priceInfo.product  || 'unknown',
-          current_interval:       priceInfo.interval || 'monthly',
-          subscription_status:    sub.status,
-          status:                 sub.status === 'active' ? 'active' : 'past_due',
-        });
-        break;
-      }
-
-      case 'customer.subscription.deleted': {
-        const sub      = stripeEvent.data.object;
+        const sub = stripeEvent.data.object;
         const tenantId = sub.metadata?.tenant_id;
         if (!tenantId) break;
-        await updateTenant(tenantId, { subscription_status: 'cancelled', status: 'cancelled' });
+        const priceInfo = PRICE_INDEX[sub.items.data[0]?.price?.id] || {};
+        await updateTenant(tenantId, {
+          stripe_subscription_id: sub.id,
+          current_plan: priceInfo.tier || 'unknown',
+          current_product: priceInfo.product || 'unknown',
+          current_interval: priceInfo.interval || 'monthly',
+          subscription_status: sub.status,
+          status: sub.status === 'active' ? 'active' : 'past_due',
+        });
         break;
       }
-
+      case 'customer.subscription.deleted': {
+        const tenantId = stripeEvent.data.object.metadata?.tenant_id;
+        if (tenantId) await updateTenant(tenantId, { subscription_status: 'cancelled', status: 'cancelled' });
+        break;
+      }
       case 'invoice.payment_succeeded': {
-        const invoice  = stripeEvent.data.object;
-        const tenantId = invoice.subscription_details?.metadata?.tenant_id || invoice.metadata?.tenant_id;
-        if (!tenantId) break;
-        await updateTenant(tenantId, { subscription_status: 'active', status: 'active' });
+        const tenantId = stripeEvent.data.object.subscription_details?.metadata?.tenant_id;
+        if (tenantId) await updateTenant(tenantId, { subscription_status: 'active', status: 'active' });
         break;
       }
-
       case 'invoice.payment_failed': {
-        const invoice  = stripeEvent.data.object;
-        const tenantId = invoice.subscription_details?.metadata?.tenant_id || invoice.metadata?.tenant_id;
-        if (!tenantId) break;
-        await updateTenant(tenantId, { subscription_status: 'past_due', status: 'past_due' });
+        const tenantId = stripeEvent.data.object.subscription_details?.metadata?.tenant_id;
+        if (tenantId) await updateTenant(tenantId, { subscription_status: 'past_due', status: 'past_due' });
         break;
       }
-
-      default:
-        console.log(`Unhandled event: ${stripeEvent.type}`);
+      default: console.log(`Unhandled: ${stripeEvent.type}`);
     }
-
     return { statusCode: 200, body: JSON.stringify({ received: true }) };
-
   } catch (err) {
-    console.error('Webhook handler error:', err.message);
+    console.error('Webhook error:', err.message);
     return { statusCode: 500, body: JSON.stringify({ error: err.message }) };
   }
 };
 
-export default handler;
+export default withLambda(handler);

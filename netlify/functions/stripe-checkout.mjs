@@ -1,7 +1,5 @@
 // netlify/functions/stripe-checkout.mjs
-// POST { tenantId, stripeCustomerId, product, tier, interval, adminCoupon? }
-// Returns { checkoutUrl }
-
+import { withLambda } from '@netlify/aws-lambda-compat';
 import Stripe from 'stripe';
 import { resolvePriceId } from '../lib/stripe-prices.mjs';
 
@@ -72,7 +70,6 @@ const handler = async (event) => {
     customer_update:            { name: 'auto', address: 'auto' },
   };
 
-  // Admin pre-applied coupon OR client-entered promo — mutually exclusive
   const couponCode = adminCoupon?.trim() || clientPromo?.trim() || '';
   if (couponCode) {
     sessionParams.discounts = [{ coupon: couponCode }];
@@ -97,4 +94,4 @@ const handler = async (event) => {
   }
 };
 
-export default handler;
+export default withLambda(handler);

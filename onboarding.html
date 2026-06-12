@@ -611,6 +611,7 @@ textarea{resize:vertical;min-height:80px}
           <div class="field" id="f-em">
             <label>Work email <span class="req">*</span></label>
             <input type="email" id="em" placeholder="alex@business.com.au" autocomplete="email"/>
+            <span class="hint" style="color:var(--p-accent);font-weight:500">⚡ This will be your login email</span>
             <span class="err-msg">Please enter a valid email</span>
           </div>
           <div class="field">
@@ -923,9 +924,18 @@ textarea{resize:vertical;min-height:80px}
 
         <!-- Security badges -->
         <div class="sec-row" style="margin-bottom:28px">
-          <div class="sec-item">🔒 256-bit SSL</div>
-          <div class="sec-item">✓ PCI-DSS compliant</div>
-          <div class="sec-item">⚡ Powered by Stripe</div>
+          <div class="sec-item">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M12 2L4 6v6c0 5.25 3.5 10.15 8 11.35C16.5 22.15 20 17.25 20 12V6l-8-4z" fill="#1a7a4a"/></svg>
+            <span style="color:#1a7a4a;font-weight:600">256-bit SSL</span>
+          </div>
+          <div class="sec-item">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" fill="#4F46E5"/><path d="M9 12l2 2 4-4" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            <span style="color:#4F46E5;font-weight:600">PCI-DSS compliant</span>
+          </div>
+          <div class="sec-item">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><rect width="24" height="24" rx="4" fill="#635BFF"/><path d="M10.5 15.5l-2-2 1.5-1.5 0.5 0.5 3.5-3.5 1.5 1.5-5 5z" fill="#fff"/></svg>
+            <span style="color:#635BFF;font-weight:600">Powered by Stripe</span>
+          </div>
         </div>
 
         <div class="btn-row">
