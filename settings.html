@@ -1465,33 +1465,52 @@ function onPOSTypeChange(val) {
     .catch(e => toast('Failed to save: ' + e.message, 'err'));
 }
 
+let _squarePopup = null;
+let _squarePoll  = null;
+
 function connectSquare() {
   if (!VENUE_ID) { toast('No venue selected', 'err'); return; }
+
+  // If a popup is already open, focus it instead of opening another
+  if (_squarePopup && !_squarePopup.closed) {
+    _squarePopup.focus();
+    toast('Square auth already open — check the other tab', 'ok');
+    return;
+  }
+
   const oauthUrl = `/.netlify/functions/tapee360-square-oauth?action=authorize&venue_id=${VENUE_ID}`;
-  const popup = window.open(oauthUrl, '_blank');
-  if (!popup) {
+  _squarePopup = window.open(oauthUrl, 'squareOAuth', 'width=600,height=700');
+
+  if (!_squarePopup) {
+    // Popup blocked — fall back to same-window redirect
     window.location.href = oauthUrl;
     return;
   }
+
   toast('Authorise Square in the new tab — this page updates automatically', 'ok');
-  const poll = setInterval(() => {
+
+  // Clear any previous poll
+  if (_squarePoll) clearInterval(_squarePoll);
+
+  _squarePoll = setInterval(() => {
     try {
-      const url = popup.location.href;
+      const url = _squarePopup.location.href;
       if (url && url.includes('pos_connected=square')) {
-        clearInterval(poll);
-        popup.close();
+        clearInterval(_squarePoll); _squarePoll = null;
+        _squarePopup.close(); _squarePopup = null;
         toast('Square connected!', 'ok');
         loadPOS();
       } else if (url && url.includes('pos_error')) {
-        clearInterval(poll);
-        popup.close();
+        clearInterval(_squarePoll); _squarePoll = null;
+        _squarePopup.close(); _squarePopup = null;
         const err = new URLSearchParams(new URL(url).search).get('pos_error');
         toast('Connection failed: ' + err, 'err');
       }
-    } catch(e) { /* cross-origin — still on squareupsandbox.com */ }
-    if (popup.closed) {
-      clearInterval(poll);
-      loadPOS();
+    } catch(e) { /* cross-origin — popup still on squareupsandbox.com */ }
+    if (_squarePopup && _squarePopup.closed) {
+      clearInterval(_squarePoll); _squarePoll = null;
+      _squarePopup = null;
+      loadPOS(); // reload in case connect completed before manual close
     }
   }, 800);
 }
