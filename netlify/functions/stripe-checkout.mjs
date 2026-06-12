@@ -71,6 +71,7 @@ exports.handler = async (event) => {
     },
     billing_address_collection: 'auto',
     tax_id_collection:          { enabled: true },
+    customer_update:            { name: 'auto', address: 'auto' },
   };
 
   if (adminCoupon && adminCoupon.trim()) {
