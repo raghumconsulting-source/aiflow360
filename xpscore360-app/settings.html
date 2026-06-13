@@ -723,13 +723,15 @@ body{font-family:'Geist',sans-serif;font-size:15px;line-height:1.6;color:var(--t
               </div>
             </div>
             <div style="display:flex;gap:10px">
-              <button onclick="syncSquareCatalog()" style="flex:1;padding:10px;background:var(--bg);border:1px solid var(--border);border-radius:8px;font-size:12px;font-weight:500;cursor:pointer;color:var(--text)">
+              <button id="sync-menu-btn" onclick="syncSquareCatalog()" style="flex:1;padding:10px;background:var(--bg);border:1px solid var(--border);border-radius:8px;font-size:12px;font-weight:500;cursor:pointer;color:var(--text)">
                 Sync menu now
               </button>
               <button onclick="disconnectSquare()" style="padding:10px 16px;background:transparent;border:1px solid var(--border);border-radius:8px;font-size:12px;color:var(--muted);cursor:pointer">
                 Disconnect
               </button>
             </div>
+            <!-- Sync summary panel -->
+            <div id="pos-sync-summary" style="display:none;margin-top:12px;padding:12px;background:var(--faint);border:1px solid var(--border);border-radius:8px"></div>
           </div>
         </div>
 
@@ -1533,14 +1535,43 @@ async function disconnectSquare() {
 }
 
 async function syncSquareCatalog() {
-  toast('Syncing menu from Square…', 'ok');
+  const btn = document.getElementById('sync-menu-btn');
+  if (btn) { btn.textContent = 'Syncing…'; btn.disabled = true; }
   try {
     const res = await fetch(`/.netlify/functions/tapee360-square-catalog?venue_id=${VENUE_ID}`);
     if (!res.ok) throw new Error((await res.json()).error || 'Sync failed');
     const data = await res.json();
-    toast(`Menu synced — ${data.synced || 0} items`, 'ok');
+
+    // Build category summary string
+    const cats = data.categories || {};
+    const catStr = Object.entries(cats)
+      .map(([cat, count]) => `${cat} (${count})`)
+      .join(', ') || 'No categories';
+
+    // Update sync summary panel
+    const panel = document.getElementById('pos-sync-summary');
+    if (panel) {
+      const syncedAt = data.synced_at ? new Date(data.synced_at).toLocaleString() : 'Just now';
+      panel.innerHTML = `
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+          <span style="font-size:12px;font-weight:500;color:var(--text)">${data.total || data.existing || 0} items in menu</span>
+          <span style="font-size:11px;color:var(--muted)">Last synced: ${syncedAt}</span>
+        </div>
+        <div style="font-size:11px;color:var(--muted);line-height:1.6">${catStr}</div>
+        ${data.synced === 0 && data.existing > 0
+          ? `<div style="font-size:11px;color:var(--muted);margin-top:6px;font-style:italic">Square catalog is empty — ${data.existing} previously synced items retained</div>`
+          : data.synced > 0
+            ? `<div style="font-size:11px;color:var(--teal,#2D7D5F);margin-top:6px">↑ ${data.synced} items pulled from Square</div>`
+            : ''}
+      `;
+      panel.style.display = '';
+    }
+
+    toast(`Menu: ${data.total || data.existing || 0} items across ${Object.keys(cats).length} categories`, 'ok');
   } catch(e) {
     toast('Sync failed: ' + e.message, 'err');
+  } finally {
+    if (btn) { btn.textContent = 'Sync menu now'; btn.disabled = false; }
   }
 }
 

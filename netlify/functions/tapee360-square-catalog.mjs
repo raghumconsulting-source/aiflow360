@@ -110,12 +110,18 @@ const handler = async (event) => {
       // Each item can have multiple variations (sizes/options)
       // For v1, take the first variation's price
       const variation = d.variations?.[0];
-      const priceCents = variation?.item_variation_data?.price_money?.amount || 0;
+      const varData = variation?.item_variation_data || {};
+      // price_money.amount is in smallest currency unit (cents for AUD)
+      // Try location overrides first, then default price
+      const locationPrices = varData.location_overrides || [];
+      const locOverride = locationPrices.find(o => o.location_id === locationId);
+      const priceCents = locOverride?.price_money?.amount
+        || varData.price_money?.amount
+        || 0;
       const variationId = variation?.id || null;
 
-      // Category — Square uses category_id referencing a CATEGORY object
-      // For v1, use the item's category name if present, else 'Uncategorised'
-      const category = d.category?.name || d.reporting_category?.name || 'Uncategorised';
+      // Category name — Square uses category_id, but reporting_category has the name
+      const category = d.reporting_category?.name || d.category?.name || 'Uncategorised';
 
       // Image — Square stores image URLs on the item or its image_ids
       let imageUrl = null;
@@ -140,17 +146,37 @@ const handler = async (event) => {
       });
     }
 
+    // 4. Get current DB count before any changes
+    const existing = await sb(`tapee_menu_items?venue_id=eq.${venueId}&select=id,name,category`);
+    const existingCount = Array.isArray(existing) ? existing.length : 0;
+
+    // Build category summary from existing items
+    const buildSummary = (rows) => {
+      const cats = {};
+      rows.forEach(r => { cats[r.category || 'Uncategorised'] = (cats[r.category || 'Uncategorised'] || 0) + 1; });
+      return cats;
+    };
+
     if (menuRows.length === 0) {
+      // Square catalog is empty — return what's in the DB already
+      const existingSummary = buildSummary(Array.isArray(existing) ? existing : []);
       return {
         statusCode: 200,
         headers: HEADERS,
-        body: JSON.stringify({ synced: 0, message: 'No items found in Square catalog' }),
+        body: JSON.stringify({
+          synced:    0,
+          existing:  existingCount,
+          total:     existingCount,
+          categories: existingSummary,
+          message:   existingCount > 0
+            ? `Square catalog is empty — ${existingCount} previously synced items retained`
+            : 'No items found in Square catalog',
+        }),
       };
     }
 
-    // 4. Upsert into tapee_menu_items
-    // Strategy: delete existing Square-synced items for this venue, then insert fresh
-    // This avoids complex merge logic and handles deleted items cleanly
+    // 5. Upsert: delete existing Square-synced items then insert fresh
+    // Handles renamed/deleted items cleanly
     await sb(`tapee_menu_items?venue_id=eq.${venueId}&square_catalog_id=not.is.null`, {
       method: 'DELETE',
       prefer: 'return=minimal',
@@ -166,12 +192,22 @@ const handler = async (event) => {
       });
     }
 
-    console.log(`Synced ${menuRows.length} menu items for venue ${venueId}`);
+    // Build category breakdown
+    const catSummary = buildSummary(menuRows);
+    const synced_at = new Date().toISOString();
+
+    console.log(`Synced ${menuRows.length} menu items for venue ${venueId}:`, JSON.stringify(catSummary));
 
     return {
       statusCode: 200,
       headers: HEADERS,
-      body: JSON.stringify({ synced: menuRows.length }),
+      body: JSON.stringify({
+        synced:     menuRows.length,
+        existing:   existingCount,
+        total:      menuRows.length,
+        categories: catSummary,
+        synced_at:  synced_at,
+      }),
     };
 
   } catch (err) {
