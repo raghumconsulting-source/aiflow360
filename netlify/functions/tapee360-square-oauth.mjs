@@ -210,6 +210,39 @@ const handler = async (event) => {
     }
   }
 
+  // ── Debug mode: test token exchange directly ────────
+  // ?action=debug&code=X&venue_id=Y → returns full Square response as JSON
+  if (params.action === 'debug' && params.code) {
+    const SQUARE_TOKEN_URL = 'https://connect.squareup.com/oauth2/token';
+    const debugRes = await fetch(SQUARE_TOKEN_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        client_id:     SQUARE_APP_ID,
+        client_secret: SQUARE_APP_SECRET,
+        code:          params.code,
+        grant_type:    'authorization_code',
+      }),
+    });
+    const debugData = await debugRes.json();
+    return {
+      statusCode: 200,
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        status:       debugRes.status,
+        square_response: debugData,
+        env_check: {
+          app_id_set:     !!SQUARE_APP_ID,
+          app_id_prefix:  SQUARE_APP_ID ? SQUARE_APP_ID.slice(0, 20) : 'NOT SET',
+          secret_set:     !!SQUARE_APP_SECRET,
+          secret_prefix:  SQUARE_APP_SECRET ? SQUARE_APP_SECRET.slice(0, 15) : 'NOT SET',
+          square_env:     SQUARE_ENV,
+          site_url:       SITE_URL,
+        },
+      }, null, 2),
+    };
+  }
+
   // ── No valid action ────────────────────────────────
   return {
     statusCode: 400,
