@@ -523,6 +523,9 @@ body{font-family:'Geist',sans-serif;font-size:15px;line-height:1.6;color:var(--t
     <button class="tab" onclick="switchTab('ai',this)">
       AI settings
     </button>
+    <button class="tab" onclick="switchTab('pos',this)">
+      POS
+    </button>
     <button class="tab" onclick="switchTab('branding',this)">
       Branding
     </button>
@@ -660,6 +663,90 @@ body{font-family:'Geist',sans-serif;font-size:15px;line-height:1.6;color:var(--t
         </div>
       </div>
     </div>
+  </div>
+
+  <!-- ══ TAB: POS Integration ═══════════════════════ -->
+  <div class="panel" id="panel-pos">
+    <div class="section-head">
+      <div class="section-title">POS integration</div>
+      <div class="section-sub">Connect your point-of-sale system so orders from Tapee360 flow straight to the kitchen.</div>
+    </div>
+    <div class="card"><div class="card-body">
+
+      <div class="field" style="margin-bottom:24px">
+        <label style="font-size:12px;font-weight:500;color:var(--muted);letter-spacing:.03em;display:block;margin-bottom:8px">POS provider</label>
+        <select id="pos-type-select" onchange="onPOSTypeChange(this.value)" style="width:100%;padding:10px 14px;border:1px solid var(--border);border-radius:8px;background:var(--faint);color:var(--text);font-size:14px;appearance:none;background-image:url('data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%2212%22 height=%2212%22 viewBox=%220 0 12 12%22><path d=%22M3 4.5L6 7.5L9 4.5%22 fill=%22none%22 stroke=%22%23888%22 stroke-width=%221.5%22/></svg>');background-repeat:no-repeat;background-position:right 14px center;padding-right:36px">
+          <option value="none">No POS connected</option>
+          <option value="square">Square</option>
+          <option value="kounta">Kounta / Lightspeed</option>
+        </select>
+      </div>
+
+      <!-- Square connection panel -->
+      <div id="pos-square-panel" style="display:none">
+
+        <!-- Not connected state -->
+        <div id="pos-square-disconnected">
+          <div style="background:var(--faint);border:1px solid var(--border);border-radius:12px;padding:24px;text-align:center">
+            <div style="font-size:32px;margin-bottom:8px">⬛</div>
+            <div style="font-size:15px;font-weight:500;margin-bottom:4px">Connect Square POS</div>
+            <div style="font-size:12px;color:var(--muted);margin-bottom:16px;line-height:1.6">
+              Link your Square account to sync your menu, send orders to the kitchen, and accept payments via Tapee360.
+            </div>
+            <button onclick="connectSquare()" style="padding:11px 28px;background:var(--text);color:var(--bg);border:none;border-radius:8px;font-size:13px;font-weight:500;cursor:pointer;transition:opacity .15s">
+              Connect Square →
+            </button>
+            <div style="font-size:11px;color:var(--muted);margin-top:12px;opacity:.7">
+              You'll be redirected to Square to authorise access. We request read-only menu access and order creation permissions.
+            </div>
+          </div>
+        </div>
+
+        <!-- Connected state -->
+        <div id="pos-square-connected" style="display:none">
+          <div style="background:var(--faint);border:1px solid var(--border);border-radius:12px;padding:20px">
+            <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px">
+              <div style="width:10px;height:10px;border-radius:50%;background:#2ECC71;flex-shrink:0"></div>
+              <div>
+                <div style="font-size:14px;font-weight:500">Square connected</div>
+                <div style="font-size:12px;color:var(--muted)" id="pos-square-merchant-name">Merchant name</div>
+              </div>
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px">
+              <div style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:12px">
+                <div style="font-size:10px;color:var(--muted);letter-spacing:.05em;text-transform:uppercase;margin-bottom:2px">Location ID</div>
+                <div style="font-size:12px;font-family:monospace;word-break:break-all" id="pos-square-location-id">—</div>
+              </div>
+              <div style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:12px">
+                <div style="font-size:10px;color:var(--muted);letter-spacing:.05em;text-transform:uppercase;margin-bottom:2px">Merchant ID</div>
+                <div style="font-size:12px;font-family:monospace;word-break:break-all" id="pos-square-merchant-id">—</div>
+              </div>
+            </div>
+            <div style="display:flex;gap:10px">
+              <button onclick="syncSquareCatalog()" style="flex:1;padding:10px;background:var(--bg);border:1px solid var(--border);border-radius:8px;font-size:12px;font-weight:500;cursor:pointer;color:var(--text)">
+                Sync menu now
+              </button>
+              <button onclick="disconnectSquare()" style="padding:10px 16px;background:transparent;border:1px solid var(--border);border-radius:8px;font-size:12px;color:var(--muted);cursor:pointer">
+                Disconnect
+              </button>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Kounta placeholder -->
+      <div id="pos-kounta-panel" style="display:none">
+        <div style="background:var(--faint);border:1px solid var(--border);border-radius:12px;padding:24px;text-align:center">
+          <div style="font-size:32px;margin-bottom:8px">◎</div>
+          <div style="font-size:15px;font-weight:500;margin-bottom:4px">Kounta / Lightspeed</div>
+          <div style="font-size:12px;color:var(--muted);line-height:1.6">
+            Kounta integration is coming soon. Contact us at support@aitechnic.com.au for early access.
+          </div>
+        </div>
+      </div>
+
+    </div></div>
   </div>
 
   <!-- ══ TAB: Branding ════════════════════════════ -->
@@ -1265,6 +1352,7 @@ function getActiveTab() {
 async function saveAll() {
   const tab = getActiveTab();
   if (tab === 'branding') { await saveBranding(); return; }
+  if (tab === 'pos') { toast('POS settings save automatically', 'ok'); return; }
   const btn = document.getElementById('save-btn');
   btn.disabled = true;
   btn.textContent = 'Saving...';
@@ -1325,6 +1413,97 @@ function esc(str) {
 
 // BRANDING_JS_INSERTED
 let brandingState = { color: '#C9A84C', theme: 'dark', logoFile: null, logoUrl: '', bgFile: null, bgUrl: '' };
+
+// ── POS Integration ──────────────────────────────────
+let posState = { type: 'none', squareConnected: false, merchantName: '', locationId: '', merchantId: '' };
+
+async function loadPOS() {
+  try {
+    const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+    const { data, error } = await sb
+      .from('venues')
+      .select('pos_type,square_location_id,square_access_token,square_merchant_id')
+      .eq('id', VENUE_ID)
+      .single();
+    if (error) throw error;
+
+    posState.type = data.pos_type || 'none';
+    posState.squareConnected = !!(data.square_access_token && data.square_location_id);
+    posState.locationId = data.square_location_id || '';
+    posState.merchantId = data.square_merchant_id || '';
+    posState.merchantName = data.square_merchant_id ? ('Merchant ' + data.square_merchant_id.slice(0, 8) + '…') : '';
+
+    renderPOS();
+  } catch(e) {
+    console.error('loadPOS error:', e);
+  }
+}
+
+function renderPOS() {
+  document.getElementById('pos-type-select').value = posState.type;
+  document.getElementById('pos-square-panel').style.display = posState.type === 'square' ? '' : 'none';
+  document.getElementById('pos-kounta-panel').style.display = posState.type === 'kounta' ? '' : 'none';
+
+  if (posState.type === 'square') {
+    document.getElementById('pos-square-disconnected').style.display = posState.squareConnected ? 'none' : '';
+    document.getElementById('pos-square-connected').style.display = posState.squareConnected ? '' : 'none';
+    if (posState.squareConnected) {
+      document.getElementById('pos-square-merchant-name').textContent = posState.merchantName;
+      document.getElementById('pos-square-location-id').textContent = posState.locationId || '—';
+      document.getElementById('pos-square-merchant-id').textContent = posState.merchantId || '—';
+    }
+  }
+}
+
+function onPOSTypeChange(val) {
+  posState.type = val;
+  renderPOS();
+  // Save pos_type to venue immediately
+  const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+  sb.from('venues').update({ pos_type: val }).eq('id', VENUE_ID)
+    .then(() => toast('POS type updated', 'ok'))
+    .catch(e => toast('Failed to save: ' + e.message, 'err'));
+}
+
+function connectSquare() {
+  if (!VENUE_ID) { toast('No venue selected', 'err'); return; }
+  const oauthUrl = `/.netlify/functions/tapee360-square-oauth?action=authorize&venue_id=${VENUE_ID}`;
+  window.location.href = oauthUrl;
+}
+
+async function disconnectSquare() {
+  if (!confirm('Disconnect Square? This will stop menu sync and order flow.')) return;
+  try {
+    const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+    const { error } = await sb.from('venues').update({
+      square_access_token: null,
+      square_refresh_token: null,
+      square_location_id: null,
+      square_merchant_id: null,
+      pos_type: 'none',
+    }).eq('id', VENUE_ID);
+    if (error) throw error;
+    posState.type = 'none';
+    posState.squareConnected = false;
+    document.getElementById('pos-type-select').value = 'none';
+    renderPOS();
+    toast('Square disconnected', 'ok');
+  } catch(e) {
+    toast('Failed to disconnect: ' + e.message, 'err');
+  }
+}
+
+async function syncSquareCatalog() {
+  toast('Syncing menu from Square…', 'ok');
+  try {
+    const res = await fetch(`/.netlify/functions/tapee360-square-catalog?venue_id=${VENUE_ID}`);
+    if (!res.ok) throw new Error((await res.json()).error || 'Sync failed');
+    const data = await res.json();
+    toast(`Menu synced — ${data.synced || 0} items`, 'ok');
+  } catch(e) {
+    toast('Sync failed: ' + e.message, 'err');
+  }
+}
 
 async function loadBranding() {
   try {
@@ -1478,8 +1657,24 @@ const _origSwitchTab = switchTab;
 switchTab = function(name, btn) {
   _origSwitchTab(name, btn);
   if (name === 'branding' && TENANT_ID) loadBranding();
+  if (name === 'pos' && VENUE_ID) loadPOS();
 };
-bootstrap();</script>
+bootstrap();
+
+// ── Check for OAuth return params ─────────────────────
+(function checkOAuthReturn() {
+  const p = new URLSearchParams(window.location.search);
+  if (p.get('pos_connected') === 'square') {
+    // User just returned from Square OAuth — switch to POS tab and show success
+    setTimeout(() => {
+      const posBtn = document.querySelector('[onclick*="switchTab(\'pos\'"]');
+      if (posBtn) switchTab('pos', posBtn);
+      toast('Square connected successfully!', 'ok');
+      // Clean the URL
+      window.history.replaceState({}, '', window.location.pathname + '?venue_id=' + (p.get('venue_id') || '') + '&tenant_id=' + (p.get('tenant_id') || ''));
+    }, 500);
+  }
+})();</script>
 </body>
 </html>
 
