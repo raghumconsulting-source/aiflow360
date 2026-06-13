@@ -1419,19 +1419,24 @@ let posState = { type: 'none', squareConnected: false, merchantName: '', locatio
 
 async function loadPOS() {
   try {
-    const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-    const { data, error } = await sb
-      .from('venues')
-      .select('pos_type,square_location_id,square_access_token,square_merchant_id')
-      .eq('id', VENUE_ID)
-      .single();
-    if (error) throw error;
+    // Get JWT from current session
+    const { data: { session } } = await sb.auth.getSession();
+    if (!session) { console.warn('loadPOS: no session'); return; }
 
-    posState.type = data.pos_type || 'none';
-    posState.squareConnected = !!(data.square_access_token && data.square_location_id);
-    posState.locationId = data.square_location_id || '';
-    posState.merchantId = data.square_merchant_id || '';
-    posState.merchantName = data.square_merchant_id ? ('Merchant ' + data.square_merchant_id.slice(0, 8) + '…') : '';
+    const res = await fetch(
+      `/.netlify/functions/tapee360-pos-status?venue_id=${VENUE_ID}&tenant_id=${TENANT_ID}`,
+      { headers: { 'Authorization': `Bearer ${session.access_token}` } }
+    );
+    if (!res.ok) throw new Error((await res.json()).error || 'Status fetch failed');
+    const data = await res.json();
+
+    posState.type           = data.pos_type || 'none';
+    posState.squareConnected = data.connected || false;
+    posState.locationId     = data.location_id || '';
+    posState.merchantId     = data.merchant_id || '';
+    posState.merchantName   = data.merchant_id
+      ? ('Merchant ' + data.merchant_id.slice(0, 8) + '…')
+      : '';
 
     renderPOS();
   } catch(e) {
@@ -1465,11 +1470,42 @@ function onPOSTypeChange(val) {
     .catch(e => toast('Failed to save: ' + e.message, 'err'));
 }
 
-function connectSquare() {
-  if (!VENUE_ID) { toast('No venue selected', 'err'); return; }
-  // Full redirect — same window, Square redirects back to settings with pos_connected=square
-  // This is the only flow that works reliably in both sandbox and production
-  window.location.href = `/.netlify/functions/tapee360-square-oauth?action=authorize&venue_id=${VENUE_ID}&return_url=${encodeURIComponent(window.location.href)}`;
+async function connectSquare() {
+  if (!VENUE_ID || !TENANT_ID) { toast('No venue selected', 'err'); return; }
+
+  try {
+    // Get JWT from current session
+    const { data: { session } } = await sb.auth.getSession();
+    if (!session) { toast('Session expired — please reload', 'err'); return; }
+
+    toast('Preparing Square connection…', 'ok');
+
+    // POST to initiate — server verifies JWT + ownership, creates nonce, returns URL
+    const res = await fetch('/.netlify/functions/tapee360-square-oauth', {
+      method:  'POST',
+      headers: {
+        'Content-Type':  'application/json',
+        'Authorization': `Bearer ${session.access_token}`,
+      },
+      body: JSON.stringify({
+        action:    'initiate',
+        venue_id:  VENUE_ID,
+        tenant_id: TENANT_ID,
+      }),
+    });
+
+    const data = await res.json();
+    if (!res.ok || !data.redirect_url) {
+      throw new Error(data.error || 'Failed to initiate connection');
+    }
+
+    // Redirect to Square consent screen
+    window.location.href = data.redirect_url;
+
+  } catch(e) {
+    console.error('connectSquare error:', e);
+    toast('Connection failed: ' + e.message, 'err');
+  }
 }
 
 async function disconnectSquare() {
