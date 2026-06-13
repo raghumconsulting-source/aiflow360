@@ -68,9 +68,14 @@ const handler = async (event) => {
       };
     }
 
-    // Verify JWT
+    // Verify JWT and user belongs to tenant
     const authHeader = event.headers.authorization || event.headers.Authorization || '';
-    await verifyJWT(authHeader);
+    const userId = await verifyJWT(authHeader);
+
+    // Confirm user exists in public.users and belongs to claimed tenant
+    const users = await sbService(`users?id=eq.${userId}&select=tenant_id&limit=1`);
+    if (!users.length) throw new Error('User account not found');
+    if (users[0].tenant_id !== tenantId) throw new Error('Tenant mismatch');
 
     // Fetch only safe fields — never access_token or refresh_token
     const venues = await sbService(

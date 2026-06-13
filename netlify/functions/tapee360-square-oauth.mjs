@@ -82,11 +82,23 @@ async function verifyJWT(authHeader) {
 
 // ── Verify user owns the venue ───────────────────────
 async function verifyVenueOwnership(userId, venueId, tenantId) {
+  // 1. Get user's tenant from public.users (auth.users.id = public.users.id)
   const users = await sbService(
-    `users?id=eq.${userId}&tenant_id=eq.${tenantId}&limit=1&select=id`
+    `users?id=eq.${userId}&select=id,tenant_id,role&limit=1`
   );
-  if (!users.length) throw new Error('User does not belong to this tenant');
 
+  if (!users.length) {
+    throw new Error('User account not found — contact support');
+  }
+
+  const user = users[0];
+
+  // 2. Verify user belongs to the claimed tenant
+  if (user.tenant_id !== tenantId) {
+    throw new Error('Tenant mismatch — access denied');
+  }
+
+  // 3. Verify venue belongs to the same tenant (prevents cross-tenant venue access)
   const venues = await sbService(
     `venues?id=eq.${venueId}&tenant_id=eq.${tenantId}&limit=1&select=id`
   );
