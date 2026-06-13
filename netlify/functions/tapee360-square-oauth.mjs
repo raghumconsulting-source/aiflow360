@@ -68,7 +68,7 @@ const handler = async (event) => {
 
     // Encode venue_id + return_url in state so callback knows where to redirect back
     const returnUrl = params.return_url || `${SITE_URL}/settings.html`;
-    const statePayload = Buffer.from(JSON.stringify({ venueId, returnUrl })).toString('base64');
+    const statePayload = btoa(unescape(encodeURIComponent(JSON.stringify({ venueId, returnUrl }))));
 
     const authorizeUrl = `${SQUARE_BASE}/oauth2/authorize`
       + `?client_id=${SQUARE_APP_ID}`
@@ -90,7 +90,7 @@ const handler = async (event) => {
     // Decode state — supports both legacy plain venue_id and new base64 JSON
     let venueId, returnUrl;
     try {
-      const decoded = JSON.parse(Buffer.from(decodeURIComponent(params.state), 'base64').toString('utf8'));
+      const decoded = JSON.parse(decodeURIComponent(escape(atob(decodeURIComponent(params.state)))));
       venueId  = decoded.venueId;
       returnUrl = decoded.returnUrl || `${SITE_URL}/settings.html`;
     } catch(e) {
