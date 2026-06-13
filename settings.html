@@ -1420,7 +1420,8 @@ let posState = { type: 'none', squareConnected: false, merchantName: '', locatio
 async function loadPOS() {
   try {
     // Get JWT from current session
-    const { data: { session } } = await sb.auth.getSession();
+    const _sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+    const { data: { session } } = await _sb.auth.getSession();
     if (!session) { console.warn('loadPOS: no session'); return; }
 
     const res = await fetch(
@@ -1475,7 +1476,8 @@ async function connectSquare() {
 
   try {
     // Get JWT from current session
-    const { data: { session } } = await sb.auth.getSession();
+    const _sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+    const { data: { session } } = await _sb.auth.getSession();
     if (!session) { toast('Session expired — please reload', 'err'); return; }
 
     toast('Preparing Square connection…', 'ok');
