@@ -1503,7 +1503,7 @@ function esc(str) {
 }
 
 // BRANDING_JS_INSERTED
-let brandingState = { color: '#C9A84C', theme: 'dark', logoFile: null, logoUrl: '', bgFile: null, bgUrl: '', fontPairing: 'modern', headingColor: '#FFFFFF', bodyColor: '#F5F5F5' };
+let brandingState = { color: '#C9A84C', brandColor: null, theme: 'dark', logoFile: null, logoUrl: '', bgFile: null, bgUrl: '', fontPairing: 'modern', headingColor: '#FFFFFF', bodyColor: '#F5F5F5' };
 
 // ── POS Integration ──────────────────────────────────
 let posState = { type: 'none', squareConnected: false, merchantName: '', locationId: '', merchantId: '' };
@@ -1791,13 +1791,17 @@ async function saveBranding() {
       body: JSON.stringify({
         tenant_id:     TENANT_ID,
         venue_id:      VENUE_ID,
-        display_name:  document.getElementById('branding-displayname').value.trim() || null,
+        display_name:  document.getElementById('branding-displayname')?.value.trim() || null,
         primary_color: brandingState.color,
+        brand_color:   brandingState.brandColor || null,
         widget_theme:  brandingState.theme,
         logo_base64:   logoBase64, logo_mime: logoMime, logo_ext: logoExt,
         existing_logo_url: logoBase64 ? null : (brandingState.logoUrl || null),
         bg_base64:     bgBase64, bg_mime: bgMime, bg_ext: bgExt,
         existing_bg_url: bgBase64 ? null : (brandingState.bgUrl || null),
+        font_pairing:       brandingState.fontPairing   || 'modern',
+        font_heading_color: brandingState.headingColor  || '#FFFFFF',
+        font_body_color:    brandingState.bodyColor     || '#F5F5F5',
       }),
     });
     const data = await res.json();
@@ -1889,25 +1893,7 @@ async function loadBranding() {
   } catch(e) { console.error('loadBranding typography error:', e); }
 }
 
-// Extend saveBranding to save typography
-const _origSaveBranding = typeof saveBranding === 'function' ? saveBranding : null;
-async function saveBranding() {
-  if (_origSaveBranding) await _origSaveBranding();
-  if (!VENUE_ID) return;
-  try {
-    const _sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-    const { error } = await _sb
-      .from('tapee_venue_config')
-      .upsert({
-        venue_id:           VENUE_ID,
-        font_pairing:       brandingState.fontPairing   || 'modern',
-        font_heading_color: brandingState.headingColor  || '#FFFFFF',
-        font_body_color:    brandingState.bodyColor     || '#F5F5F5',
-        updated_at:         new Date().toISOString(),
-      }, { onConflict: 'venue_id' });
-    if (error) throw error;
-  } catch(e) { console.error('saveBranding typography error:', e); }
-}
+// Typography save is now handled inside tenant-branding function via saveBranding()
 
 bootstrap();
 
