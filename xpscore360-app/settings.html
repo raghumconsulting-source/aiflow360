@@ -1311,6 +1311,13 @@ body{font-family:'Geist',sans-serif;font-size:15px;line-height:1.6;color:var(--t
 // ── Config ─────────────────────────────────────────────
 const SUPABASE_URL = 'https://iroseywidzacqinmjtdc.supabase.co';
 const SUPABASE_KEY = '__SUPABASE_ANON_PLACEHOLDER__';
+
+// ── Single shared Supabase client (prevents GoTrueClient warning) ──
+let _sbClient = null;
+function getSB() {
+  if (!_sbClient) _sbClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+  return _sbClient;
+}
 const API_BASE    = '/.netlify/functions/venue-config';
 const WIDGET_BASE  = 'https://aiflow360.com/XPscore360/';
 const TAPEE_BASE   = 'https://aiflow360.com/tapee360/';
@@ -1334,7 +1341,7 @@ let state = {
 // ── Bootstrap — load tenant from session ──────────────
 async function bootstrap() {
   try {
-    const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+    const sb = getSB();
     const { data: { session } } = await sb.auth.getSession();
 
     if (!session) {
@@ -1389,14 +1396,79 @@ function onVenuePick() {
   const id = document.getElementById('venue-picker').value;
   const v  = ALL_VENUES.find(v => v.id === id);
   if (!v) return;
-  VENUE_ID   = v.id;
-  VENUE_SLUG = v.slug || '';
+
   if (state.dirty && !confirm('You have unsaved changes. Switch venue anyway?')) {
     document.getElementById('venue-picker').value = VENUE_ID;
     return;
   }
+
+  VENUE_ID   = v.id;
+  VENUE_SLUG = v.slug || '';
   state.dirty = false;
+
+  // Update venue name badge
+  document.getElementById('venue-name-badge').textContent = v.name || '';
+
+  // ── Reset ALL Tapee state — critical for multi-venue ──
+  // Prevents previous venue's data bleeding into new venue
+  Object.assign(tapeeState, {
+    color: '#C9A84C', logoFile: null, logoUrl: '',
+    bgFile: null, bgUrl: '',
+    fontPairing: 'modern', headingColor: '#FFFFFF', bodyColor: '#F5F5F5',
+  });
+  Object.assign(brandingState, {
+    color: '#C9A84C', brandColor: null, theme: 'dark',
+    logoFile: null, logoUrl: '', bgFile: null, bgUrl: '',
+    fontPairing: 'modern', headingColor: '#FFFFFF', bodyColor: '#F5F5F5',
+  });
+
+  // Reset Tapee branding UI fields
+  const dn = document.getElementById('tapee-branding-displayname');
+  if (dn) dn.value = '';
+  const ind = document.getElementById('tapee-brand-loaded-indicator');
+  if (ind) ind.style.display = 'none';
+  const logoP = document.getElementById('tapee-logo-preview');
+  if (logoP) { logoP.src = ''; logoP.classList.add('hidden'); }
+  const logoI = document.getElementById('tapee-logo-icon');
+  if (logoI) logoI.style.display = '';
+  const logoT = document.getElementById('tapee-logo-text');
+  if (logoT) logoT.innerHTML = '<strong>Click to upload</strong> or drag &amp; drop';
+  const bgP = document.getElementById('tapee-bg-preview');
+  if (bgP) { bgP.src = ''; bgP.classList.add('hidden'); }
+  const bgI = document.getElementById('tapee-bg-icon');
+  if (bgI) bgI.style.display = '';
+  const bgT = document.getElementById('tapee-bg-text');
+  if (bgT) bgT.innerHTML = '<strong>Click to upload</strong> or drag &amp; drop';
+
+  // Reset ordering UI
+  const di = document.getElementById('ordering-dine-in');
+  const ta = document.getElementById('ordering-takeaway');
+  const lo = document.getElementById('ordering-loyalty');
+  const pt = document.getElementById('ordering-points-rate');
+  if (di) di.checked = true;
+  if (ta) ta.checked = true;
+  if (lo) lo.checked = true;
+  if (pt) pt.value   = '10';
+
+  // Reset schedule list
+  const sl = document.getElementById('schedules-list');
+  if (sl) sl.innerHTML = '<div style="text-align:center;padding:32px;color:var(--muted);font-size:13px">Loading schedules…</div>';
+
+  // Reset NFC list
+  const nl = document.getElementById('tapee-nfc-table-list');
+  if (nl) nl.innerHTML = '<div style="text-align:center;padding:32px;color:var(--muted);font-size:13px">Loading…</div>';
+
+  // Reload XPscore data
   loadAll();
+
+  // If currently on a Tapee panel — reload it immediately for new venue
+  const activePanel = document.querySelector('.panel.active')?.id;
+  if (activePanel === 'panel-menu')           loadMenuSchedules();
+  else if (activePanel === 'panel-ordering')  loadOrderingSettings();
+  else if (activePanel === 'panel-tapee-nfc') renderTapeeNFC();
+  else if (activePanel === 'panel-tapee-branding') loadTapeeBranding();
+  else if (activePanel === 'panel-xp-branding')    loadBranding();
+  else if (activePanel === 'panel-venue')          loadVenueProfile();
 }
 
 // ── API helper — routes through Netlify function ───────
@@ -1927,7 +1999,7 @@ let posState = { type: 'none', squareConnected: false, merchantName: '', locatio
 async function loadPOS() {
   try {
     // Get JWT from current session
-    const _sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+    const _sb = getSB();
     const { data: { session } } = await _sb.auth.getSession();
     if (!session) { console.warn('loadPOS: no session'); return; }
 
@@ -1972,7 +2044,7 @@ function onPOSTypeChange(val) {
   posState.type = val;
   renderPOS();
   // Save pos_type to venue immediately
-  supabase.createClient(SUPABASE_URL, SUPABASE_KEY).auth.getSession().then(({ data: { session } }) => {
+  getSB().auth.getSession().then(({ data: { session } }) => {
     if (!session) { toast('Session expired', 'err'); return; }
     fetch('/.netlify/functions/tapee-config-save', {
       method: 'POST',
@@ -1990,7 +2062,7 @@ async function connectSquare() {
 
   try {
     // Get JWT from current session
-    const _sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+    const _sb = getSB();
     const { data: { session } } = await _sb.auth.getSession();
     if (!session) { toast('Session expired — please reload', 'err'); return; }
 
@@ -2027,7 +2099,7 @@ async function connectSquare() {
 async function disconnectSquare() {
   if (!confirm('Disconnect Square? This will stop menu sync and order flow.')) return;
   try {
-    const { data: { session } } = await supabase.createClient(SUPABASE_URL, SUPABASE_KEY).auth.getSession();
+    const { data: { session } } = await getSB().auth.getSession();
     if (!session) { toast('Session expired', 'err'); return; }
     // Disconnect via server-side function — never write tokens from browser
     const res = await fetch('/.netlify/functions/tapee360-square-oauth', {
@@ -2090,7 +2162,7 @@ async function syncSquareCatalog() {
 async function loadBranding() {
   // Read venue branding directly from Supabase
   try {
-    const _sbLoad = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+    const _sbLoad = getSB();
     const { data, error } = await _sbLoad
       .from('venues')
       .select('name,primary_color,brand_color,logo_url,bg_image_url')
@@ -2137,7 +2209,7 @@ async function loadBranding() {
   // Load typography from tapee_venue_config
   if (!VENUE_ID) return;
   try {
-    const _sbTypo = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+    const _sbTypo = getSB();
     const { data: typo } = await _sbTypo
       .from('tapee_venue_config')
       .select('font_pairing,font_heading_color,font_body_color')
@@ -2331,7 +2403,7 @@ async function renameVenue() {
   const newName = document.getElementById('venue-rename-input')?.value.trim();
   if (!newName) { toast('Please enter a venue name', 'err'); return; }
   try {
-    const { data: { session: _rs } } = await supabase.createClient(SUPABASE_URL, SUPABASE_KEY).auth.getSession();
+    const { data: { session: _rs } } = await getSB().auth.getSession();
     if (!_rs) throw new Error('Session expired');
     const _rres = await fetch('/.netlify/functions/tenant-branding', {
       method: 'POST',
@@ -2355,7 +2427,7 @@ function confirmCloseVenue() {
 
 async function closeVenue() {
   try {
-    const { data: { session: _cv } } = await supabase.createClient(SUPABASE_URL, SUPABASE_KEY).auth.getSession();
+    const { data: { session: _cv } } = await getSB().auth.getSession();
     if (!_cv) throw new Error('Session expired');
     // Close venue via API — service key handles the write
     const _cvres = await fetch('/.netlify/functions/venue-config', {
@@ -2383,7 +2455,7 @@ async function loadOrderingSettings() {
 
     // If no config exists yet, auto-seed via save function
     if (!json?.config) {
-      const { data: { session } } = await supabase.createClient(SUPABASE_URL, SUPABASE_KEY).auth.getSession();
+      const { data: { session } } = await getSB().auth.getSession();
       if (session) {
         await fetch('/.netlify/functions/tapee-config-save', {
           method: 'POST',
@@ -2411,7 +2483,7 @@ async function saveOrdering() {
   const orig = btn?.textContent;
   if (btn) { btn.textContent = 'Saving…'; btn.disabled = true; }
   try {
-    const { data: { session } } = await supabase.createClient(SUPABASE_URL, SUPABASE_KEY).auth.getSession();
+    const { data: { session } } = await getSB().auth.getSession();
     if (!session) { toast('Session expired — please reload', 'err'); return; }
 
     const res = await fetch('/.netlify/functions/tapee-config-save', {
@@ -2442,7 +2514,7 @@ async function loadMenuSchedules() {
   if (!wrap || !VENUE_ID) return;
   try {
     // Load via menu-admin GET (service key — no RLS issues)
-    const { data: { session: _ms } } = await supabase.createClient(SUPABASE_URL, SUPABASE_KEY).auth.getSession();
+    const { data: { session: _ms } } = await getSB().auth.getSession();
     if (!_ms) throw new Error('Session expired');
     const _mres = await fetch(
       `/.netlify/functions/tapee360-menu-admin?action=schedules&venue_id=${VENUE_ID}&tenant_id=${TENANT_ID}`,
@@ -2556,7 +2628,7 @@ async function saveSchedule() {
   savBtn.textContent = 'Saving…'; savBtn.disabled = true;
 
   try {
-    const { data: { session } } = await supabase.createClient(SUPABASE_URL, SUPABASE_KEY).auth.getSession();
+    const { data: { session } } = await getSB().auth.getSession();
     if (!session) throw new Error('Session expired — please reload');
 
     const headers = {
@@ -2605,7 +2677,7 @@ function editSchedule(id) {
 async function deleteSchedule(id) {
   if (!confirm('Delete this service period?')) return;
   try {
-    const { data: { session: _ds } } = await supabase.createClient(SUPABASE_URL, SUPABASE_KEY).auth.getSession();
+    const { data: { session: _ds } } = await getSB().auth.getSession();
     if (!_ds) { toast('Session expired — please reload', 'err'); return; }
     const res = await fetch('/.netlify/functions/tapee360-menu-admin', {
       method: 'DELETE',
@@ -2640,9 +2712,12 @@ function renderTapeeNFC() {
           font-size:11px;font-weight:700;color:var(--muted)">${i+1}</div>
         <div style="font-size:14px;font-weight:600;color:var(--text)">${esc(t.label||'Table '+(i+1))}</div>
         <div style="font-size:11px;color:var(--muted);letter-spacing:.04em">Ref: ${esc(ref)}</div>
-        <div style="margin-left:auto;display:flex;align-items:center;gap:5px">
-          <div style="width:7px;height:7px;border-radius:50%;background:${t.nfc?'var(--accent)':'var(--muted)'}"></div>
-          <span style="font-size:11px;color:var(--muted)">${t.nfc?'NFC on':'NFC off'}</span>
+        <div style="margin-left:auto;display:flex;align-items:center;gap:8px">
+          <button class="toggle ${t.nfc?'on':''}" id="tapee-nfc-toggle-${i}"
+            onclick="toggleTapeeNFC(${i})"
+            title="${t.nfc?'NFC enabled — click to disable':'NFC disabled — click to enable'}"
+            style="cursor:pointer"></button>
+          <label onclick="toggleTapeeNFC(${i})" style="cursor:pointer;font-size:12px;color:var(--muted)">NFC</label>
         </div>
       </div>
       <div style="display:flex;gap:8px">
@@ -2661,6 +2736,22 @@ function renderTapeeNFC() {
 // Legacy function — redirects to renderTapeeNFC
 function loadTapeeNFCList() {
   renderTapeeNFC();
+}
+
+function toggleTapeeNFC(i) {
+  // Toggle NFC on the shared state.tables — same as XPscore
+  state.tables[i].nfc = !state.tables[i].nfc;
+  // Update toggle button visually
+  const btn = document.getElementById('tapee-nfc-toggle-'+i);
+  if (btn) {
+    btn.classList.toggle('on', state.tables[i].nfc);
+    btn.title = state.tables[i].nfc ? 'NFC enabled — click to disable' : 'NFC disabled — click to enable';
+  }
+  // Sync with XPscore NFC toggle too
+  const xpBtn = document.getElementById('nfc-'+i);
+  if (xpBtn) xpBtn.classList.toggle('on', state.tables[i].nfc);
+  // Mark dirty so Save changes button saves it
+  markDirty();
 }
 
 // Old loadTapeeNFCList kept below for reference:
@@ -2876,7 +2967,7 @@ async function saveTapeeBranding() {
       bgExt     = tapeeState.bgFile.name.split('.').pop().toLowerCase();
     }
 
-    const { data: { session } } = await supabase.createClient(SUPABASE_URL, SUPABASE_KEY).auth.getSession();
+    const { data: { session } } = await getSB().auth.getSession();
     if (!session) { toast('Session expired — please reload', 'err'); return; }
 
     const res = await fetch('/.netlify/functions/tenant-branding', {

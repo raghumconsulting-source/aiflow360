@@ -142,7 +142,7 @@ const handler = async (event) => {
     if (font_body_color   !== undefined) configUpdate.font_body_color    = font_body_color;
 
     if (Object.keys(configUpdate).length > 2) {
-      await sb('tapee_venue_config', {
+      await sb('tapee_venue_config?on_conflict=venue_id', {
         method:  'POST',
         prefer:  'resolution=merge-duplicates,return=minimal',
         body:    JSON.stringify(configUpdate),
