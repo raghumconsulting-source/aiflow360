@@ -300,6 +300,29 @@ const handler = async (event) => {
     }
   }
 
+  // ── Disconnect Square (DELETE) ───────────────────────
+  if (event.httpMethod === 'DELETE') {
+    try {
+      const { action, venue_id, tenant_id } = JSON.parse(event.body || '{}');
+      if (action !== 'disconnect') 
+        return { statusCode: 400, headers: CORS, body: JSON.stringify({ error: 'Unknown action' }) };
+      const authHeader = event.headers.authorization || event.headers.Authorization || '';
+      const userId = await verifyJWT(authHeader);
+      await verifyVenueOwnership(userId, venue_id, tenant_id);
+      await sbService(`venues?id=eq.${venue_id}`, {
+        method: 'PATCH', prefer: 'return=minimal',
+        body: JSON.stringify({
+          square_access_token: null, square_refresh_token: null,
+          square_location_id: null, square_merchant_id: null,
+          pos_type: 'none', updated_at: new Date().toISOString(),
+        }),
+      });
+      return { statusCode: 200, headers: CORS, body: JSON.stringify({ success: true }) };
+    } catch(e) {
+      return { statusCode: 500, headers: CORS, body: JSON.stringify({ error: e.message }) };
+    }
+  }
+
   return {
     statusCode: 405,
     headers: { ...CORS, 'Content-Type': 'application/json' },

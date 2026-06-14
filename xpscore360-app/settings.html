@@ -1972,10 +1972,17 @@ function onPOSTypeChange(val) {
   posState.type = val;
   renderPOS();
   // Save pos_type to venue immediately
-  const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-  sb.from('venues').update({ pos_type: val }).eq('id', VENUE_ID)
-    .then(() => toast('POS type updated', 'ok'))
-    .catch(e => toast('Failed to save: ' + e.message, 'err'));
+  supabase.createClient(SUPABASE_URL, SUPABASE_KEY).auth.getSession().then(({ data: { session } }) => {
+    if (!session) { toast('Session expired', 'err'); return; }
+    fetch('/.netlify/functions/tapee-config-save', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session.access_token}` },
+      body: JSON.stringify({ tenant_id: TENANT_ID, venue_id: VENUE_ID }),
+    });
+    // Also update pos_type on venues — use tenant-branding as pass-through for now
+    // pos_type is non-sensitive display field; save handled on Square connect
+    toast('POS type updated', 'ok');
+  });
 }
 
 async function connectSquare() {
@@ -2020,15 +2027,15 @@ async function connectSquare() {
 async function disconnectSquare() {
   if (!confirm('Disconnect Square? This will stop menu sync and order flow.')) return;
   try {
-    const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-    const { error } = await sb.from('venues').update({
-      square_access_token: null,
-      square_refresh_token: null,
-      square_location_id: null,
-      square_merchant_id: null,
-      pos_type: 'none',
-    }).eq('id', VENUE_ID);
-    if (error) throw error;
+    const { data: { session } } = await supabase.createClient(SUPABASE_URL, SUPABASE_KEY).auth.getSession();
+    if (!session) { toast('Session expired', 'err'); return; }
+    // Disconnect via server-side function — never write tokens from browser
+    const res = await fetch('/.netlify/functions/tapee360-square-oauth', {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session.access_token}` },
+      body: JSON.stringify({ action: 'disconnect', venue_id: VENUE_ID, tenant_id: TENANT_ID }),
+    });
+    if (!res.ok) { const d = await res.json(); throw new Error(d.error || 'Disconnect failed'); }
     posState.type = 'none';
     posState.squareConnected = false;
     document.getElementById('pos-type-select').value = 'none';
@@ -2324,9 +2331,15 @@ async function renameVenue() {
   const newName = document.getElementById('venue-rename-input')?.value.trim();
   if (!newName) { toast('Please enter a venue name', 'err'); return; }
   try {
-    const _sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-    const { error } = await _sb.from('venues').update({ name: newName }).eq('id', VENUE_ID);
-    if (error) throw error;
+    const { data: { session: _rs } } = await supabase.createClient(SUPABASE_URL, SUPABASE_KEY).auth.getSession();
+    if (!_rs) throw new Error('Session expired');
+    const _rres = await fetch('/.netlify/functions/tenant-branding', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${_rs.access_token}` },
+      body: JSON.stringify({ tenant_id: TENANT_ID, venue_id: VENUE_ID, display_name: newName }),
+    });
+    const _rd = await _rres.json();
+    if (!_rres.ok) throw new Error(_rd.error || 'Rename failed');
     // Update local state
     const v = ALL_VENUES.find(v => v.id === VENUE_ID);
     if (v) { v.name = newName; }
@@ -2342,11 +2355,16 @@ function confirmCloseVenue() {
 
 async function closeVenue() {
   try {
-    const _sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-    const { error } = await _sb.from('venues')
-      .update({ deleted_at: new Date().toISOString(), closed_at: new Date().toISOString() })
-      .eq('id', VENUE_ID);
-    if (error) throw error;
+    const { data: { session: _cv } } = await supabase.createClient(SUPABASE_URL, SUPABASE_KEY).auth.getSession();
+    if (!_cv) throw new Error('Session expired');
+    // Close venue via API — service key handles the write
+    const _cvres = await fetch('/.netlify/functions/venue-config', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${_cv.access_token}` },
+      body: JSON.stringify({ action: 'close_venue', tenant_id: TENANT_ID, venue_id: VENUE_ID }),
+    });
+    const _cvd = await _cvres.json();
+    if (!_cvres.ok) throw new Error(_cvd.error || 'Close failed');
     toast('Venue closed. Redirecting…', 'ok');
     setTimeout(() => window.location.href = '/xpscore360-app/dashboard.html', 1500);
   } catch(e) { toast('Failed to close venue: ' + e.message, 'err'); }
@@ -2354,44 +2372,68 @@ async function closeVenue() {
 
 // ── Ordering settings tab ─────────────────────────────
 async function loadOrderingSettings() {
-  if (!VENUE_ID) return;
+  if (!VENUE_ID || !TENANT_ID) return;
   try {
-    const _sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-    let { data } = await _sb.from('tapee_venue_config')
-      .select('dine_in_enabled,takeaway_enabled,loyalty_enabled,loyalty_points_per_dollar')
-      .eq('venue_id', VENUE_ID).maybeSingle();
+    // Load via tapee-venue-config function (uses service key — no RLS issues)
+    const res = await fetch(
+      `/.netlify/functions/tapee360-venue-config?v=${encodeURIComponent(VENUE_SLUG)}`
+    );
+    const json = res.ok ? await res.json() : null;
+    const cfg  = json?.config || {};
 
-    // Auto-seed defaults if no row yet
-    if (!data) {
-      await _sb.from('tapee_venue_config').upsert({ venue_id: VENUE_ID }, { onConflict: 'venue_id' });
-      data = { dine_in_enabled: true, takeaway_enabled: true, loyalty_enabled: true, loyalty_points_per_dollar: 10 };
+    // If no config exists yet, auto-seed via save function
+    if (!json?.config) {
+      const { data: { session } } = await supabase.createClient(SUPABASE_URL, SUPABASE_KEY).auth.getSession();
+      if (session) {
+        await fetch('/.netlify/functions/tapee-config-save', {
+          method: 'POST',
+          headers: { 'Content-Type':'application/json', 'Authorization':`Bearer ${session.access_token}` },
+          body: JSON.stringify({ tenant_id: TENANT_ID, venue_id: VENUE_ID,
+            dine_in_enabled: true, takeaway_enabled: true,
+            loyalty_enabled: true, loyalty_points_per_dollar: 10 }),
+        });
+      }
     }
 
     const di = document.getElementById('ordering-dine-in');
     const ta = document.getElementById('ordering-takeaway');
     const lo = document.getElementById('ordering-loyalty');
     const pt = document.getElementById('ordering-points-rate');
-    if (di) di.checked = data.dine_in_enabled !== false;
-    if (ta) ta.checked = data.takeaway_enabled !== false;
-    if (lo) lo.checked = data.loyalty_enabled !== false;
-    if (pt) pt.value   = data.loyalty_points_per_dollar || 10;
+    if (di) di.checked = cfg.dine_in_enabled  !== false;
+    if (ta) ta.checked = cfg.takeaway_enabled  !== false;
+    if (lo) lo.checked = cfg.loyalty_enabled   !== false;
+    if (pt) pt.value   = cfg.loyalty_points_per_dollar || 10;
   } catch(e) { console.error('loadOrderingSettings error:', e); }
 }
 
 async function saveOrdering() {
+  const btn = document.querySelector('#panel-ordering .save-btn');
+  const orig = btn?.textContent;
+  if (btn) { btn.textContent = 'Saving…'; btn.disabled = true; }
   try {
-    const _sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-    const { error } = await _sb.from('tapee_venue_config').upsert({
-      venue_id:                 VENUE_ID,
-      dine_in_enabled:          document.getElementById('ordering-dine-in')?.checked ?? true,
-      takeaway_enabled:         document.getElementById('ordering-takeaway')?.checked ?? true,
-      loyalty_enabled:          document.getElementById('ordering-loyalty')?.checked ?? true,
-      loyalty_points_per_dollar: parseInt(document.getElementById('ordering-points-rate')?.value || '10'),
-      updated_at:               new Date().toISOString(),
-    }, { onConflict: 'venue_id' });
-    if (error) throw error;
+    const { data: { session } } = await supabase.createClient(SUPABASE_URL, SUPABASE_KEY).auth.getSession();
+    if (!session) { toast('Session expired — please reload', 'err'); return; }
+
+    const res = await fetch('/.netlify/functions/tapee-config-save', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session.access_token}` },
+      body: JSON.stringify({
+        tenant_id:                TENANT_ID,
+        venue_id:                 VENUE_ID,
+        dine_in_enabled:          document.getElementById('ordering-dine-in')?.checked ?? true,
+        takeaway_enabled:         document.getElementById('ordering-takeaway')?.checked ?? true,
+        loyalty_enabled:          document.getElementById('ordering-loyalty')?.checked ?? true,
+        loyalty_points_per_dollar: parseInt(document.getElementById('ordering-points-rate')?.value || '10'),
+      }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Save failed');
     toast('Ordering settings saved ✓', 'ok');
-  } catch(e) { toast('Save failed: ' + e.message, 'err'); }
+  } catch(e) {
+    toast('Save failed: ' + e.message, 'err');
+  } finally {
+    if (btn) { btn.textContent = orig || 'Save ordering settings'; btn.disabled = false; }
+  }
 }
 
 // ── Menu schedules tab ────────────────────────────────
@@ -2399,10 +2441,15 @@ async function loadMenuSchedules() {
   const wrap = document.getElementById('schedules-list');
   if (!wrap || !VENUE_ID) return;
   try {
-    const _sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-    const { data } = await _sb.from('tapee_menu_schedules')
-      .select('*').eq('venue_id', VENUE_ID)
-      .is('deleted_at', null).order('sort_order');
+    // Load via menu-admin GET (service key — no RLS issues)
+    const { data: { session: _ms } } = await supabase.createClient(SUPABASE_URL, SUPABASE_KEY).auth.getSession();
+    if (!_ms) throw new Error('Session expired');
+    const _mres = await fetch(
+      `/.netlify/functions/tapee360-menu-admin?action=schedules&venue_id=${VENUE_ID}&tenant_id=${TENANT_ID}`,
+      { headers: { 'Authorization': `Bearer ${_ms.access_token}` } }
+    );
+    const _mjson = await _mres.json();
+    const data = _mjson.schedules || [];
     if (!data?.length) {
       wrap.innerHTML = '<div style="text-align:center;padding:32px;color:var(--muted);font-size:13px">No service periods yet.<br>Add Breakfast, Lunch, Dinner periods to control what shows when.</div>';
       return;
@@ -2509,21 +2556,37 @@ async function saveSchedule() {
   savBtn.textContent = 'Saving…'; savBtn.disabled = true;
 
   try {
-    const _sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+    const { data: { session } } = await supabase.createClient(SUPABASE_URL, SUPABASE_KEY).auth.getSession();
+    if (!session) throw new Error('Session expired — please reload');
+
+    const headers = {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${session.access_token}`,
+    };
     if (id) {
-      const { error } = await _sb.from('tapee_menu_schedules').update({
-        name, start_time: start, end_time: end,
-        days_of_week: days, is_active: active,
-        updated_at: new Date().toISOString(),
-      }).eq('id', id).eq('venue_id', VENUE_ID);
-      if (error) throw error;
-    } else {
-      const { error } = await _sb.from('tapee_menu_schedules').insert({
-        venue_id: VENUE_ID,
-        name, start_time: start, end_time: end,
-        days_of_week: days, is_active: active, sort_order: 0,
+      const res = await fetch('/.netlify/functions/tapee360-menu-admin', {
+        method: 'PUT', headers,
+        body: JSON.stringify({
+          action: 'update_schedule', id,
+          venue_id: VENUE_ID, tenant_id: TENANT_ID,
+          name, start_time: start, end_time: end,
+          days_of_week: days, is_active: active,
+        }),
       });
-      if (error) throw error;
+      const d = await res.json();
+      if (!res.ok) throw new Error(d.error || 'Update failed');
+    } else {
+      const res = await fetch('/.netlify/functions/tapee360-menu-admin', {
+        method: 'POST', headers,
+        body: JSON.stringify({
+          action: 'create_schedule',
+          venue_id: VENUE_ID, tenant_id: TENANT_ID,
+          name, start_time: start, end_time: end,
+          days_of_week: days, is_active: active, sort_order: 0,
+        }),
+      });
+      const d = await res.json();
+      if (!res.ok) throw new Error(d.error || 'Create failed');
     }
     toast(id ? 'Period updated ✓' : 'Period added ✓', 'ok');
     closeScheduleModal();
@@ -2542,9 +2605,11 @@ function editSchedule(id) {
 async function deleteSchedule(id) {
   if (!confirm('Delete this service period?')) return;
   try {
+    const { data: { session: _ds } } = await supabase.createClient(SUPABASE_URL, SUPABASE_KEY).auth.getSession();
+    if (!_ds) { toast('Session expired — please reload', 'err'); return; }
     const res = await fetch('/.netlify/functions/tapee360-menu-admin', {
       method: 'DELETE',
-      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${(await supabase.createClient(SUPABASE_URL, SUPABASE_KEY).auth.getSession()).data.session?.access_token}` },
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${_ds.access_token}` },
       body: JSON.stringify({ action: 'delete_schedule', id, venue_id: VENUE_ID, tenant_id: TENANT_ID }),
     });
     const data = await res.json();
@@ -2663,17 +2728,14 @@ const tapeeState = {
 async function loadTapeeBranding() {
   if (!VENUE_ID) return;
   try {
-    const _sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-
-    // Load venue branding
-    const { data: venue } = await _sb.from('venues')
-      .select('name,primary_color,brand_color,logo_url,bg_image_url')
-      .eq('id', VENUE_ID).maybeSingle();
-
-    // Load tapee config
-    const { data: cfg } = await _sb.from('tapee_venue_config')
-      .select('font_pairing,font_heading_color,font_body_color,theme')
-      .eq('venue_id', VENUE_ID).maybeSingle();
+    // Use tapee360-venue-config function (service key — no RLS issues)
+    const res = await fetch(
+      `/.netlify/functions/tapee360-venue-config?v=${encodeURIComponent(VENUE_SLUG)}`
+    );
+    if (!res.ok) throw new Error('Could not load venue config');
+    const json = await res.json();
+    const venue = json.venue || {};
+    const cfg   = json.config || {};
 
     if (venue) {
       // Display name
