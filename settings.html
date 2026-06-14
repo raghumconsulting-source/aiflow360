@@ -6,6 +6,7 @@
 <title>XPscore360 — Venue Settings</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;1,400&family=Geist:wght@300;400;500&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Libre+Baskerville:wght@700&family=Bebas+Neue&family=Cormorant+Garamond:wght@700&family=Poppins:wght@400;500&family=DM+Sans:wght@400;700&family=Lato:wght@400&family=Jost:wght@400&family=Inter:wght@400;700&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
@@ -819,6 +820,81 @@ body{font-family:'Geist',sans-serif;font-size:15px;line-height:1.6;color:var(--t
         <div style="font-size:11px;color:var(--muted);margin-top:4px;opacity:.7">Displayed as the full-page background when guests scan your QR code</div>
       </div>
 
+      <!-- ── Typography ── -->
+      <div class="field" style="margin-bottom:24px">
+        <label style="font-size:12px;font-weight:500;color:var(--muted);letter-spacing:.03em;display:block;margin-bottom:4px">Typography</label>
+        <div style="font-size:11px;color:var(--muted);opacity:.7;margin-bottom:12px">Font pairing applied across your Tapee360 ordering app</div>
+
+        <div id="font-pairing-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:16px">
+          <div class="font-pair-opt selected" data-pair="modern" onclick="selectFontPairing(this)"
+            style="background:var(--faint);border:2px solid var(--text);border-radius:10px;padding:14px;cursor:pointer;transition:border-color .2s">
+            <div style="font-family:'Inter',sans-serif;font-size:15px;font-weight:700;margin-bottom:2px">Modern</div>
+            <div style="font-family:'Inter',sans-serif;font-size:11px;color:var(--muted)">Inter · Inter</div>
+            <div style="font-family:'Inter',sans-serif;font-size:10px;color:var(--muted);margin-top:4px;opacity:.7">Clean · App-like</div>
+          </div>
+          <div class="font-pair-opt" data-pair="elegant" onclick="selectFontPairing(this)"
+            style="background:var(--faint);border:2px solid var(--border);border-radius:10px;padding:14px;cursor:pointer;transition:border-color .2s">
+            <div style="font-family:'Playfair Display',serif;font-size:15px;font-weight:700;margin-bottom:2px">Elegant</div>
+            <div style="font-family:'Lato',sans-serif;font-size:11px;color:var(--muted)">Playfair · Lato</div>
+            <div style="font-size:10px;color:var(--muted);margin-top:4px;opacity:.7">Fine dining</div>
+          </div>
+          <div class="font-pair-opt" data-pair="bold" onclick="selectFontPairing(this)"
+            style="background:var(--faint);border:2px solid var(--border);border-radius:10px;padding:14px;cursor:pointer;transition:border-color .2s">
+            <div style="font-family:'Bebas Neue',sans-serif;font-size:15px;font-weight:400;letter-spacing:.05em;margin-bottom:2px">BOLD</div>
+            <div style="font-family:'Poppins',sans-serif;font-size:11px;color:var(--muted)">Bebas Neue · Poppins</div>
+            <div style="font-size:10px;color:var(--muted);margin-top:4px;opacity:.7">Street food · Casual</div>
+          </div>
+          <div class="font-pair-opt" data-pair="warm" onclick="selectFontPairing(this)"
+            style="background:var(--faint);border:2px solid var(--border);border-radius:10px;padding:14px;cursor:pointer;transition:border-color .2s">
+            <div style="font-family:'Libre Baskerville',serif;font-size:15px;font-weight:700;margin-bottom:2px">Warm</div>
+            <div style="font-family:'Poppins',sans-serif;font-size:11px;color:var(--muted)">Baskerville · Poppins</div>
+            <div style="font-size:10px;color:var(--muted);margin-top:4px;opacity:.7">Café · Bakery</div>
+          </div>
+          <div class="font-pair-opt" data-pair="minimal" onclick="selectFontPairing(this)"
+            style="background:var(--faint);border:2px solid var(--border);border-radius:10px;padding:14px;cursor:pointer;transition:border-color .2s">
+            <div style="font-family:'DM Sans',sans-serif;font-size:15px;font-weight:700;margin-bottom:2px">Minimal</div>
+            <div style="font-family:'DM Sans',sans-serif;font-size:11px;color:var(--muted)">DM Sans · DM Sans</div>
+            <div style="font-size:10px;color:var(--muted);margin-top:4px;opacity:.7">Contemporary</div>
+          </div>
+          <div class="font-pair-opt" data-pair="luxe" onclick="selectFontPairing(this)"
+            style="background:var(--faint);border:2px solid var(--border);border-radius:10px;padding:14px;cursor:pointer;transition:border-color .2s">
+            <div style="font-family:'Cormorant Garamond',serif;font-size:15px;font-weight:700;margin-bottom:2px">Luxe</div>
+            <div style="font-family:'Jost',sans-serif;font-size:11px;color:var(--muted)">Cormorant · Jost</div>
+            <div style="font-size:10px;color:var(--muted);margin-top:4px;opacity:.7">High-end restaurant</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── Font colours ── -->
+      <div class="field" style="margin-bottom:24px">
+        <label style="font-size:12px;font-weight:500;color:var(--muted);letter-spacing:.03em;display:block;margin-bottom:12px">Font colours</label>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+          <div>
+            <div style="font-size:11px;color:var(--muted);margin-bottom:6px">Heading colour</div>
+            <div style="display:flex;align-items:center;gap:8px">
+              <input type="color" id="branding-heading-color" value="#FFFFFF"
+                onchange="brandingState.headingColor=this.value"
+                style="width:36px;height:36px;border:none;border-radius:6px;cursor:pointer;padding:2px;background:var(--faint)"/>
+              <input type="text" id="branding-heading-color-hex" value="#FFFFFF" maxlength="7"
+                oninput="syncColorFromHex('heading',this.value)"
+                style="flex:1;padding:8px 10px;border:1px solid var(--border);border-radius:6px;background:var(--faint);color:var(--text);font-size:12px;font-family:monospace"/>
+            </div>
+          </div>
+          <div>
+            <div style="font-size:11px;color:var(--muted);margin-bottom:6px">Body colour</div>
+            <div style="display:flex;align-items:center;gap:8px">
+              <input type="color" id="branding-body-color" value="#F5F5F5"
+                onchange="brandingState.bodyColor=this.value"
+                style="width:36px;height:36px;border:none;border-radius:6px;cursor:pointer;padding:2px;background:var(--faint)"/>
+              <input type="text" id="branding-body-color-hex" value="#F5F5F5" maxlength="7"
+                oninput="syncColorFromHex('body',this.value)"
+                style="flex:1;padding:8px 10px;border:1px solid var(--border);border-radius:6px;background:var(--faint);color:var(--text);font-size:12px;font-family:monospace"/>
+            </div>
+          </div>
+        </div>
+        <div style="font-size:11px;color:var(--muted);margin-top:8px;opacity:.7">Applied to headings and body text in your ordering app</div>
+      </div>
+
       <!-- Save handled by top Save changes button -->
 
     </div></div>
@@ -1414,7 +1490,7 @@ function esc(str) {
 }
 
 // BRANDING_JS_INSERTED
-let brandingState = { color: '#C9A84C', theme: 'dark', logoFile: null, logoUrl: '', bgFile: null, bgUrl: '' };
+let brandingState = { color: '#C9A84C', theme: 'dark', logoFile: null, logoUrl: '', bgFile: null, bgUrl: '', fontPairing: 'modern', headingColor: '#FFFFFF', bodyColor: '#F5F5F5' };
 
 // ── POS Integration ──────────────────────────────────
 let posState = { type: 'none', squareConnected: false, merchantName: '', locationId: '', merchantId: '' };
@@ -1729,6 +1805,97 @@ switchTab = function(name, btn) {
   if (name === 'branding' && TENANT_ID) loadBranding();
   if (name === 'pos' && VENUE_ID) loadPOS();
 };
+// ── Typography ──────────────────────────────────────
+const FONT_PAIRS = {
+  modern:  { heading: 'Inter',              body: 'Inter' },
+  elegant: { heading: 'Playfair Display',   body: 'Lato' },
+  bold:    { heading: 'Bebas Neue',         body: 'Poppins' },
+  warm:    { heading: 'Libre Baskerville',  body: 'Poppins' },
+  minimal: { heading: 'DM Sans',            body: 'DM Sans' },
+  luxe:    { heading: 'Cormorant Garamond', body: 'Jost' },
+};
+
+function selectFontPairing(el) {
+  document.querySelectorAll('.font-pair-opt').forEach(o => {
+    o.style.borderColor = 'var(--border)';
+    o.classList.remove('selected');
+  });
+  el.style.borderColor = 'var(--text)';
+  el.classList.add('selected');
+  brandingState.fontPairing = el.dataset.pair;
+}
+
+function syncColorFromHex(role, val) {
+  if (!/^#[0-9A-Fa-f]{6}$/.test(val)) return;
+  if (role === 'heading') {
+    brandingState.headingColor = val;
+    document.getElementById('branding-heading-color').value = val;
+  } else {
+    brandingState.bodyColor = val;
+    document.getElementById('branding-body-color').value = val;
+  }
+}
+
+// Extend loadBranding to load typography
+const _origLoadBranding = typeof loadBranding === 'function' ? loadBranding : null;
+async function loadBranding() {
+  if (_origLoadBranding) await _origLoadBranding();
+  // Load typography from tapee_venue_config
+  if (!VENUE_ID) return;
+  try {
+    const _sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+    const { data } = await _sb
+      .from('tapee_venue_config')
+      .select('font_pairing,font_heading_color,font_body_color')
+      .eq('venue_id', VENUE_ID)
+      .single();
+    if (!data) return;
+
+    // Font pairing
+    const pair = data.font_pairing || 'modern';
+    brandingState.fontPairing = pair;
+    document.querySelectorAll('.font-pair-opt').forEach(o => {
+      const isActive = o.dataset.pair === pair;
+      o.style.borderColor = isActive ? 'var(--text)' : 'var(--border)';
+      o.classList.toggle('selected', isActive);
+    });
+
+    // Heading colour
+    if (data.font_heading_color) {
+      brandingState.headingColor = data.font_heading_color;
+      document.getElementById('branding-heading-color').value      = data.font_heading_color;
+      document.getElementById('branding-heading-color-hex').value  = data.font_heading_color;
+    }
+
+    // Body colour
+    if (data.font_body_color) {
+      brandingState.bodyColor = data.font_body_color;
+      document.getElementById('branding-body-color').value      = data.font_body_color;
+      document.getElementById('branding-body-color-hex').value  = data.font_body_color;
+    }
+  } catch(e) { console.error('loadBranding typography error:', e); }
+}
+
+// Extend saveBranding to save typography
+const _origSaveBranding = typeof saveBranding === 'function' ? saveBranding : null;
+async function saveBranding() {
+  if (_origSaveBranding) await _origSaveBranding();
+  if (!VENUE_ID) return;
+  try {
+    const _sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+    const { error } = await _sb
+      .from('tapee_venue_config')
+      .upsert({
+        venue_id:           VENUE_ID,
+        font_pairing:       brandingState.fontPairing   || 'modern',
+        font_heading_color: brandingState.headingColor  || '#FFFFFF',
+        font_body_color:    brandingState.bodyColor     || '#F5F5F5',
+        updated_at:         new Date().toISOString(),
+      }, { onConflict: 'venue_id' });
+    if (error) throw error;
+  } catch(e) { console.error('saveBranding typography error:', e); }
+}
+
 bootstrap();
 
 // ── Check for OAuth return params ─────────────────────
