@@ -104,17 +104,20 @@ body{font-family:'Geist',sans-serif;font-size:15px;line-height:1.6;color:var(--t
 
 /* ── Settings layout: sidebar + content ── */
 .settings-layout{
-  display:flex;gap:0;min-height:600px;
+  display:flex;gap:0;min-height:700px;
   border:1px solid var(--border);border-radius:14px;overflow:hidden;
 }
 .settings-sidebar{
   width:220px;flex-shrink:0;
   background:var(--faint);border-right:1px solid var(--border);
   padding:10px;display:flex;flex-direction:column;gap:1px;
+  overflow-y:auto;
 }
 .settings-content{
   flex:1;min-width:0;padding:32px 40px;
   background:var(--bg);
+  overflow-y:auto;
+  min-height:500px;
 }
 @media(min-width:1024px){
   .settings-sidebar{width:240px}
@@ -1007,7 +1010,8 @@ body{font-family:'Geist',sans-serif;font-size:15px;line-height:1.6;color:var(--t
       </div>
 
       <!-- Save handled by top Save changes button -->
-    </div><!-- /panel-xp-branding -->
+    </div></div><!-- /card-body /card -->
+  </div><!-- /panel-xp-branding -->
 
     <!-- ══ PANEL: General — Venue profile ═══════════════ -->
     <div class="panel" id="panel-venue">
