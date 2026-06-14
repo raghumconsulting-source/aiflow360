@@ -1117,13 +1117,11 @@ body{font-family:'Geist',sans-serif;font-size:15px;line-height:1.6;color:var(--t
     <!-- ══ PANEL: Tapee — NFC tags ════════════════════════ -->
     <div class="panel" id="panel-tapee-nfc">
       <div class="section-head">
-        <div class="section-title">Tapee360 NFC tags</div>
-        <div class="section-sub">Copy the Tapee360 ordering URL for each table to program your NFC stickers.</div>
+        <div class="section-title">Tapee360 NFC &amp; QR</div>
+        <div class="section-sub">Each table gets a unique Tapee360 ordering URL. Program NFC stickers or print QR codes for your tables.</div>
       </div>
       <div id="tapee-nfc-list">
-        <div style="text-align:center;padding:32px;color:var(--muted);font-size:13px">
-          Loading tables…
-        </div>
+        <div style="text-align:center;padding:32px;color:var(--muted);font-size:13px">Loading…</div>
       </div>
     </div>
 
@@ -1158,6 +1156,64 @@ body{font-family:'Geist',sans-serif;font-size:15px;line-height:1.6;color:var(--t
 
 </div>
 <div class="toast" id="toast"></div>
+
+<!-- ── Schedule modal ── -->
+<div class="modal-overlay" id="schedule-modal-overlay" onclick="closeScheduleModal()" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:200;backdrop-filter:blur(4px)"></div>
+<div id="schedule-modal" style="display:none;position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);
+  width:90%;max-width:480px;background:var(--bg);border:1px solid var(--border);
+  border-radius:16px;z-index:201;box-shadow:0 20px 60px rgba(0,0,0,.3);overflow:hidden">
+  <div style="display:flex;align-items:center;justify-content:space-between;
+    padding:20px 24px;border-bottom:1px solid var(--border)">
+    <div style="font-size:16px;font-weight:700;color:var(--text)" id="schedule-modal-title">Add service period</div>
+    <button onclick="closeScheduleModal()" style="background:none;border:none;font-size:22px;cursor:pointer;color:var(--muted);padding:0;line-height:1">×</button>
+  </div>
+  <div style="padding:24px;overflow-y:auto;max-height:70vh">
+    <input type="hidden" id="schedule-edit-id">
+    <div style="margin-bottom:16px">
+      <label class="field-label-txt">Period name</label>
+      <input type="text" id="sch-name" class="inp-sm" style="width:100%;margin-bottom:8px" placeholder="e.g. Breakfast, Lunch, Dinner, Happy Hour">
+      <div style="display:flex;gap:6px;flex-wrap:wrap">
+        <button onclick="setSuggestedPeriod('Breakfast','07:00','11:30',[1,2,3,4,5])" style="padding:5px 12px;border:1px solid var(--border);border-radius:6px;font-size:12px;cursor:pointer;background:var(--faint);color:var(--text)">Breakfast</button>
+        <button onclick="setSuggestedPeriod('Lunch','11:30','15:00',[1,2,3,4,5,6])" style="padding:5px 12px;border:1px solid var(--border);border-radius:6px;font-size:12px;cursor:pointer;background:var(--faint);color:var(--text)">Lunch</button>
+        <button onclick="setSuggestedPeriod('Dinner','17:30','21:30',[0,1,2,3,4,5,6])" style="padding:5px 12px;border:1px solid var(--border);border-radius:6px;font-size:12px;cursor:pointer;background:var(--faint);color:var(--text)">Dinner</button>
+        <button onclick="setSuggestedPeriod('Weekend Brunch','09:00','14:00',[0,6])" style="padding:5px 12px;border:1px solid var(--border);border-radius:6px;font-size:12px;cursor:pointer;background:var(--faint);color:var(--text)">Weekend Brunch</button>
+        <button onclick="setSuggestedPeriod('All Day','00:00','23:59',[0,1,2,3,4,5,6])" style="padding:5px 12px;border:1px solid var(--border);border-radius:6px;font-size:12px;cursor:pointer;background:var(--faint);color:var(--text)">All Day</button>
+      </div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px">
+      <div>
+        <label class="field-label-txt">Start time</label>
+        <input type="time" id="sch-start" class="inp-sm" style="width:100%" value="07:00">
+      </div>
+      <div>
+        <label class="field-label-txt">End time</label>
+        <input type="time" id="sch-end" class="inp-sm" style="width:100%" value="11:30">
+      </div>
+    </div>
+    <div style="margin-bottom:20px">
+      <label class="field-label-txt">Days</label>
+      <div style="display:flex;gap:6px">
+        <button id="sch-day-0" onclick="toggleSchDay(0)" style="width:38px;height:38px;border-radius:50%;border:1.5px solid var(--border);background:var(--faint);font-size:12px;font-weight:500;cursor:pointer;transition:all .15s">Su</button>
+        <button id="sch-day-1" onclick="toggleSchDay(1)" style="width:38px;height:38px;border-radius:50%;border:1.5px solid var(--accent);background:var(--accent);color:#000;font-size:12px;font-weight:600;cursor:pointer;transition:all .15s">Mo</button>
+        <button id="sch-day-2" onclick="toggleSchDay(2)" style="width:38px;height:38px;border-radius:50%;border:1.5px solid var(--accent);background:var(--accent);color:#000;font-size:12px;font-weight:600;cursor:pointer;transition:all .15s">Tu</button>
+        <button id="sch-day-3" onclick="toggleSchDay(3)" style="width:38px;height:38px;border-radius:50%;border:1.5px solid var(--accent);background:var(--accent);color:#000;font-size:12px;font-weight:600;cursor:pointer;transition:all .15s">We</button>
+        <button id="sch-day-4" onclick="toggleSchDay(4)" style="width:38px;height:38px;border-radius:50%;border:1.5px solid var(--accent);background:var(--accent);color:#000;font-size:12px;font-weight:600;cursor:pointer;transition:all .15s">Th</button>
+        <button id="sch-day-5" onclick="toggleSchDay(5)" style="width:38px;height:38px;border-radius:50%;border:1.5px solid var(--accent);background:var(--accent);color:#000;font-size:12px;font-weight:600;cursor:pointer;transition:all .15s">Fr</button>
+        <button id="sch-day-6" onclick="toggleSchDay(6)" style="width:38px;height:38px;border-radius:50%;border:1.5px solid var(--border);background:var(--faint);font-size:12px;font-weight:500;cursor:pointer;transition:all .15s">Sa</button>
+      </div>
+    </div>
+    <div style="margin-bottom:24px">
+      <label style="display:flex;align-items:center;gap:10px;cursor:pointer">
+        <input type="checkbox" id="sch-active" checked style="width:15px;height:15px;accent-color:var(--accent)">
+        <span style="font-size:13px;color:var(--text)">Active — show on Tapee360 menu now</span>
+      </label>
+    </div>
+    <div style="display:flex;gap:10px">
+      <button class="save-btn" id="sch-save-btn" style="flex:1;padding:13px" onclick="saveSchedule()">Save period</button>
+      <button onclick="closeScheduleModal()" style="padding:13px 20px;border:1px solid var(--border);border-radius:8px;cursor:pointer;background:transparent;color:var(--muted)">Cancel</button>
+    </div>
+  </div>
+</div>
 
 <script>
 // ── Config ─────────────────────────────────────────────
@@ -2260,28 +2316,136 @@ async function loadMenuSchedules() {
       return;
     }
     const days = ['Su','Mo','Tu','We','Th','Fr','Sa'];
+    // Store for edit
+    window._editScheduleData = {};
+    data.forEach(s => { window._editScheduleData[s.id] = s; });
     wrap.innerHTML = data.map(s => `
-      <div style="display:flex;align-items:center;gap:12px;padding:12px;background:var(--faint);border-radius:8px;margin-bottom:6px;border:1px solid var(--border)">
-        <div style="flex:1">
+      <div style="display:flex;align-items:center;gap:12px;padding:14px 16px;
+        background:var(--faint);border-radius:10px;margin-bottom:8px;
+        border:1px solid var(--border)">
+        <div style="width:10px;height:10px;border-radius:50%;flex-shrink:0;
+          background:${s.is_active?'var(--accent)':'var(--muted)'}"></div>
+        <div style="flex:1;min-width:0">
           <div style="font-size:14px;font-weight:600;color:var(--text)">${esc(s.name)}</div>
           <div style="font-size:12px;color:var(--muted);margin-top:2px">
-            ${s.start_time?.slice(0,5)} – ${s.end_time?.slice(0,5)} &nbsp;·&nbsp;
-            ${s.days_of_week?.map(d=>days[d]).join(' ')||''}
+            ${s.start_time?.slice(0,5)} – ${s.end_time?.slice(0,5)}
+            &nbsp;·&nbsp;
+            ${(s.days_of_week||[]).map(d=>days[d]).join(' ')||'No days set'}
           </div>
         </div>
-        <div style="display:flex;gap:6px">
-          <button onclick="editSchedule('${s.id}')" style="padding:5px 12px;border:1px solid var(--border);border-radius:6px;font-size:12px;cursor:pointer;background:var(--bg)">Edit</button>
-          <button onclick="deleteSchedule('${s.id}')" style="padding:5px 12px;border:1px solid #dc2626;border-radius:6px;font-size:12px;cursor:pointer;color:#dc2626;background:transparent">×</button>
+        <div style="display:flex;gap:6px;flex-shrink:0">
+          <button onclick="editSchedule('${s.id}')"
+            style="padding:6px 14px;border:1px solid var(--border);border-radius:6px;
+            font-size:12px;cursor:pointer;background:var(--bg);color:var(--text)">Edit</button>
+          <button onclick="deleteSchedule('${s.id}')"
+            style="padding:6px 12px;border:1px solid #dc2626;border-radius:6px;
+            font-size:12px;cursor:pointer;color:#dc2626;background:transparent">×</button>
         </div>
       </div>`).join('');
   } catch(e) { console.error('loadMenuSchedules error:', e); }
 }
 
-function openScheduleModal() {
-  toast('Schedule editor coming in next sprint', 'ok');
+let _schSelectedDays = new Set([1,2,3,4,5]);
+
+function openScheduleModal(scheduleData) {
+  document.getElementById('schedule-edit-id').value = scheduleData?.id || '';
+  document.getElementById('sch-name').value  = scheduleData?.name  || '';
+  document.getElementById('sch-start').value = scheduleData?.start_time?.slice(0,5) || '07:00';
+  document.getElementById('sch-end').value   = scheduleData?.end_time?.slice(0,5)   || '11:30';
+  document.getElementById('sch-active').checked = scheduleData ? scheduleData.is_active !== false : true;
+  document.getElementById('schedule-modal-title').textContent = scheduleData ? 'Edit service period' : 'Add service period';
+
+  _schSelectedDays = new Set(scheduleData?.days_of_week || [1,2,3,4,5]);
+  [0,1,2,3,4,5,6].forEach(d => {
+    const btn = document.getElementById('sch-day-'+d);
+    if (!btn) return;
+    const on = _schSelectedDays.has(d);
+    btn.style.background    = on ? 'var(--accent)' : 'var(--faint)';
+    btn.style.color         = on ? 'var(--accent-text,#000)' : 'var(--muted)';
+    btn.style.borderColor   = on ? 'var(--accent)' : 'var(--border)';
+  });
+
+  document.getElementById('schedule-modal-overlay').style.display = '';
+  document.getElementById('schedule-modal').style.display = '';
+  document.getElementById('sch-name').focus();
 }
+
+function closeScheduleModal() {
+  document.getElementById('schedule-modal-overlay').style.display = 'none';
+  document.getElementById('schedule-modal').style.display = 'none';
+}
+
+function toggleSchDay(d) {
+  _schSelectedDays.has(d) ? _schSelectedDays.delete(d) : _schSelectedDays.add(d);
+  const btn = document.getElementById('sch-day-'+d);
+  const on  = _schSelectedDays.has(d);
+  btn.style.background  = on ? 'var(--accent)' : 'var(--faint)';
+  btn.style.color       = on ? 'var(--accent-text,#000)' : 'var(--muted)';
+  btn.style.borderColor = on ? 'var(--accent)' : 'var(--border)';
+}
+
+function setSuggestedPeriod(name, start, end, days) {
+  document.getElementById('sch-name').value  = name;
+  document.getElementById('sch-start').value = start;
+  document.getElementById('sch-end').value   = end;
+  _schSelectedDays = new Set(days);
+  [0,1,2,3,4,5,6].forEach(d => {
+    const btn = document.getElementById('sch-day-'+d);
+    if (!btn) return;
+    const on = _schSelectedDays.has(d);
+    btn.style.background  = on ? 'var(--accent)' : 'var(--faint)';
+    btn.style.color       = on ? 'var(--accent-text,#000)' : 'var(--muted)';
+    btn.style.borderColor = on ? 'var(--accent)' : 'var(--border)';
+  });
+}
+
+async function saveSchedule() {
+  const id      = document.getElementById('schedule-edit-id').value;
+  const name    = document.getElementById('sch-name').value.trim();
+  const start   = document.getElementById('sch-start').value;
+  const end     = document.getElementById('sch-end').value;
+  const active  = document.getElementById('sch-active').checked;
+  const days    = [..._schSelectedDays].sort();
+
+  if (!name) { toast('Please enter a period name', 'err'); return; }
+  if (!days.length) { toast('Please select at least one day', 'err'); return; }
+  if (!start || !end) { toast('Please set start and end times', 'err'); return; }
+  if (end <= start) { toast('End time must be after start time', 'err'); return; }
+
+  const savBtn = document.querySelector('#schedule-modal .save-btn');
+  const orig = savBtn.textContent;
+  savBtn.textContent = 'Saving…'; savBtn.disabled = true;
+
+  try {
+    const _sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+    if (id) {
+      const { error } = await _sb.from('tapee_menu_schedules').update({
+        name, start_time: start, end_time: end,
+        days_of_week: days, is_active: active,
+        updated_at: new Date().toISOString(),
+      }).eq('id', id).eq('venue_id', VENUE_ID);
+      if (error) throw error;
+    } else {
+      const { error } = await _sb.from('tapee_menu_schedules').insert({
+        venue_id: VENUE_ID,
+        name, start_time: start, end_time: end,
+        days_of_week: days, is_active: active, sort_order: 0,
+      });
+      if (error) throw error;
+    }
+    toast(id ? 'Period updated ✓' : 'Period added ✓', 'ok');
+    closeScheduleModal();
+    loadMenuSchedules();
+  } catch(e) {
+    toast('Save failed: ' + e.message, 'err');
+  } finally {
+    savBtn.textContent = orig; savBtn.disabled = false;
+  }
+}
+
 function editSchedule(id) {
-  toast('Schedule editor coming in next sprint', 'ok');
+  // Find schedule data from loaded list
+  openScheduleModal(_editScheduleData?.[id]);
 }
 async function deleteSchedule(id) {
   if (!confirm('Delete this service period?')) return;
@@ -2303,21 +2467,53 @@ function loadTapeeNFCList() {
   const wrap = document.getElementById('tapee-nfc-list');
   if (!wrap || !VENUE_SLUG) return;
   if (!state.tables?.length) {
-    wrap.innerHTML = '<div style="text-align:center;padding:32px;color:var(--muted);font-size:13px">No tables configured. Add tables in XPscore360 → Tables & NFC.</div>';
+    wrap.innerHTML = `<div style="text-align:center;padding:32px;color:var(--muted);font-size:13px">
+      No tables configured yet.<br>
+      <button onclick="switchApp('xpscore',document.getElementById('asw-xpscore'));setTimeout(()=>switchTab('tables',document.querySelector('#nav-xpscore .nav-item')),50)"
+        style="margin-top:12px;padding:8px 16px;border:1px solid var(--border);border-radius:6px;font-size:12px;cursor:pointer;background:var(--bg)">
+        Add tables in XPscore360 →
+      </button>
+    </div>`;
     return;
   }
   wrap.innerHTML = state.tables.map((t,i) => {
-    const url = `https://aiflow360.com/tapee360/?v=${VENUE_SLUG}&t=${encodeURIComponent(t.ref||'T'+(i+1))}`;
-    return `<div style="margin-bottom:10px">
-      <div style="font-size:13px;font-weight:600;color:var(--text);margin-bottom:4px">${esc(t.label||'Table '+(i+1))} (${esc(t.ref||'T'+(i+1))})</div>
-      <div style="display:flex;gap:8px">
+    const ref = t.ref || ('T'+(i+1));
+    const label = t.label || ('Table '+(i+1));
+    const url = `https://aiflow360.com/tapee360/?v=${VENUE_SLUG}&t=${encodeURIComponent(ref)}`;
+    return `
+    <div style="background:var(--faint);border:1px solid var(--border);border-radius:10px;padding:16px;margin-bottom:8px">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+        <div>
+          <div style="font-size:14px;font-weight:600;color:var(--text)">${esc(label)}</div>
+          <div style="font-size:11px;color:var(--muted);letter-spacing:.04em;margin-top:1px">Ref: ${esc(ref)}</div>
+        </div>
+        <div style="display:flex;align-items:center;gap:6px">
+          <div style="width:8px;height:8px;border-radius:50%;background:${t.nfc?'var(--accent)':'var(--muted)'}"></div>
+          <span style="font-size:11px;color:var(--muted)">${t.nfc?'NFC enabled':'NFC off'}</span>
+        </div>
+      </div>
+      <div style="display:flex;gap:8px;align-items:center">
         <input value="${url}" readonly onclick="this.select()"
-          style="flex:1;padding:8px 12px;border:1px solid var(--accent);border-radius:6px;font-size:12px;background:var(--faint);color:var(--text)">
-        <button onclick="navigator.clipboard.writeText('${url}').then(()=>toast('Copied!','ok'))"
-          style="padding:8px 14px;border:1px solid var(--accent);border-radius:6px;font-size:12px;color:var(--accent);cursor:pointer">Copy</button>
+          id="tapee-nfc-url-${i}"
+          style="flex:1;padding:9px 12px;border:1.5px solid var(--accent);border-radius:8px;
+          font-size:12px;background:var(--bg);color:var(--text);font-family:monospace">
+        <button onclick="copyTapeeNFC(${i},'${url}')" id="tapee-nfc-copy-${i}"
+          style="padding:9px 16px;border:1.5px solid var(--accent);border-radius:8px;
+          font-size:12px;font-weight:600;color:var(--accent);cursor:pointer;background:transparent;
+          white-space:nowrap;transition:all .15s">
+          Copy
+        </button>
       </div>
     </div>`;
   }).join('');
+}
+
+function copyTapeeNFC(idx, url) {
+  navigator.clipboard.writeText(url).then(() => {
+    const btn = document.getElementById('tapee-nfc-copy-'+idx);
+    if (btn) { const o=btn.textContent; btn.textContent='Copied!'; setTimeout(()=>btn.textContent=o,1800); }
+    toast('Tapee360 URL copied', 'ok');
+  });
 }
 
 // ── Tapee branding summary ───────────────────────────
@@ -2325,8 +2521,8 @@ async function loadTapeeBranding() {
   try {
     const _sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
     const { data: venue } = await _sb.from('venues')
-      .select('name,primary_color,logo_url')
-      .eq('id', VENUE_ID).single();
+      .select('name,primary_color,logo_url,bg_image_url')
+      .eq('id', VENUE_ID).maybeSingle();
     const { data: cfg } = await _sb.from('tapee_venue_config')
       .select('font_pairing,font_heading_color')
       .eq('venue_id', VENUE_ID).maybeSingle();
