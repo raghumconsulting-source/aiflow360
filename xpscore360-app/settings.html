@@ -1118,36 +1118,128 @@ body{font-family:'Geist',sans-serif;font-size:15px;line-height:1.6;color:var(--t
     <div class="panel" id="panel-tapee-nfc">
       <div class="section-head">
         <div class="section-title">Tapee360 NFC &amp; QR</div>
-        <div class="section-sub">Each table gets a unique Tapee360 ordering URL. Program NFC stickers or print QR codes for your tables.</div>
+        <div class="section-sub">Each table gets a unique Tapee360 ordering URL. Program your NFC stickers or generate QR codes.</div>
       </div>
-      <div id="tapee-nfc-list">
-        <div style="text-align:center;padding:32px;color:var(--muted);font-size:13px">Loading…</div>
-      </div>
+      <div class="card"><div class="card-body" style="padding-bottom:0">
+        <div id="tapee-nfc-table-list">
+          <div style="text-align:center;padding:32px;color:var(--muted);font-size:13px">Loading…</div>
+        </div>
+        <button class="add-row-btn" onclick="addTableRow();renderTables();renderTapeeNFC()">
+          + Add table or seat
+        </button>
+      </div></div>
     </div>
 
-    <!-- ══ PANEL: Tapee — Branding ═══════════════════════ -->
+    <!-- ══ PANEL: Tapee — Branding (full form, wired to same data as XPscore branding) ══ -->
     <div class="panel" id="panel-tapee-branding">
       <div class="section-head">
         <div class="section-title">Tapee360 branding</div>
-        <div class="section-sub">Tapee360 uses the same branding as your XPscore360 settings — logo, colours and fonts apply across both apps.</div>
+        <div class="section-sub">Logo, colours and fonts apply across both XPscore360 and Tapee360.</div>
       </div>
-      <div id="tapee-branding-summary" style="margin-bottom:24px">
-        <div style="display:flex;align-items:center;gap:16px;padding:16px;background:var(--faint);border-radius:10px;border:1px solid var(--border)">
-          <img id="tapee-brand-logo" src="" alt="" style="width:56px;height:56px;border-radius:8px;object-fit:contain;display:none;background:var(--bg)">
-          <div id="tapee-brand-no-logo" style="width:56px;height:56px;border-radius:8px;background:var(--bg);display:flex;align-items:center;justify-content:center;font-size:22px">🏠</div>
+      <!-- Shared with XPscore branding — same fields, same save function -->
+      <div id="tapee-brand-loaded-indicator" style="display:none;padding:10px 14px;background:var(--faint);border:1px solid var(--border);border-radius:8px;margin-bottom:20px;font-size:13px;color:var(--muted)">
+        ✓ Loaded existing branding settings
+      </div>
+      <div class="field" style="margin-bottom:20px">
+        <label class="field-label-txt">Display name</label>
+        <input type="text" id="tapee-branding-displayname" class="inp-sm" style="width:100%;max-width:400px" placeholder="e.g. Green Cafe — Castle Hill">
+        <div style="font-size:11px;color:var(--muted);margin-top:4px">Shown in the Tapee360 ordering app header</div>
+      </div>
+      <div class="field" style="margin-bottom:20px">
+        <label class="field-label-txt">Logo</label>
+        <div class="upload-zone" id="tapee-logo-zone" onclick="document.getElementById('tapee-logo-file').click()" style="cursor:pointer">
+          <img id="tapee-logo-preview" src="" alt="" class="preview-img hidden">
+          <div id="tapee-logo-icon" style="font-size:32px;margin-bottom:8px">🖼</div>
+          <div id="tapee-logo-text" style="font-size:13px"><strong>Click to upload</strong> or drag &amp; drop</div>
+          <div style="font-size:11px;color:var(--muted);margin-top:4px">PNG, JPG, SVG — max 2MB</div>
+        </div>
+        <input type="file" id="tapee-logo-file" accept="image/*" style="display:none" onchange="handleTapeeLogoFile(this)">
+      </div>
+      <div class="field" style="margin-bottom:20px">
+        <label class="field-label-txt">Brand colour</label>
+        <div id="tapee-branding-color-row" class="color-row" style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:8px">
+          <div class="color-swatch active" data-color="#C9A84C" style="width:28px;height:28px;border-radius:50%;background:#C9A84C;cursor:pointer;border:2px solid #C9A84C" onclick="selectTapeeBrandColor('#C9A84C',this)"></div>
+          <div class="color-swatch" data-color="#E53935" style="width:28px;height:28px;border-radius:50%;background:#E53935;cursor:pointer;border:2px solid transparent" onclick="selectTapeeBrandColor('#E53935',this)"></div>
+          <div class="color-swatch" data-color="#1E88E5" style="width:28px;height:28px;border-radius:50%;background:#1E88E5;cursor:pointer;border:2px solid transparent" onclick="selectTapeeBrandColor('#1E88E5',this)"></div>
+          <div class="color-swatch" data-color="#43A047" style="width:28px;height:28px;border-radius:50%;background:#43A047;cursor:pointer;border:2px solid transparent" onclick="selectTapeeBrandColor('#43A047',this)"></div>
+          <div class="color-swatch" data-color="#8E24AA" style="width:28px;height:28px;border-radius:50%;background:#8E24AA;cursor:pointer;border:2px solid transparent" onclick="selectTapeeBrandColor('#8E24AA',this)"></div>
+          <div class="color-swatch" data-color="#00897B" style="width:28px;height:28px;border-radius:50%;background:#00897B;cursor:pointer;border:2px solid transparent" onclick="selectTapeeBrandColor('#00897B',this)"></div>
+          <div class="color-swatch" data-color="#F4511E" style="width:28px;height:28px;border-radius:50%;background:#F4511E;cursor:pointer;border:2px solid transparent" onclick="selectTapeeBrandColor('#F4511E',this)"></div>
+          <div class="color-swatch" data-color="#111111" style="width:28px;height:28px;border-radius:50%;background:#111111;cursor:pointer;border:2px solid transparent" onclick="selectTapeeBrandColor('#111111',this)"></div>
+          <input type="color" id="tapee-custom-color" value="#C9A84C"
+            onchange="selectTapeeBrandColor(this.value,null)"
+            style="width:32px;height:32px;border:none;border-radius:50%;cursor:pointer;padding:0;background:none">
+        </div>
+      </div>
+      <div class="field" style="margin-bottom:20px">
+        <label class="field-label-txt">Background / hero image</label>
+        <div class="upload-zone" id="tapee-bg-zone" onclick="document.getElementById('tapee-bg-file').click()" style="cursor:pointer">
+          <img id="tapee-bg-preview" src="" alt="" class="preview-img hidden">
+          <div id="tapee-bg-icon" style="font-size:32px;margin-bottom:8px">🌄</div>
+          <div id="tapee-bg-text" style="font-size:13px"><strong>Click to upload</strong> or drag &amp; drop</div>
+          <div style="font-size:11px;color:var(--muted);margin-top:4px">PNG, JPG, WebP — max 5MB — recommended 1920×1080</div>
+        </div>
+        <input type="file" id="tapee-bg-file" accept="image/*" style="display:none" onchange="handleTapeeBgFile(this)">
+      </div>
+      <div class="field" style="margin-bottom:24px">
+        <label class="field-label-txt">Typography</label>
+        <div style="font-size:11px;color:var(--muted);margin-bottom:12px">Font pairing for the Tapee360 ordering app</div>
+        <div id="tapee-font-pairing-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+          <div class="font-pair-opt selected" data-pair="modern" onclick="selectTapeeFontPairing(this)" style="background:var(--faint);border:2px solid var(--text);border-radius:10px;padding:14px;cursor:pointer">
+            <div style="font-family:'Inter',sans-serif;font-size:15px;font-weight:700;margin-bottom:2px">Modern</div>
+            <div style="font-size:11px;color:var(--muted)">Inter · Inter</div>
+          </div>
+          <div class="font-pair-opt" data-pair="elegant" onclick="selectTapeeFontPairing(this)" style="background:var(--faint);border:2px solid var(--border);border-radius:10px;padding:14px;cursor:pointer">
+            <div style="font-family:'Playfair Display',serif;font-size:15px;font-weight:700;margin-bottom:2px">Elegant</div>
+            <div style="font-size:11px;color:var(--muted)">Playfair · Lato</div>
+          </div>
+          <div class="font-pair-opt" data-pair="bold" onclick="selectTapeeFontPairing(this)" style="background:var(--faint);border:2px solid var(--border);border-radius:10px;padding:14px;cursor:pointer">
+            <div style="font-family:'Bebas Neue',sans-serif;font-size:15px;letter-spacing:.05em;margin-bottom:2px">BOLD</div>
+            <div style="font-size:11px;color:var(--muted)">Bebas Neue · Poppins</div>
+          </div>
+          <div class="font-pair-opt" data-pair="warm" onclick="selectTapeeFontPairing(this)" style="background:var(--faint);border:2px solid var(--border);border-radius:10px;padding:14px;cursor:pointer">
+            <div style="font-family:'Libre Baskerville',serif;font-size:15px;font-weight:700;margin-bottom:2px">Warm</div>
+            <div style="font-size:11px;color:var(--muted)">Baskerville · Poppins</div>
+          </div>
+          <div class="font-pair-opt" data-pair="minimal" onclick="selectTapeeFontPairing(this)" style="background:var(--faint);border:2px solid var(--border);border-radius:10px;padding:14px;cursor:pointer">
+            <div style="font-family:'DM Sans',sans-serif;font-size:15px;font-weight:700;margin-bottom:2px">Minimal</div>
+            <div style="font-size:11px;color:var(--muted)">DM Sans · DM Sans</div>
+          </div>
+          <div class="font-pair-opt" data-pair="luxe" onclick="selectTapeeFontPairing(this)" style="background:var(--faint);border:2px solid var(--border);border-radius:10px;padding:14px;cursor:pointer">
+            <div style="font-family:'Cormorant Garamond',serif;font-size:15px;font-weight:700;margin-bottom:2px">Luxe</div>
+            <div style="font-size:11px;color:var(--muted)">Cormorant · Jost</div>
+          </div>
+        </div>
+      </div>
+      <div class="field" style="margin-bottom:24px">
+        <label class="field-label-txt">Font colours</label>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
           <div>
-            <div id="tapee-brand-name" style="font-size:15px;font-weight:600;color:var(--text);margin-bottom:4px">Loading…</div>
+            <div style="font-size:11px;color:var(--muted);margin-bottom:6px">Heading colour</div>
             <div style="display:flex;align-items:center;gap:8px">
-              <div id="tapee-brand-color-dot" style="width:14px;height:14px;border-radius:50%;background:#E8B84B;border:1px solid var(--border)"></div>
-              <span id="tapee-brand-color-val" style="font-size:12px;color:var(--muted)">#E8B84B</span>
-              <span id="tapee-brand-font" style="font-size:12px;color:var(--muted);margin-left:8px">Modern · Inter</span>
+              <input type="color" id="tapee-heading-color" value="#FFFFFF"
+                onchange="tapeeState.headingColor=this.value;document.getElementById('tapee-heading-color-hex').value=this.value"
+                style="width:36px;height:36px;border:none;border-radius:6px;cursor:pointer;padding:2px;background:var(--faint)"/>
+              <input type="text" id="tapee-heading-color-hex" value="#FFFFFF" maxlength="7"
+                oninput="if(/^#[0-9A-Fa-f]{6}$/.test(this.value)){tapeeState.headingColor=this.value;document.getElementById('tapee-heading-color').value=this.value}"
+                style="flex:1;padding:8px 10px;border:1px solid var(--border);border-radius:6px;background:var(--faint);color:var(--text);font-size:12px;font-family:monospace"/>
+            </div>
+          </div>
+          <div>
+            <div style="font-size:11px;color:var(--muted);margin-bottom:6px">Body colour</div>
+            <div style="display:flex;align-items:center;gap:8px">
+              <input type="color" id="tapee-body-color" value="#F5F5F5"
+                onchange="tapeeState.bodyColor=this.value;document.getElementById('tapee-body-color-hex').value=this.value"
+                style="width:36px;height:36px;border:none;border-radius:6px;cursor:pointer;padding:2px;background:var(--faint)"/>
+              <input type="text" id="tapee-body-color-hex" value="#F5F5F5" maxlength="7"
+                oninput="if(/^#[0-9A-Fa-f]{6}$/.test(this.value)){tapeeState.bodyColor=this.value;document.getElementById('tapee-body-color').value=this.value}"
+                style="flex:1;padding:8px 10px;border:1px solid var(--border);border-radius:6px;background:var(--faint);color:var(--text);font-size:12px;font-family:monospace"/>
             </div>
           </div>
         </div>
       </div>
-      <button class="save-btn" style="width:auto;padding:10px 20px"
-        onclick="switchApp('xpscore',document.getElementById('asw-xpscore'));setTimeout(()=>switchTab('xp-branding',document.querySelector('#nav-xpscore .nav-item:last-child')),50)">
-        Edit branding settings →
+      <button class="save-btn" style="width:auto;padding:12px 32px" onclick="saveTapeeBranding()">
+        Save branding
       </button>
     </div>
 
@@ -1417,7 +1509,7 @@ function switchTab(name, btn) {
   if (name === 'tapee-branding' && VENUE_ID)  loadTapeeBranding();
   if (name === 'pos'            && VENUE_ID)  loadPOS();
   if (name === 'menu'           && VENUE_ID)  loadMenuSchedules();
-  if (name === 'tapee-nfc'      && VENUE_ID)  loadTapeeNFCList();
+  if (name === 'tapee-nfc'      && VENUE_ID)  renderTapeeNFC();
   if (name === 'ordering'       && VENUE_ID)  loadOrderingSettings();
   if (name === 'venue'          && VENUE_ID)  loadVenueProfile();
 }
@@ -2463,7 +2555,51 @@ async function deleteSchedule(id) {
 }
 
 // ── Tapee NFC list tab ────────────────────────────────
+function renderTapeeNFC() {
+  const wrap = document.getElementById('tapee-nfc-table-list');
+  if (!wrap || !VENUE_SLUG) return;
+  if (!state.tables?.length) {
+    wrap.innerHTML = `<div style="text-align:center;padding:32px;color:var(--muted);font-size:13px">
+      No tables yet — click "+ Add table or seat" below to add your first table.
+    </div>`;
+    return;
+  }
+  wrap.innerHTML = state.tables.map((t,i) => {
+    const ref = t.ref || ('T'+(i+1));
+    const url = `https://aiflow360.com/tapee360/?v=${VENUE_SLUG}&t=${encodeURIComponent(ref)}`;
+    return `
+    <div style="border-bottom:1px solid var(--border);padding:16px 0">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
+        <div style="width:28px;height:28px;border-radius:50%;background:var(--faint);
+          border:1px solid var(--border);display:flex;align-items:center;justify-content:center;
+          font-size:11px;font-weight:700;color:var(--muted)">${i+1}</div>
+        <div style="font-size:14px;font-weight:600;color:var(--text)">${esc(t.label||'Table '+(i+1))}</div>
+        <div style="font-size:11px;color:var(--muted);letter-spacing:.04em">Ref: ${esc(ref)}</div>
+        <div style="margin-left:auto;display:flex;align-items:center;gap:5px">
+          <div style="width:7px;height:7px;border-radius:50%;background:${t.nfc?'var(--accent)':'var(--muted)'}"></div>
+          <span style="font-size:11px;color:var(--muted)">${t.nfc?'NFC on':'NFC off'}</span>
+        </div>
+      </div>
+      <div style="display:flex;gap:8px">
+        <input value="${url}" readonly onclick="this.select()"
+          style="flex:1;padding:9px 12px;border:1.5px solid var(--accent);border-radius:8px;
+          font-size:12px;background:var(--bg);color:var(--text);font-family:monospace">
+        <button onclick="copyTapeeNFC(${i},'${url}')" id="tapee-nfc-copy-${i}"
+          style="padding:9px 16px;border:1.5px solid var(--accent);border-radius:8px;
+          font-size:12px;font-weight:600;color:var(--accent);cursor:pointer;background:transparent;
+          white-space:nowrap;transition:all .15s">Copy</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// Legacy function — redirects to renderTapeeNFC
 function loadTapeeNFCList() {
+  renderTapeeNFC();
+}
+
+// Old loadTapeeNFCList kept below for reference:
+function _loadTapeeNFCList_old() {
   const wrap = document.getElementById('tapee-nfc-list');
   if (!wrap || !VENUE_SLUG) return;
   if (!state.tables?.length) {
@@ -2517,35 +2653,199 @@ function copyTapeeNFC(idx, url) {
 }
 
 // ── Tapee branding summary ───────────────────────────
+// ── Tapee branding state ─────────────────────────────
+const tapeeState = {
+  color: '#C9A84C', logoFile: null, logoUrl: '',
+  bgFile: null, bgUrl: '',
+  fontPairing: 'modern', headingColor: '#FFFFFF', bodyColor: '#F5F5F5'
+};
+
 async function loadTapeeBranding() {
+  if (!VENUE_ID) return;
   try {
     const _sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+    // Load venue branding
     const { data: venue } = await _sb.from('venues')
-      .select('name,primary_color,logo_url,bg_image_url')
+      .select('name,primary_color,brand_color,logo_url,bg_image_url')
       .eq('id', VENUE_ID).maybeSingle();
+
+    // Load tapee config
     const { data: cfg } = await _sb.from('tapee_venue_config')
-      .select('font_pairing,font_heading_color')
+      .select('font_pairing,font_heading_color,font_body_color,theme')
       .eq('venue_id', VENUE_ID).maybeSingle();
 
-    const FONT_LABELS = {modern:'Modern · Inter',elegant:'Elegant · Playfair',
-      bold:'Bold · Bebas',warm:'Warm · Baskerville',minimal:'Minimal · DM Sans',luxe:'Luxe · Cormorant'};
-
     if (venue) {
-      document.getElementById('tapee-brand-name').textContent = venue.name || '';
-      if (venue.logo_url) {
-        const img = document.getElementById('tapee-brand-logo');
-        img.src = venue.logo_url; img.style.display = '';
-        document.getElementById('tapee-brand-no-logo').style.display = 'none';
-      }
+      // Display name
+      const dn = document.getElementById('tapee-branding-displayname');
+      if (dn) dn.value = venue.name || '';
+
+      // Brand color
       if (venue.primary_color) {
-        document.getElementById('tapee-brand-color-dot').style.background = venue.primary_color;
-        document.getElementById('tapee-brand-color-val').textContent = venue.primary_color;
+        tapeeState.color = venue.primary_color;
+        selectTapeeBrandColor(venue.primary_color, null, true);
+      }
+
+      // Logo
+      if (venue.logo_url) {
+        tapeeState.logoUrl = venue.logo_url;
+        const prev = document.getElementById('tapee-logo-preview');
+        if (prev) {
+          prev.src = venue.logo_url; prev.classList.remove('hidden');
+          const icon = document.getElementById('tapee-logo-icon');
+          const txt  = document.getElementById('tapee-logo-text');
+          if (icon) icon.style.display = 'none';
+          if (txt)  txt.textContent = '✓ Logo loaded';
+        }
+      }
+
+      // Background
+      if (venue.bg_image_url) {
+        tapeeState.bgUrl = venue.bg_image_url;
+        const prev = document.getElementById('tapee-bg-preview');
+        if (prev) {
+          prev.src = venue.bg_image_url; prev.classList.remove('hidden');
+          const icon = document.getElementById('tapee-bg-icon');
+          const txt  = document.getElementById('tapee-bg-text');
+          if (icon) icon.style.display = 'none';
+          if (txt)  txt.textContent = '✓ Background loaded';
+        }
       }
     }
-    if (cfg?.font_pairing) {
-      document.getElementById('tapee-brand-font').textContent = FONT_LABELS[cfg.font_pairing] || cfg.font_pairing;
+
+    // Typography
+    if (cfg) {
+      const pair = cfg.font_pairing || 'modern';
+      tapeeState.fontPairing   = pair;
+      tapeeState.headingColor  = cfg.font_heading_color || '#FFFFFF';
+      tapeeState.bodyColor     = cfg.font_body_color    || '#F5F5F5';
+
+      document.querySelectorAll('#tapee-font-pairing-grid .font-pair-opt').forEach(o => {
+        const on = o.dataset.pair === pair;
+        o.style.borderColor = on ? 'var(--text)' : 'var(--border)';
+        o.classList.toggle('selected', on);
+      });
+
+      const hc = document.getElementById('tapee-heading-color');
+      const hh = document.getElementById('tapee-heading-color-hex');
+      if (hc) hc.value = cfg.font_heading_color || '#FFFFFF';
+      if (hh) hh.value = cfg.font_heading_color || '#FFFFFF';
+
+      const bc = document.getElementById('tapee-body-color');
+      const bh = document.getElementById('tapee-body-color-hex');
+      if (bc) bc.value = cfg.font_body_color || '#F5F5F5';
+      if (bh) bh.value = cfg.font_body_color || '#F5F5F5';
     }
+
+    // Show loaded indicator
+    const ind = document.getElementById('tapee-brand-loaded-indicator');
+    if (ind) ind.style.display = '';
+
   } catch(e) { console.error('loadTapeeBranding error:', e); }
+}
+
+function selectTapeeBrandColor(color, swatch, silent) {
+  tapeeState.color = color;
+  document.querySelectorAll('#tapee-branding-color-row .color-swatch').forEach(s => {
+    s.style.borderColor = s.dataset.color === color ? color : 'transparent';
+  });
+  const cc = document.getElementById('tapee-custom-color');
+  if (cc) cc.value = color;
+  if (!silent) toast('Brand colour updated', 'ok');
+}
+
+function selectTapeeFontPairing(el) {
+  document.querySelectorAll('#tapee-font-pairing-grid .font-pair-opt').forEach(o => {
+    o.style.borderColor = 'var(--border)'; o.classList.remove('selected');
+  });
+  el.style.borderColor = 'var(--text)'; el.classList.add('selected');
+  tapeeState.fontPairing = el.dataset.pair;
+}
+
+function handleTapeeLogoFile(input) {
+  const file = input.files[0];
+  if (!file) return;
+  if (file.size > 2*1024*1024) { toast('Logo must be under 2MB', 'err'); return; }
+  tapeeState.logoFile = file;
+  const reader = new FileReader();
+  reader.onload = e => {
+    const prev = document.getElementById('tapee-logo-preview');
+    if (prev) { prev.src = e.target.result; prev.classList.remove('hidden'); }
+    document.getElementById('tapee-logo-icon').style.display = 'none';
+    document.getElementById('tapee-logo-text').textContent = '✓ ' + file.name;
+  };
+  reader.readAsDataURL(file);
+}
+
+function handleTapeeBgFile(input) {
+  const file = input.files[0];
+  if (!file) return;
+  if (file.size > 5*1024*1024) { toast('Background must be under 5MB', 'err'); return; }
+  tapeeState.bgFile = file;
+  const reader = new FileReader();
+  reader.onload = e => {
+    const prev = document.getElementById('tapee-bg-preview');
+    if (prev) { prev.src = e.target.result; prev.classList.remove('hidden'); }
+    document.getElementById('tapee-bg-icon').style.display = 'none';
+    document.getElementById('tapee-bg-text').textContent = '✓ ' + file.name;
+  };
+  reader.readAsDataURL(file);
+}
+
+async function saveTapeeBranding() {
+  const btn = document.querySelector('#panel-tapee-branding .save-btn');
+  const orig = btn?.textContent;
+  if (btn) { btn.textContent = 'Saving…'; btn.disabled = true; }
+
+  try {
+    let logoBase64 = null, logoMime = null, logoExt = null;
+    let bgBase64   = null, bgMime   = null, bgExt   = null;
+
+    if (tapeeState.logoFile) {
+      const buf  = await tapeeState.logoFile.arrayBuffer();
+      logoBase64 = btoa(String.fromCharCode(...new Uint8Array(buf)));
+      logoMime   = tapeeState.logoFile.type;
+      logoExt    = tapeeState.logoFile.name.split('.').pop().toLowerCase();
+    }
+    if (tapeeState.bgFile) {
+      const buf = await tapeeState.bgFile.arrayBuffer();
+      bgBase64  = btoa(String.fromCharCode(...new Uint8Array(buf)));
+      bgMime    = tapeeState.bgFile.type;
+      bgExt     = tapeeState.bgFile.name.split('.').pop().toLowerCase();
+    }
+
+    const { data: { session } } = await supabase.createClient(SUPABASE_URL, SUPABASE_KEY).auth.getSession();
+    if (!session) { toast('Session expired — please reload', 'err'); return; }
+
+    const res = await fetch('/.netlify/functions/tenant-branding', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session.access_token}` },
+      body: JSON.stringify({
+        tenant_id:          TENANT_ID,
+        venue_id:           VENUE_ID,
+        display_name:       document.getElementById('tapee-branding-displayname')?.value.trim() || null,
+        primary_color:      tapeeState.color,
+        logo_base64:        logoBase64, logo_mime: logoMime, logo_ext: logoExt,
+        existing_logo_url:  logoBase64 ? null : (tapeeState.logoUrl || null),
+        bg_base64:          bgBase64, bg_mime: bgMime, bg_ext: bgExt,
+        existing_bg_url:    bgBase64 ? null : (tapeeState.bgUrl || null),
+        font_pairing:       tapeeState.fontPairing,
+        font_heading_color: tapeeState.headingColor,
+        font_body_color:    tapeeState.bodyColor,
+      }),
+    });
+
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Save failed');
+
+    toast('Branding saved ✓', 'ok');
+    const ind = document.getElementById('tapee-brand-loaded-indicator');
+    if (ind) { ind.textContent = '✓ Branding saved successfully'; ind.style.display = ''; }
+  } catch(e) {
+    toast('Save failed: ' + e.message, 'err');
+  } finally {
+    if (btn) { btn.textContent = orig; btn.disabled = false; }
+  }
 }
 
 // ── Restore last app section on load ─────────────────
