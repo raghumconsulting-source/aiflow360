@@ -908,7 +908,8 @@ body{font-family:'Geist',sans-serif;font-size:15px;line-height:1.6;color:var(--t
 const SUPABASE_URL = 'https://iroseywidzacqinmjtdc.supabase.co';
 const SUPABASE_KEY = '****************pzOk';
 const API_BASE    = '/.netlify/functions/venue-config';
-const WIDGET_BASE = 'https://aiflow360.com/XPscore360/';
+const WIDGET_BASE  = 'https://aiflow360.com/XPscore360/';
+const TAPEE_BASE   = 'https://aiflow360.com/tapee360/';
 
 // Dynamic — loaded from auth session
 let TENANT_ID  = '';
@@ -1173,7 +1174,8 @@ function renderTables() {
     return;
   }
   list.innerHTML = state.tables.map((t, i) => {
-    const url = `${WIDGET_BASE}?venue=${VENUE_SLUG}&table=${encodeURIComponent(t.ref || 'T'+(i+1))}`;
+    const xpUrl    = `${WIDGET_BASE}?venue=${VENUE_SLUG}&table=${encodeURIComponent(t.ref || 'T'+(i+1))}`;
+    const tapeeUrl = `${TAPEE_BASE}?v=${VENUE_SLUG}&t=${encodeURIComponent(t.ref || 'T'+(i+1))}`;
     return `
     <div class="table-row" data-i="${i}">
       <div class="table-num">${i + 1}</div>
@@ -1190,9 +1192,17 @@ function renderTables() {
       </div>
       <button class="del-btn" onclick="deleteTable(${i})" title="Remove">✕</button>
     </div>
-    <div class="nfc-url-row">
-      <input class="nfc-url" id="url-${i}" value="${url}" readonly onclick="this.select()"/>
-      <button class="copy-btn" id="copy-${i}" onclick="copyURL(${i}, '${url}')">Copy</button>
+    <div class="nfc-url-row" style="flex-direction:column;gap:6px;padding:8px 0 12px">
+      <div style="display:flex;align-items:center;gap:8px">
+        <span style="font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);min-width:72px;font-weight:500">XPscore360</span>
+        <input class="nfc-url" id="url-${i}" value="${xpUrl}" readonly onclick="this.select()" style="flex:1"/>
+        <button class="copy-btn" id="copy-${i}" onclick="copyURL(${i}, '${xpUrl}')">Copy</button>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px">
+        <span style="font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--accent);min-width:72px;font-weight:600">Tapee360</span>
+        <input class="nfc-url" id="tapee-url-${i}" value="${tapeeUrl}" readonly onclick="this.select()" style="flex:1;border-color:var(--accent)"/>
+        <button class="copy-btn" id="tapee-copy-${i}" onclick="copyURL('tapee-url-${i}', '${tapeeUrl}')" style="border-color:var(--accent);color:var(--accent)">Copy</button>
+      </div>
     </div>`;
   }).join('');
 }
@@ -1212,14 +1222,17 @@ function toggleNFC(i) {
   markDirty();
 }
 
-function copyURL(i, url) {
+function copyURL(idOrIdx, url) {
+  // idOrIdx can be a numeric table index OR a full element ID string
+  const btnId = typeof idOrIdx === 'number' ? `copy-${idOrIdx}` : idOrIdx;
   navigator.clipboard.writeText(url).then(() => {
-    const btn = document.getElementById(`copy-${i}`);
+    const btn = document.getElementById(btnId);
     if (!btn) return;
+    const orig = btn.textContent;
     btn.textContent = 'Copied!';
     btn.classList.add('copied');
     setTimeout(() => {
-      btn.textContent = 'Copy';
+      btn.textContent = orig || 'Copy';
       btn.classList.remove('copied');
     }, 2000);
   }).catch(() => {
