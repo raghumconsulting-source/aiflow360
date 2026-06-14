@@ -86,25 +86,82 @@ body{font-family:'Geist',sans-serif;font-size:15px;line-height:1.6;color:var(--t
 .theme-label{font-size:13px;font-weight:600;color:var(--text)}
 .theme-sub{font-size:11px;color:var(--muted)}
 /* ── Tabs ────────────────────────────────────────── */
-.tabs{display:flex;gap:2px;background:var(--bg);border:1px solid var(--border);border-radius:12px;padding:4px;margin-bottom:28px;overflow-x:auto}
-.tab{
-  flex:1;padding:10px 16px;border-radius:9px;font-size:13px;font-weight:500;
-  color:var(--muted);cursor:pointer;border:none;background:transparent;
-  font-family:'Geist',sans-serif;transition:all .15s;white-space:nowrap;
-  display:flex;align-items:center;justify-content:center;gap:7px;
+/* ── App section switcher ── */
+.app-switcher{
+  display:flex;gap:2px;background:var(--faint);
+  border:1px solid var(--border);border-radius:10px;
+  padding:3px;margin-bottom:20px;
 }
-.tab:hover{color:var(--text)}
-.tab.active{background:var(--accent);color:#fff}
-.tab-count{
-  font-size:10px;font-weight:600;padding:1px 6px;border-radius:var(--pill);
-  background:rgba(255,255,255,.2);color:inherit;
+.app-switch-btn{
+  flex:1;padding:9px 12px;border-radius:8px;
+  font-size:12px;font-weight:600;color:var(--muted);
+  background:none;border:none;cursor:pointer;
+  transition:all .15s;white-space:nowrap;text-align:center;
+  font-family:'Geist',sans-serif;
 }
-.tab:not(.active) .tab-count{background:var(--faint);color:var(--muted)}
+.app-switch-btn:hover{color:var(--text)}
+.app-switch-btn.active{background:#fff;color:var(--text);box-shadow:0 1px 4px rgba(0,0,0,.08)}
 
-/* ── Tab panels ──────────────────────────────────── */
+/* ── Settings layout: sidebar + content ── */
+.settings-layout{
+  display:flex;gap:0;min-height:560px;
+  border:1px solid var(--border);border-radius:14px;overflow:hidden;
+}
+.settings-sidebar{
+  width:200px;flex-shrink:0;
+  background:var(--faint);border-right:1px solid var(--border);
+  padding:8px;display:flex;flex-direction:column;gap:1px;
+}
+.settings-content{flex:1;min-width:0;padding:28px 32px}
+@media(max-width:640px){
+  .settings-layout{flex-direction:column}
+  .settings-sidebar{width:100%;border-right:none;border-bottom:1px solid var(--border);
+    flex-direction:row;flex-wrap:wrap;padding:6px}
+  .settings-content{padding:20px 16px}
+}
+
+/* ── Sidebar nav items ── */
+.nav-item{
+  display:flex;align-items:center;gap:8px;
+  padding:9px 12px;border-radius:8px;
+  font-size:13px;font-weight:500;color:var(--muted);
+  background:none;border:none;cursor:pointer;
+  transition:all .15s;width:100%;text-align:left;
+  font-family:'Geist',sans-serif;
+}
+.nav-item:hover{background:rgba(0,0,0,.04);color:var(--text)}
+.nav-item.active{background:var(--accent);color:#fff}
+.nav-icon{font-size:14px;flex-shrink:0}
+.nav-count{
+  margin-left:auto;min-width:18px;height:18px;
+  border-radius:9px;padding:0 5px;font-size:10px;font-weight:700;
+  display:inline-flex;align-items:center;justify-content:center;
+  background:rgba(255,255,255,.25);color:#fff;
+}
+.nav-item:not(.active) .nav-count{background:var(--faint);color:var(--muted)}
+
+/* ── App sections ── */
+.app-section{display:none}
+.app-section.active{display:block}
+
+/* ── Panels ── */
 .panel{display:none;animation:up .25s var(--ease) both}
 .panel.active{display:block}
 @keyframes up{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+
+/* ── Danger zone ── */
+.danger-zone{
+  border:1px solid #fee2e2;border-radius:10px;
+  padding:20px;margin-top:32px;
+}
+.danger-title{font-size:13px;font-weight:600;color:#dc2626;margin-bottom:4px}
+.danger-sub{font-size:12px;color:var(--muted);margin-bottom:14px}
+.btn-danger{
+  padding:9px 18px;background:transparent;
+  border:1.5px solid #dc2626;border-radius:8px;
+  color:#dc2626;font-size:13px;font-weight:600;cursor:pointer;transition:all .15s;
+}
+.btn-danger:hover{background:#dc2626;color:#fff}
 
 /* ── Section ──────────────────────────────────────── */
 .section-head{margin-bottom:20px}
@@ -503,34 +560,80 @@ body{font-family:'Geist',sans-serif;font-size:15px;line-height:1.6;color:var(--t
     </button>
   </div>
 
-  <!-- Tabs -->
-  <div class="tabs">
-    <button class="tab active" onclick="switchTab('tables',this)">
-      Tables &amp; NFC
-      <span class="tab-count" id="count-tables">0</span>
+  <!-- ── App section switcher ── -->
+  <div class="app-switcher">
+    <button class="app-switch-btn active" id="asw-general" onclick="switchApp('general',this)">
+      ⚙ General
     </button>
-    <button class="tab" onclick="switchTab('icebreakers',this)">
-      Icebreakers
-      <span class="tab-count" id="count-icebreakers">0</span>
+    <button class="app-switch-btn" id="asw-xpscore" onclick="switchApp('xpscore',this)">
+      📊 XPscore360
     </button>
-    <button class="tab" onclick="switchTab('tags',this)">
-      Tag bank
-      <span class="tab-count" id="count-tags">0</span>
-    </button>
-    <button class="tab" onclick="switchTab('actions',this)">
-      Recovery actions
-      <span class="tab-count" id="count-actions">0</span>
-    </button>
-    <button class="tab" onclick="switchTab('ai',this)">
-      AI settings
-    </button>
-    <button class="tab" onclick="switchTab('pos',this)">
-      POS
-    </button>
-    <button class="tab" onclick="switchTab('branding',this)">
-      Branding
+    <button class="app-switch-btn" id="asw-tapee" onclick="switchApp('tapee',this)">
+      🍽 Tapee360
     </button>
   </div>
+
+  <!-- ── Settings layout ── -->
+  <div class="settings-layout">
+
+    <!-- ── Sidebar nav ── -->
+    <nav class="settings-sidebar" id="settings-sidebar">
+      <!-- General nav (default) -->
+      <div class="app-section active" id="nav-general">
+        <button class="nav-item active" onclick="switchTab('venue',this)" data-app="general">
+          <span class="nav-icon">🏠</span> Venue profile
+        </button>
+        <button class="nav-item" onclick="switchTab('billing',this)" data-app="general">
+          <span class="nav-icon">💳</span> Billing
+        </button>
+      </div>
+      <!-- XPscore360 nav -->
+      <div class="app-section" id="nav-xpscore">
+        <button class="nav-item active" onclick="switchTab('tables',this)" data-app="xpscore">
+          <span class="nav-icon">🪑</span> Tables &amp; NFC
+          <span class="nav-count" id="count-tables">0</span>
+        </button>
+        <button class="nav-item" onclick="switchTab('icebreakers',this)" data-app="xpscore">
+          <span class="nav-icon">💬</span> Icebreakers
+          <span class="nav-count" id="count-icebreakers">0</span>
+        </button>
+        <button class="nav-item" onclick="switchTab('tags',this)" data-app="xpscore">
+          <span class="nav-icon">🏷</span> Tag bank
+          <span class="nav-count" id="count-tags">0</span>
+        </button>
+        <button class="nav-item" onclick="switchTab('actions',this)" data-app="xpscore">
+          <span class="nav-icon">⚡</span> Recovery actions
+          <span class="nav-count" id="count-actions">0</span>
+        </button>
+        <button class="nav-item" onclick="switchTab('ai',this)" data-app="xpscore">
+          <span class="nav-icon">🤖</span> AI settings
+        </button>
+        <button class="nav-item" onclick="switchTab('xp-branding',this)" data-app="xpscore">
+          <span class="nav-icon">🎨</span> Branding
+        </button>
+      </div>
+      <!-- Tapee360 nav -->
+      <div class="app-section" id="nav-tapee">
+        <button class="nav-item active" onclick="switchTab('pos',this)" data-app="tapee">
+          <span class="nav-icon">🔗</span> POS
+        </button>
+        <button class="nav-item" onclick="switchTab('menu',this)" data-app="tapee">
+          <span class="nav-icon">📋</span> Menu
+        </button>
+        <button class="nav-item" onclick="switchTab('ordering',this)" data-app="tapee">
+          <span class="nav-icon">🛒</span> Ordering
+        </button>
+        <button class="nav-item" onclick="switchTab('tapee-nfc',this)" data-app="tapee">
+          <span class="nav-icon">📡</span> NFC tags
+        </button>
+        <button class="nav-item" onclick="switchTab('tapee-branding',this)" data-app="tapee">
+          <span class="nav-icon">🎨</span> Branding
+        </button>
+      </div>
+    </nav>
+
+    <!-- ── Content panels ── -->
+    <div class="settings-content">
 
   <!-- ══ TAB: Tables & NFC ════════════════════════ -->
   <div class="panel active" id="panel-tables">
@@ -753,7 +856,7 @@ body{font-family:'Geist',sans-serif;font-size:15px;line-height:1.6;color:var(--t
   </div>
 
   <!-- ══ TAB: Branding ════════════════════════════ -->
-  <div class="panel" id="panel-branding">
+  <div class="panel" id="panel-xp-branding">
     <div class="section-head">
       <div class="section-title">Branding &amp; logo</div>
       <div class="section-sub">Customise how your widget looks to guests.</div>
@@ -896,9 +999,154 @@ body{font-family:'Geist',sans-serif;font-size:15px;line-height:1.6;color:var(--t
       </div>
 
       <!-- Save handled by top Save changes button -->
+    </div><!-- /panel-xp-branding -->
 
-    </div></div>
-  </div>
+    <!-- ══ PANEL: General — Venue profile ═══════════════ -->
+    <div class="panel" id="panel-venue">
+      <div class="section-head">
+        <div class="section-title">Venue profile</div>
+        <div class="section-sub">Update your venue name and settings.</div>
+      </div>
+      <div class="field" style="margin-bottom:20px">
+        <label style="font-size:12px;font-weight:500;color:var(--muted);display:block;margin-bottom:6px">Venue name</label>
+        <input type="text" id="venue-rename-input" class="inp-sm" style="width:100%;max-width:360px"
+          placeholder="e.g. Green Cafe — Castle Hill">
+        <div style="font-size:11px;color:var(--muted);margin-top:4px">
+          This name appears across XPscore360 and Tapee360.
+          Every name change is logged for audit.
+        </div>
+      </div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap">
+        <button class="save-btn" style="width:auto;padding:10px 24px" onclick="renameVenue()">
+          Save name
+        </button>
+      </div>
+
+      <!-- Danger zone -->
+      <div class="danger-zone">
+        <div class="danger-title">Danger zone</div>
+        <div class="danger-sub">
+          Closing this venue will hide it from all apps and NFC tags will stop working.
+          Your data is kept for 90 days and you can reactivate at any time.
+        </div>
+        <button class="btn-danger" onclick="confirmCloseVenue()">Close this venue</button>
+      </div>
+    </div>
+
+    <!-- ══ PANEL: General — Billing ══════════════════════ -->
+    <div class="panel" id="panel-billing">
+      <div class="section-head">
+        <div class="section-title">Billing</div>
+        <div class="section-sub">Manage your subscription and payment details.</div>
+      </div>
+      <div style="padding:32px;text-align:center;color:var(--muted)">
+        <div style="font-size:32px;margin-bottom:12px">💳</div>
+        <div style="font-size:14px;margin-bottom:16px">Manage your plan via the billing portal</div>
+        <a href="/xpscore360-app/dashboard.html#billing" class="save-btn"
+          style="display:inline-block;width:auto;padding:10px 24px;text-decoration:none">
+          Open billing portal
+        </a>
+      </div>
+    </div>
+
+    <!-- ══ PANEL: Tapee — Ordering ════════════════════════ -->
+    <div class="panel" id="panel-ordering">
+      <div class="section-head">
+        <div class="section-title">Ordering settings</div>
+        <div class="section-sub">Configure how customers order through Tapee360.</div>
+      </div>
+      <div class="field" style="margin-bottom:20px">
+        <label style="font-size:12px;font-weight:600;color:var(--muted);letter-spacing:.03em;display:block;margin-bottom:12px">ORDER MODES</label>
+        <div style="display:flex;flex-direction:column;gap:12px">
+          <label style="display:flex;align-items:center;gap:12px;cursor:pointer">
+            <input type="checkbox" id="ordering-dine-in" checked style="width:16px;height:16px;accent-color:var(--accent)">
+            <div>
+              <div style="font-size:14px;font-weight:500;color:var(--text)">Dine in</div>
+              <div style="font-size:12px;color:var(--muted)">Orders go straight to kitchen. No payment at ordering time.</div>
+            </div>
+          </label>
+          <label style="display:flex;align-items:center;gap:12px;cursor:pointer">
+            <input type="checkbox" id="ordering-takeaway" checked style="width:16px;height:16px;accent-color:var(--accent)">
+            <div>
+              <div style="font-size:14px;font-weight:500;color:var(--text)">Takeaway</div>
+              <div style="font-size:12px;color:var(--muted)">Card or counter payment required at checkout.</div>
+            </div>
+          </label>
+        </div>
+      </div>
+      <div class="field" style="margin-bottom:20px">
+        <label style="font-size:12px;font-weight:600;color:var(--muted);letter-spacing:.03em;display:block;margin-bottom:12px">LOYALTY</label>
+        <label style="display:flex;align-items:center;gap:12px;cursor:pointer">
+          <input type="checkbox" id="ordering-loyalty" checked style="width:16px;height:16px;accent-color:var(--accent)">
+          <div>
+            <div style="font-size:14px;font-weight:500;color:var(--text)">Enable loyalty points</div>
+            <div style="font-size:12px;color:var(--muted)">Customers earn points on every order.</div>
+          </div>
+        </label>
+        <div style="display:flex;align-items:center;gap:10px;margin-top:12px">
+          <span style="font-size:13px;color:var(--muted)">Points per $1 spent:</span>
+          <input type="number" id="ordering-points-rate" value="10" min="1" max="100"
+            style="width:70px;padding:6px 10px;border:1px solid var(--border);border-radius:6px;
+            background:var(--faint);color:var(--text);font-size:14px">
+        </div>
+      </div>
+      <button class="save-btn" style="width:auto;padding:10px 24px" onclick="saveOrdering()">
+        Save ordering settings
+      </button>
+    </div>
+
+    <!-- ══ PANEL: Tapee — Menu ════════════════════════════ -->
+    <div class="panel" id="panel-menu">
+      <div class="section-head">
+        <div class="section-title">Menu &amp; schedules</div>
+        <div class="section-sub">Create service periods and control which items show at Breakfast, Lunch, Dinner or any time.</div>
+      </div>
+      <div id="menu-schedules-wrap">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+          <div style="font-size:13px;font-weight:600;color:var(--muted);letter-spacing:.04em">SERVICE PERIODS</div>
+          <button class="save-btn" style="width:auto;padding:8px 16px;font-size:12px" onclick="openScheduleModal()">
+            + Add period
+          </button>
+        </div>
+        <div id="schedules-list">
+          <div style="text-align:center;padding:32px;color:var(--muted);font-size:13px">
+            Loading schedules…
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ PANEL: Tapee — NFC tags ════════════════════════ -->
+    <div class="panel" id="panel-tapee-nfc">
+      <div class="section-head">
+        <div class="section-title">Tapee360 NFC tags</div>
+        <div class="section-sub">Copy the Tapee360 ordering URL for each table to program your NFC stickers.</div>
+      </div>
+      <div id="tapee-nfc-list">
+        <div style="text-align:center;padding:32px;color:var(--muted);font-size:13px">
+          Loading tables…
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ PANEL: Tapee — Branding ═══════════════════════ -->
+    <div class="panel" id="panel-tapee-branding">
+      <div class="section-head">
+        <div class="section-title">Tapee360 branding</div>
+        <div class="section-sub">Customise the look of your Tapee360 ordering app.</div>
+      </div>
+      <div style="padding:20px 0;color:var(--muted);font-size:13px;text-align:center">
+        <div style="font-size:28px;margin-bottom:12px">🎨</div>
+        Tapee360 branding inherits from the Branding tab in XPscore360.<br>
+        <button class="save-btn" style="width:auto;padding:8px 18px;margin-top:14px;font-size:12px"
+          onclick="switchApp('xpscore',document.getElementById('asw-xpscore'));switchTab('xp-branding')">
+          Go to Branding settings
+        </button>
+      </div>
+    </div>
+
+    </div><!-- /settings-content -->
+  </div><!-- /settings-layout -->
 
 </div>
 <div class="toast" id="toast"></div>
@@ -906,7 +1154,7 @@ body{font-family:'Geist',sans-serif;font-size:15px;line-height:1.6;color:var(--t
 <script>
 // ── Config ─────────────────────────────────────────────
 const SUPABASE_URL = 'https://iroseywidzacqinmjtdc.supabase.co';
-const SUPABASE_KEY = '****************pzOk';
+const SUPABASE_KEY = '__SUPABASE_ANON_PLACEHOLDER__';
 const API_BASE    = '/.netlify/functions/venue-config';
 const WIDGET_BASE  = 'https://aiflow360.com/XPscore360/';
 const TAPEE_BASE   = 'https://aiflow360.com/tapee360/';
@@ -1082,11 +1330,31 @@ function toast(msg, type = 'ok') {
 }
 
 // ── Tab switching ──────────────────────────────────────
+// ── App section switcher ─────────────────────────────
+function switchApp(app, btn) {
+  document.querySelectorAll('.app-switch-btn').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.app-section').forEach(s => s.classList.remove('active'));
+  if (btn) btn.classList.add('active');
+  document.getElementById(`nav-${app}`)?.classList.add('active');
+  const firstNav = document.querySelector(`#nav-${app} .nav-item`);
+  if (firstNav) firstNav.click();
+  localStorage.setItem('settings_app', app);
+}
+
+// ── Tab / panel switcher ──────────────────────────────
 function switchTab(name, btn) {
-  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
   document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
-  btn.classList.add('active');
-  document.getElementById(`panel-${name}`).classList.add('active');
+  if (btn) btn.classList.add('active');
+  const panel = document.getElementById(`panel-${name}`);
+  if (panel) panel.classList.add('active');
+  // Lazy-load panel data
+  if (name === 'xp-branding'   && TENANT_ID) loadBranding();
+  if (name === 'pos'            && VENUE_ID)  loadPOS();
+  if (name === 'menu'           && VENUE_ID)  loadMenuSchedules();
+  if (name === 'tapee-nfc'      && VENUE_ID)  loadTapeeNFCList();
+  if (name === 'ordering'       && VENUE_ID)  loadOrderingSettings();
+  if (name === 'venue'          && VENUE_ID)  loadVenueProfile();
 }
 
 // ── Load all data ──────────────────────────────────────
@@ -1861,12 +2129,7 @@ async function saveBranding() {
     toast('Save failed: ' + e.message, 'err');
   } finally { btn.textContent = 'Save changes'; btn.disabled = false; }
 }
-const _origSwitchTab = switchTab;
-switchTab = function(name, btn) {
-  _origSwitchTab(name, btn);
-  if (name === 'branding' && TENANT_ID) loadBranding();
-  if (name === 'pos' && VENUE_ID) loadPOS();
-};
+// switchTab lazy-loading handled inside switchTab()
 // ── Typography ──────────────────────────────────────
 const FONT_PAIRS = {
   modern:  { heading: 'Inter',              body: 'Inter' },
@@ -1900,7 +2163,166 @@ function syncColorFromHex(role, val) {
 
 // Typography loaded inside loadBranding() below
 
-bootstrap();
+// ── Venue profile tab ────────────────────────────────
+function loadVenueProfile() {
+  const el = document.getElementById('venue-rename-input');
+  if (el && VENUE_SLUG) {
+    const v = ALL_VENUES.find(v => v.id === VENUE_ID);
+    if (v) el.value = v.name || '';
+  }
+}
+
+async function renameVenue() {
+  const newName = document.getElementById('venue-rename-input')?.value.trim();
+  if (!newName) { toast('Please enter a venue name', 'err'); return; }
+  try {
+    const _sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+    const { error } = await _sb.from('venues').update({ name: newName }).eq('id', VENUE_ID);
+    if (error) throw error;
+    // Update local state
+    const v = ALL_VENUES.find(v => v.id === VENUE_ID);
+    if (v) { v.name = newName; }
+    document.getElementById('venue-name-badge').textContent = newName;
+    toast('Venue name updated ✓', 'ok');
+  } catch(e) { toast('Rename failed: ' + e.message, 'err'); }
+}
+
+function confirmCloseVenue() {
+  if (!confirm(`Close "${ALL_VENUES.find(v=>v.id===VENUE_ID)?.name}"?\n\nThis will hide the venue from all apps. You can reactivate it any time.`)) return;
+  closeVenue();
+}
+
+async function closeVenue() {
+  try {
+    const _sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+    const { error } = await _sb.from('venues')
+      .update({ deleted_at: new Date().toISOString(), closed_at: new Date().toISOString() })
+      .eq('id', VENUE_ID);
+    if (error) throw error;
+    toast('Venue closed. Redirecting…', 'ok');
+    setTimeout(() => window.location.href = '/xpscore360-app/dashboard.html', 1500);
+  } catch(e) { toast('Failed to close venue: ' + e.message, 'err'); }
+}
+
+// ── Ordering settings tab ─────────────────────────────
+async function loadOrderingSettings() {
+  if (!VENUE_ID) return;
+  try {
+    const _sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+    const { data } = await _sb.from('tapee_venue_config')
+      .select('dine_in_enabled,takeaway_enabled,loyalty_enabled,loyalty_points_per_dollar')
+      .eq('venue_id', VENUE_ID).single();
+    if (!data) return;
+    const di = document.getElementById('ordering-dine-in');
+    const ta = document.getElementById('ordering-takeaway');
+    const lo = document.getElementById('ordering-loyalty');
+    const pt = document.getElementById('ordering-points-rate');
+    if (di) di.checked = data.dine_in_enabled !== false;
+    if (ta) ta.checked = data.takeaway_enabled !== false;
+    if (lo) lo.checked = data.loyalty_enabled !== false;
+    if (pt) pt.value   = data.loyalty_points_per_dollar || 10;
+  } catch(e) { console.error('loadOrderingSettings error:', e); }
+}
+
+async function saveOrdering() {
+  try {
+    const _sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+    const { error } = await _sb.from('tapee_venue_config').upsert({
+      venue_id:                 VENUE_ID,
+      dine_in_enabled:          document.getElementById('ordering-dine-in')?.checked ?? true,
+      takeaway_enabled:         document.getElementById('ordering-takeaway')?.checked ?? true,
+      loyalty_enabled:          document.getElementById('ordering-loyalty')?.checked ?? true,
+      loyalty_points_per_dollar: parseInt(document.getElementById('ordering-points-rate')?.value || '10'),
+      updated_at:               new Date().toISOString(),
+    }, { onConflict: 'venue_id' });
+    if (error) throw error;
+    toast('Ordering settings saved ✓', 'ok');
+  } catch(e) { toast('Save failed: ' + e.message, 'err'); }
+}
+
+// ── Menu schedules tab ────────────────────────────────
+async function loadMenuSchedules() {
+  const wrap = document.getElementById('schedules-list');
+  if (!wrap || !VENUE_ID) return;
+  try {
+    const _sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+    const { data } = await _sb.from('tapee_menu_schedules')
+      .select('*').eq('venue_id', VENUE_ID)
+      .is('deleted_at', null).order('sort_order');
+    if (!data?.length) {
+      wrap.innerHTML = '<div style="text-align:center;padding:32px;color:var(--muted);font-size:13px">No service periods yet.<br>Add Breakfast, Lunch, Dinner periods to control what shows when.</div>';
+      return;
+    }
+    const days = ['Su','Mo','Tu','We','Th','Fr','Sa'];
+    wrap.innerHTML = data.map(s => `
+      <div style="display:flex;align-items:center;gap:12px;padding:12px;background:var(--faint);border-radius:8px;margin-bottom:6px;border:1px solid var(--border)">
+        <div style="flex:1">
+          <div style="font-size:14px;font-weight:600;color:var(--text)">${esc(s.name)}</div>
+          <div style="font-size:12px;color:var(--muted);margin-top:2px">
+            ${s.start_time?.slice(0,5)} – ${s.end_time?.slice(0,5)} &nbsp;·&nbsp;
+            ${s.days_of_week?.map(d=>days[d]).join(' ')||''}
+          </div>
+        </div>
+        <div style="display:flex;gap:6px">
+          <button onclick="editSchedule('${s.id}')" style="padding:5px 12px;border:1px solid var(--border);border-radius:6px;font-size:12px;cursor:pointer;background:var(--bg)">Edit</button>
+          <button onclick="deleteSchedule('${s.id}')" style="padding:5px 12px;border:1px solid #dc2626;border-radius:6px;font-size:12px;cursor:pointer;color:#dc2626;background:transparent">×</button>
+        </div>
+      </div>`).join('');
+  } catch(e) { console.error('loadMenuSchedules error:', e); }
+}
+
+function openScheduleModal() {
+  toast('Schedule editor coming in next sprint', 'ok');
+}
+function editSchedule(id) {
+  toast('Schedule editor coming in next sprint', 'ok');
+}
+async function deleteSchedule(id) {
+  if (!confirm('Delete this service period?')) return;
+  try {
+    const res = await fetch('/.netlify/functions/tapee360-menu-admin', {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${(await supabase.createClient(SUPABASE_URL, SUPABASE_KEY).auth.getSession()).data.session?.access_token}` },
+      body: JSON.stringify({ action: 'delete_schedule', id, venue_id: VENUE_ID, tenant_id: TENANT_ID }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error);
+    toast('Period deleted', 'ok');
+    loadMenuSchedules();
+  } catch(e) { toast('Delete failed: ' + e.message, 'err'); }
+}
+
+// ── Tapee NFC list tab ────────────────────────────────
+function loadTapeeNFCList() {
+  const wrap = document.getElementById('tapee-nfc-list');
+  if (!wrap || !VENUE_SLUG) return;
+  if (!state.tables?.length) {
+    wrap.innerHTML = '<div style="text-align:center;padding:32px;color:var(--muted);font-size:13px">No tables configured. Add tables in XPscore360 → Tables & NFC.</div>';
+    return;
+  }
+  wrap.innerHTML = state.tables.map((t,i) => {
+    const url = `https://aiflow360.com/tapee360/?v=${VENUE_SLUG}&t=${encodeURIComponent(t.ref||'T'+(i+1))}`;
+    return `<div style="margin-bottom:10px">
+      <div style="font-size:13px;font-weight:600;color:var(--text);margin-bottom:4px">${esc(t.label||'Table '+(i+1))} (${esc(t.ref||'T'+(i+1))})</div>
+      <div style="display:flex;gap:8px">
+        <input value="${url}" readonly onclick="this.select()"
+          style="flex:1;padding:8px 12px;border:1px solid var(--accent);border-radius:6px;font-size:12px;background:var(--faint);color:var(--text)">
+        <button onclick="navigator.clipboard.writeText('${url}').then(()=>toast('Copied!','ok'))"
+          style="padding:8px 14px;border:1px solid var(--accent);border-radius:6px;font-size:12px;color:var(--accent);cursor:pointer">Copy</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ── Restore last app section on load ─────────────────
+function restoreAppSection() {
+  const lastApp = localStorage.getItem('settings_app') || 'general';
+  const btn = document.getElementById(`asw-${lastApp}`);
+  if (btn) switchApp(lastApp, btn);
+  else switchApp('general', document.getElementById('asw-general'));
+}
+
+bootstrap().then(() => restoreAppSection());
 
 // ── Check for OAuth return params ─────────────────────
 (function checkOAuthReturn() {

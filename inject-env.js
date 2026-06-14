@@ -15,7 +15,9 @@ const FILES = [
   'XPscore360/index.html',
   'xpscore360-app/dashboard.html',
   'xpscore360-app/settings.html',
+  'settings.html',
   'xpscore360-app/profile.html',
+  'tapee360/index.html',
 ];
 
 FILES.forEach(file => {
