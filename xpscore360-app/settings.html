@@ -1665,40 +1665,85 @@ async function syncSquareCatalog() {
 }
 
 async function loadBranding() {
+  // Read venue branding directly from Supabase
   try {
-    const res = await fetch(`/.netlify/functions/tenant-branding?tenant_id=${TENANT_ID}`);
-    if (!res.ok) throw new Error('Failed to load branding');
-    const data = await res.json();
-    if (data.display_name) document.getElementById('branding-displayname').value = data.display_name;
+    const _sbLoad = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+    const { data, error } = await _sbLoad
+      .from('venues')
+      .select('name,primary_color,brand_color,logo_url,bg_image_url')
+      .eq('id', VENUE_ID)
+      .single();
+    if (error || !data) throw new Error(error?.message || 'Could not load venue');
+
     if (data.primary_color) {
       brandingState.color = data.primary_color;
       const match = document.querySelector(`#branding-color-row .color-swatch[data-color="${data.primary_color}"]`);
       document.querySelectorAll('#branding-color-row .color-swatch').forEach(s => s.classList.remove('active'));
       if (match) { match.classList.add('active'); }
-      else { document.getElementById('branding-custom-color').value = data.primary_color; }
-    }
-    if (data.widget_theme) {
-      brandingState.theme = data.widget_theme;
-      document.querySelectorAll('#branding-theme-toggle .theme-opt').forEach(o =>
-        o.classList.toggle('selected', o.dataset.theme === data.widget_theme));
+      else {
+        const cc = document.getElementById('branding-custom-color');
+        if (cc) cc.value = data.primary_color;
+      }
     }
     if (data.logo_url) {
       brandingState.logoUrl = data.logo_url;
       const prev = document.getElementById('branding-logo-preview');
-      prev.src = data.logo_url;
-      prev.classList.add('show');
-      document.getElementById('branding-logo-icon').style.display = 'none';
-      document.getElementById('branding-logo-text').textContent = '\u2713 Logo loaded';
+      if (prev) {
+        prev.src = data.logo_url;
+        prev.classList.add('show');
+        const icon = document.getElementById('branding-logo-icon');
+        const txt  = document.getElementById('branding-logo-text');
+        if (icon) icon.style.display = 'none';
+        if (txt)  txt.textContent = '\u2713 logo.png';
+      }
     }
     if (data.bg_image_url) {
       brandingState.bgUrl = data.bg_image_url;
       const prev = document.getElementById('branding-bg-preview');
-      prev.src = data.bg_image_url;
-      prev.classList.add('show');
-      document.getElementById('branding-bg-icon').style.display = 'none';
-      document.getElementById('branding-bg-text').textContent = '\u2713 Background loaded';
+      if (prev) {
+        prev.src = data.bg_image_url;
+        prev.classList.add('show');
+        const icon = document.getElementById('branding-bg-icon');
+        const txt  = document.getElementById('branding-bg-text');
+        if (icon) icon.style.display = 'none';
+        if (txt)  txt.textContent = '\u2713 Background loaded';
+      }
     }
   } catch(e) { console.error('loadBranding error:', e); }
+
+  // Load typography from tapee_venue_config
+  if (!VENUE_ID) return;
+  try {
+    const _sbTypo = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+    const { data: typo } = await _sbTypo
+      .from('tapee_venue_config')
+      .select('font_pairing,font_heading_color,font_body_color')
+      .eq('venue_id', VENUE_ID)
+      .single();
+    if (!typo) return;
+
+    const pair = typo.font_pairing || 'modern';
+    brandingState.fontPairing = pair;
+    document.querySelectorAll('.font-pair-opt').forEach(o => {
+      const isActive = o.dataset.pair === pair;
+      o.style.borderColor = isActive ? 'var(--text)' : 'var(--border)';
+      o.classList.toggle('selected', isActive);
+    });
+    if (typo.font_heading_color) {
+      brandingState.headingColor = typo.font_heading_color;
+      const hc = document.getElementById('branding-heading-color');
+      const hh = document.getElementById('branding-heading-color-hex');
+      if (hc) hc.value = typo.font_heading_color;
+      if (hh) hh.value = typo.font_heading_color;
+    }
+    if (typo.font_body_color) {
+      brandingState.bodyColor = typo.font_body_color;
+      const bc = document.getElementById('branding-body-color');
+      const bh = document.getElementById('branding-body-color-hex');
+      if (bc) bc.value = typo.font_body_color;
+      if (bh) bh.value = typo.font_body_color;
+    }
+  } catch(e) { console.error('loadBranding typography error:', e); }
 }
 function handleBrandingLogo(input) {
   const file = input.files[0];
@@ -1853,47 +1898,7 @@ function syncColorFromHex(role, val) {
   }
 }
 
-// Extend loadBranding to load typography
-const _origLoadBranding = typeof loadBranding === 'function' ? loadBranding : null;
-async function loadBranding() {
-  if (_origLoadBranding) await _origLoadBranding();
-  // Load typography from tapee_venue_config
-  if (!VENUE_ID) return;
-  try {
-    const _sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-    const { data } = await _sb
-      .from('tapee_venue_config')
-      .select('font_pairing,font_heading_color,font_body_color')
-      .eq('venue_id', VENUE_ID)
-      .single();
-    if (!data) return;
-
-    // Font pairing
-    const pair = data.font_pairing || 'modern';
-    brandingState.fontPairing = pair;
-    document.querySelectorAll('.font-pair-opt').forEach(o => {
-      const isActive = o.dataset.pair === pair;
-      o.style.borderColor = isActive ? 'var(--text)' : 'var(--border)';
-      o.classList.toggle('selected', isActive);
-    });
-
-    // Heading colour
-    if (data.font_heading_color) {
-      brandingState.headingColor = data.font_heading_color;
-      document.getElementById('branding-heading-color').value      = data.font_heading_color;
-      document.getElementById('branding-heading-color-hex').value  = data.font_heading_color;
-    }
-
-    // Body colour
-    if (data.font_body_color) {
-      brandingState.bodyColor = data.font_body_color;
-      document.getElementById('branding-body-color').value      = data.font_body_color;
-      document.getElementById('branding-body-color-hex').value  = data.font_body_color;
-    }
-  } catch(e) { console.error('loadBranding typography error:', e); }
-}
-
-// Typography save is now handled inside tenant-branding function via saveBranding()
+// Typography loaded inside loadBranding() below
 
 bootstrap();
 

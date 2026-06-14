@@ -100,30 +100,30 @@ const handler = async (event) => {
     }
 
     // ── Upload logo if provided ──────────────────────
-    let logo_url = existing_logo_url || null;
+    let finalLogoUrl = existing_logo_url || null;
     if (logo_base64 && logo_mime) {
       const ext  = logo_ext || 'png';
       const path = `venues/${venue_id}/logo.${ext}`;
-      logo_url   = await uploadFile(path, logo_base64, logo_mime);
+      finalLogoUrl = await uploadFile(path, logo_base64, logo_mime);
     }
 
     // ── Upload background image if provided ──────────
-    let bg_image_url = existing_bg_url || null;
+    let finalBgUrl = existing_bg_url || null;
     if (bg_base64 && bg_mime) {
       const ext  = bg_ext || 'jpg';
       const path = `venues/${venue_id}/bg.${ext}`;
-      bg_image_url = await uploadFile(path, bg_base64, bg_mime);
+      finalBgUrl = await uploadFile(path, bg_base64, bg_mime);
     }
 
     // ── Patch venues table ───────────────────────────
     const venueUpdate = {
       updated_at: new Date().toISOString(),
     };
-    if (primary_color !== undefined) venueUpdate.primary_color = primary_color;
-    if (brand_color   !== undefined) venueUpdate.brand_color   = brand_color;
-    if (logo_url      !== undefined) venueUpdate.logo_url      = logo_url;
-    if (bg_image_url  !== undefined) venueUpdate.bg_image_url  = bg_image_url;
-    if (display_name  !== undefined) venueUpdate.name          = display_name;
+    if (primary_color  !== undefined) venueUpdate.primary_color = primary_color;
+    if (brand_color    !== undefined) venueUpdate.brand_color   = brand_color;
+    if (finalLogoUrl   !== null)      venueUpdate.logo_url      = finalLogoUrl;
+    if (finalBgUrl     !== null)      venueUpdate.bg_image_url  = finalBgUrl;
+    if (display_name && display_name.trim()) venueUpdate.name   = display_name.trim();
 
     await sb(`venues?id=eq.${venue_id}`, {
       method:  'PATCH',
@@ -145,7 +145,6 @@ const handler = async (event) => {
       await sb('tapee_venue_config', {
         method:  'POST',
         prefer:  'resolution=merge-duplicates,return=minimal',
-        headers: { 'Prefer': 'resolution=merge-duplicates,return=minimal' },
         body:    JSON.stringify(configUpdate),
       });
     }
@@ -157,8 +156,8 @@ const handler = async (event) => {
       headers: CORS,
       body: JSON.stringify({
         success:      true,
-        logo_url,
-        bg_image_url,
+        logo_url:     finalLogoUrl,
+        bg_image_url: finalBgUrl,
         primary_color,
         brand_color,
       }),
