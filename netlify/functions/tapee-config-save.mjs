@@ -104,11 +104,10 @@ const handler = async (event) => {
       if (body[field] !== undefined) configUpdate[field] = body[field];
     }
 
-    // Upsert tapee_venue_config
-    await sb('tapee_venue_config', {
+    // Upsert tapee_venue_config — must include on_conflict param for REST upsert
+    await sb('tapee_venue_config?on_conflict=venue_id', {
       method:  'POST',
       prefer:  'resolution=merge-duplicates,return=minimal',
-      headers: { 'Prefer': 'resolution=merge-duplicates,return=minimal' },
       body:    JSON.stringify(configUpdate),
     });
 
