@@ -1,63 +1,63 @@
 // netlify/functions/stripe-prices.js
 // Stripe price IDs — not secrets, safe to commit
-// Generated: June 2026
+// Generated: June 2026 — LIVE MODE
 // To update: replace the price_... values below and redeploy
 
 const PRICES = {
   xpscore360: {
     essentials: {
-      monthly: 'price_1ThEWmH77crKP0SoeSJwaBBJ',
-      annual:  'price_1ThEWmH77crKP0SoEzezy9G7',
+      monthly: 'price_1Tju8EHF6eR3tvYN5GneroIr',
+      annual:  'price_1Tju8EHF6eR3tvYNJvOKh3nI',
     },
     pro: {
-      monthly: 'price_1ThEWmH77crKP0SoikrfTEOl',
-      annual:  'price_1ThEWmH77crKP0SoI7EA5CFn',
+      monthly: 'price_1Tju8EHF6eR3tvYNFBVlcb72',
+      annual:  'price_1Tju8EHF6eR3tvYNJqLhjN5H',
     },
     multisite: {
-      monthly: 'price_1ThEWmH77crKP0SoxQ4zNx7R',
-      annual:  'price_1ThEWmH77crKP0SoF0QC8aqM',
+      monthly: 'price_1Tju8EHF6eR3tvYN650WXUcb',
+      annual:  'price_1Tju8EHF6eR3tvYNKC6WsRGq',
     },
   },
   tapee360: {
     starter: {
-      monthly: 'price_1ThEMHH77crKP0SoDbtPkUQZ',
-      annual:  'price_1ThEOlH77crKP0SozxknuTLI',
+      monthly: 'price_1Tju8LHF6eR3tvYNxDe9oDgL',
+      annual:  'price_1Tju8KHF6eR3tvYNPkhK47eB',
     },
     growth: {
-      monthly: 'price_1ThEOlH77crKP0SobNJTI48Q',
-      annual:  'price_1ThEOlH77crKP0SoP8vB2T7X',
+      monthly: 'price_1Tju8KHF6eR3tvYNNVVKrI32',
+      annual:  'price_1Tju8LHF6eR3tvYNMjTkBWv9',
     },
     enterprise: {
-      monthly: 'price_1ThEOlH77crKP0SoYS0rHeGM',
-      annual:  'price_1ThEOlH77crKP0SoLSaRtsyY',
+      monthly: 'price_1Tju8KHF6eR3tvYN26BnvePw',
+      annual:  'price_1Tju8KHF6eR3tvYNNbPjGEQt',
     },
   },
   smflow: {
     grow: {
-      monthly: 'price_1ThEelH77crKP0SoA8wWLEdk',
-      annual:  'price_1ThEelH77crKP0SosWb1ZEd8',
+      monthly: 'price_1Tju8mHF6eR3tvYNoHNkGxjf',
+      annual:  'price_1Tju8mHF6eR3tvYNtJU0LnJk',
     },
     scale: {
-      monthly: 'price_1ThEelH77crKP0So4FC5Qjza',
-      annual:  'price_1ThEelH77crKP0SooHgUUX0e',
+      monthly: 'price_1Tju8mHF6eR3tvYNwWDFK2E9',
+      annual:  'price_1Tju8mHF6eR3tvYN8lMPJ3AY',
     },
     dominate: {
-      monthly: 'price_1ThEelH77crKP0Sonkw4cLg7',
-      annual:  'price_1ThEelH77crKP0SoE09SxiV5',
+      monthly: 'price_1Tju8mHF6eR3tvYNKSEKwgJT',
+      annual:  'price_1Tju8mHF6eR3tvYN9nuh3kl5',
     },
   },
   aiflow360: {
     basic: {
-      monthly: 'price_1ThDS1H77crKP0Soj2Ce7ztc',
-      annual:  'price_1ThDS1H77crKP0Sorlu5QJDc',
+      monthly: 'price_1Tju8PHF6eR3tvYNRkdJjSG4',
+      annual:  'price_1Tju8PHF6eR3tvYNePJ96HWB',
     },
     business: {
-      monthly: 'price_1ThDS1H77crKP0SotudMvdLB',
-      annual:  'price_1ThDS1H77crKP0So5gS7bkTt',
+      monthly: 'price_1Tju8PHF6eR3tvYNYAgJtafx',
+      annual:  'price_1Tju8OHF6eR3tvYNXBa6ezwx',
     },
     team: {
-      monthly: 'price_1ThDS1H77crKP0SoneeaHluH',
-      annual:  'price_1ThDS1H77crKP0Sobz5wyCtg',
+      monthly: 'price_1Tju8PHF6eR3tvYNIlhC4tDp',
+      annual:  'price_1Tju8PHF6eR3tvYN5cl5i6yq',
     },
   },
 };
