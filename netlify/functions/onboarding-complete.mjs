@@ -111,7 +111,21 @@ const handler = async (event) => {
     };
   }
 
+  // Normalize email once, up front — every downstream write (auth user,
+  // users table, Stripe customer, contact_email fallback) and the lookup
+  // just below must agree on casing, or the resume-by-email matching in
+  // onboarding-check-resume.mjs can silently miss a real account.
+  body.email = body.email.trim().toLowerCase();
+
   // ── 2. Check email not already registered ─────────────
+  // NOTE: this is intentionally a hard block, not a resume path. Resuming
+  // an abandoned/cancelled signup requires proof of identity (the account
+  // password), which is verified separately by
+  // netlify/functions/onboarding-check-resume.mjs BEFORE the wizard ever
+  // reaches this function. Do not add an email-only resume branch here —
+  // doing so would let an unauthenticated caller pull another tenant's
+  // stripe_customer_id and rewrite their pending plan. See code review
+  // notes (2026-06) for the incident this guards against.
   const { data: existingUser } = await supabase
     .from('users')
     .select('id')
@@ -122,7 +136,7 @@ const handler = async (event) => {
     return {
       statusCode: 409,
       headers: corsHeaders(),
-      body: JSON.stringify({ error: 'An account with this email already exists. Please sign in.' }),
+      body: JSON.stringify({ error: 'An account with this email already exists. Please sign in to resume.' }),
     };
   }
 

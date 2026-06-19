@@ -1352,7 +1352,7 @@ const S = {
     // Returned from Stripe after cancelling — stay on step 6
     applyProduct(prod && PRODUCTS[prod] ? prod : 'xpscore360');
     show(6, false);
-    toast('Payment cancelled — you can try again when ready.', 'ok');
+    toast('Payment cancelled — click Complete signup to resume.', 'ok');
     return;
   }
 
@@ -1657,7 +1657,7 @@ function setLoad(btnId,on){ const b=document.getElementById(btnId)||document.que
   const el=document.getElementById(btnId); if(el){el.classList.toggle('loading',on);el.disabled=on;}}
 
 // ── Step 1 ─────────────────────────────────────────────
-function go1(){
+async function go1(){
   clearErrs('fn','em','pw');
   let ok=true;
   if(!v('fn')){setErr('fn',true);ok=false;}
@@ -1665,8 +1665,64 @@ function go1(){
   const pwVal=document.getElementById('pw').value; if(pwVal.length<8){setErr('pw',true);ok=false;}
   if(!document.getElementById('terms').checked){toast('Please accept the Terms & Privacy Policy','err');ok=false;}
   if(!ok) return;
-  S.fn=v('fn');S.em=v('em');S.ph=v('ph');S.jt=v('jt');S.pw=document.getElementById('pw').value;
+  S.fn=v('fn');S.em=v('em').trim().toLowerCase();S.ph=v('ph');S.jt=v('jt');S.pw=document.getElementById('pw').value;
+
+  // Check if this email+password matches an account stuck pending payment —
+  // if so, skip straight to Checkout instead of making them redo steps 2-6.
+  // SECURITY: this requires the real password (verified server-side via a
+  // genuine Supabase sign-in) — resuming is never granted on email alone.
+  const btn1 = document.querySelector('#p1 .btn-primary');
+  if (btn1) { btn1.classList.add('loading'); btn1.disabled = true; }
+  try {
+    const r = await fetch('/.netlify/functions/onboarding-check-resume', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: S.em, password: S.pw }),
+    });
+    const d = await r.json();
+    if (d.resumable) {
+      S.tenantId         = d.tenantId;
+      S.stripeCustomerId = d.stripeCustomerId;
+      if (d.product) S.product = d.product;
+      if (d.plan)    S.plan    = d.plan;
+      if (d.interval) S.interval = d.interval;
+      toast(`Welcome back — resuming your signup for ${d.bizName || 'your business'}`, 'ok');
+      await resumeToCheckout();
+      return;
+    }
+  } catch(e) {
+    console.warn('resume check failed (non-fatal):', e.message);
+    // fall through to normal flow. If this email genuinely already has an
+    // account, onboarding-complete's hard block will tell the user to sign
+    // in instead — we never silently resume without a verified password.
+  } finally {
+    if (btn1) { btn1.classList.remove('loading'); btn1.disabled = false; }
+  }
+
   show(2);
+}
+
+// ── Resume an abandoned/cancelled signup straight to Stripe Checkout ───
+async function resumeToCheckout(){
+  try {
+    const checkoutRes = await fetch('/.netlify/functions/stripe-checkout', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        tenantId:         S.tenantId,
+        stripeCustomerId: S.stripeCustomerId,
+        product:          S.product,
+        tier:             S.plan,
+        interval:         S.interval,
+        adminCoupon:      S.adminCoupon || S.clientPromo || '',
+      }),
+    });
+    const checkoutData = await checkoutRes.json();
+    if (!checkoutRes.ok) throw new Error(checkoutData.error || 'Could not resume payment. Please try again.');
+    window.location.href = checkoutData.checkoutUrl;
+  } catch(err) {
+    toast(err.message, 'err');
+  }
 }
 
 // ── Step 2 ─────────────────────────────────────────────
