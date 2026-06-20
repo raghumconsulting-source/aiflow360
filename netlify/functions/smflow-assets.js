@@ -24,7 +24,6 @@ const SUPABASE_URL         = process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY;
 const STORAGE_BUCKET       = 'tenant-assets';
 const SA_EMAIL             = process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL;
-const SA_KEY               = process.env.GOOGLE_SERVICE_ACCOUNT_KEY;
 const SHARED_DRIVE_ID      = process.env.GOOGLE_SHARED_DRIVE_ID; // SMflow Clients folder ID
 
 const HEADERS = {
@@ -55,13 +54,26 @@ async function sb(path, options = {}) {
   return Array.isArray(parsed) ? parsed : parsed;
 }
 
+// Google service-account credentials are bundled into this function's deploy
+// at build time by inject-env.js, written to _gsa.json — NOT read from
+// process.env.GOOGLE_SERVICE_ACCOUNT_KEY, because that var is scoped to
+// "Builds" only (it's ~2KB and would blow the 4KB Lambda env var limit if
+// scoped to Functions too). See inject-env.js for the full explanation.
+let GSA_CREDENTIALS = null;
+try {
+  GSA_CREDENTIALS = require('./_gsa.json');
+} catch {
+  GSA_CREDENTIALS = null;
+}
+
 function getDriveClient() {
-  if (!SA_EMAIL || !SA_KEY) throw new Error('Google service account credentials not configured');
-  let keyData;
-  try { keyData = JSON.parse(SA_KEY); }
-  catch { throw new Error('GOOGLE_SERVICE_ACCOUNT_KEY must be full JSON file contents'); }
+  const clientEmail = GSA_CREDENTIALS?.client_email || SA_EMAIL;
+  const privateKey  = GSA_CREDENTIALS?.private_key;
+  if (!clientEmail || !privateKey) {
+    throw new Error('Google service account credentials not configured — _gsa.json is empty. Check GOOGLE_SERVICE_ACCOUNT_KEY is set in Netlify (Builds scope) and redeploy.');
+  }
   const auth = new google.auth.GoogleAuth({
-    credentials: { client_email: keyData.client_email || SA_EMAIL, private_key: keyData.private_key },
+    credentials: { client_email: clientEmail, private_key: privateKey },
     scopes: ['https://www.googleapis.com/auth/drive'],
   });
   return google.drive({ version: 'v3', auth });
@@ -263,8 +275,6 @@ exports.handler = async function (event) {
         if (!tenant_name) return { statusCode: 400, headers: HEADERS, body: JSON.stringify({ error: 'tenant_name required' }) };
 
         // Idempotency check: if this tenant already has a folder, return it instead of creating a duplicate.
-        // Self-serve clients could click "Create folder" more than once (double-click, page refresh mid-request,
-        // re-visiting Settings) — without this check each click would create a brand new orphaned Drive folder.
         const existingConfig = await sb(`smflow_gdrive_config?tenant_id=eq.${tenant_id}&select=*&limit=1`);
         if (existingConfig.length && existingConfig[0].folder_id) {
           const cfg = existingConfig[0];
@@ -282,41 +292,75 @@ exports.handler = async function (event) {
           };
         }
 
-        const drive      = getDriveClient();
-        const subFolders = FOLDER_TEMPLATES[industry_code] || FOLDER_TEMPLATES.default;
-        const rootFolder = await driveCreateFolder(drive, `SMflow — ${tenant_name}`, null);
-        for (const f of subFolders) await driveCreateFolder(drive, f, rootFolder.id);
-        await driveCreateReadme(drive, rootFolder.id, subFolders);
-        await driveShareFolder(drive, rootFolder.id, 'writer');
-        const folderUrl = `https://drive.google.com/drive/folders/${rootFolder.id}`;
-        const configPayload = {
-          tenant_id, folder_id: rootFolder.id,
+        // Claim the slot BEFORE touching Google Drive, not after. A unique constraint on
+        // smflow_gdrive_config.tenant_id (required — see migration note below) makes this
+        // insert fail for the second of two near-simultaneous requests, so only one request
+        // ever proceeds to create a real Drive folder. The earlier "create folder then check
+        // again" order had a window where two concurrent requests could both pass the read
+        // check above and both create orphaned Drive folders before either write landed.
+        const claimRow = {
+          tenant_id,
+          folder_id:        'pending',
           folder_name:      `SMflow — ${tenant_name}`,
-          folder_url:       folderUrl,
+          folder_url:       null,
           folder_structure: industry_code || 'default',
           connected_by:     connected_by || 'aitechnic_admin',
-          sync_enabled:     true,
+          sync_enabled:     false,
+          created_at:       new Date().toISOString(),
           updated_at:       new Date().toISOString(),
         };
-        // Re-check existence right before insert to guard against a near-simultaneous duplicate request
-        // (e.g. a fast double-click firing two requests before the first one's response comes back).
-        const recheck = await sb(`smflow_gdrive_config?tenant_id=eq.${tenant_id}&select=id&limit=1`);
-        if (recheck.length) {
-          await sb(`smflow_gdrive_config?tenant_id=eq.${tenant_id}`, { method:'PATCH', prefer:'return=minimal', body: configPayload });
-        } else {
-          await sb('smflow_gdrive_config', { method:'POST', prefer:'return=minimal', body: { ...configPayload, created_at: new Date().toISOString() } });
+        try {
+          await sb('smflow_gdrive_config', { method: 'POST', prefer: 'return=minimal', body: claimRow });
+        } catch (claimErr) {
+          // Insert failed — most likely a concurrent request just won the race and claimed the
+          // row first (unique constraint violation), or another genuine DB error. Either way,
+          // re-read and return whatever now exists rather than risk creating a second folder.
+          const recheck = await sb(`smflow_gdrive_config?tenant_id=eq.${tenant_id}&select=*&limit=1`);
+          if (recheck.length && recheck[0].folder_id && recheck[0].folder_id !== 'pending') {
+            const cfg = recheck[0];
+            const subFolders = FOLDER_TEMPLATES[cfg.folder_structure] || FOLDER_TEMPLATES.default;
+            return { statusCode: 200, headers: HEADERS, body: JSON.stringify({ success: true, already_exists: true, folder_id: cfg.folder_id, folder_url: cfg.folder_url, sub_folders: subFolders, share_message: `Your SMflow photo folder:\n\n📁 ${cfg.folder_url}\n\nDrop your photos into the matching folder.` }) };
+          }
+          throw new Error(`Could not claim folder creation slot: ${claimErr.message}`);
         }
-        return {
-          statusCode: 200, headers: HEADERS,
-          body: JSON.stringify({
-            success:       true,
-            already_exists: false,
-            folder_id:     rootFolder.id,
-            folder_url:    folderUrl,
-            sub_folders:   subFolders,
-            share_message: `Hi! Your SMflow photo folder is ready.\n\n📁 ${folderUrl}\n\nYou'll find ${subFolders.length} folders inside. Drop your photos into the right folder. There's a READ ME file with full instructions.\n\nOnce done, let us know and we'll sync everything into SMflow for you.`,
-          }),
-        };
+
+        // From here on, Drive API calls can fail partway through. If they do, clear the
+        // 'pending' claim so a retry can actually proceed instead of being permanently stuck
+        // behind a row that claims a folder exists but doesn't.
+        try {
+          const drive      = getDriveClient();
+          const subFolders = FOLDER_TEMPLATES[industry_code] || FOLDER_TEMPLATES.default;
+          const rootFolder = await driveCreateFolder(drive, `SMflow — ${tenant_name}`, null);
+          for (const f of subFolders) await driveCreateFolder(drive, f, rootFolder.id);
+          await driveCreateReadme(drive, rootFolder.id, subFolders);
+          await driveShareFolder(drive, rootFolder.id, 'writer');
+          const folderUrl = `https://drive.google.com/drive/folders/${rootFolder.id}`;
+
+          await sb(`smflow_gdrive_config?tenant_id=eq.${tenant_id}`, {
+            method: 'PATCH', prefer: 'return=minimal',
+            body: { folder_id: rootFolder.id, folder_url: folderUrl, sync_enabled: true, updated_at: new Date().toISOString() },
+          });
+
+          return {
+            statusCode: 200, headers: HEADERS,
+            body: JSON.stringify({
+              success:       true,
+              already_exists: false,
+              folder_id:     rootFolder.id,
+              folder_url:    folderUrl,
+              sub_folders:   subFolders,
+              share_message: `Hi! Your SMflow photo folder is ready.\n\n📁 ${folderUrl}\n\nYou'll find ${subFolders.length} folders inside. Drop your photos into the right folder. There's a READ ME file with full instructions.\n\nOnce done, let us know and we'll sync everything into SMflow for you.`,
+            }),
+          };
+        } catch (driveErr) {
+          // Drive creation failed partway through (e.g. root folder created but a sub-folder
+          // call failed). Release the claim so the client can retry cleanly instead of being
+          // stuck behind a permanent 'pending' row that never resolves.
+          await sb(`smflow_gdrive_config?tenant_id=eq.${tenant_id}`, {
+            method: 'DELETE', prefer: 'return=minimal',
+          }).catch(() => {}); // best-effort cleanup; surfacing the original error matters more
+          throw new Error(`Drive folder creation failed: ${driveErr.message}. Please try again.`);
+        }
       }
 
       if (action === 'gdrive_sync') {
@@ -366,7 +410,7 @@ exports.handler = async function (event) {
                   gdrive_file_id: file.id,
                   topic_tags:     folder.tags.topic,
                   flavor_tags:    folder.tags.flavor,
-                  platform_tags:  ['Facebook','Instagram','WhatsApp'],
+                  platform_tags:  ['Facebook','Instagram'],
                   alt_text:       folder.name !== 'root' ? folder.name.replace(/^\d+-/,'') + ' photo' : null,
                   is_active:      true,
                   created_at:     syncedAt,
