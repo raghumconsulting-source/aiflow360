@@ -91,7 +91,7 @@ body::before{content:'';position:fixed;inset:0;background-image:url("data:image/
 
 /* PRODUCTS */
 .products-section{background:var(--bg-5);padding:100px 24px}
-.products-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:2px;margin-top:0}
+.products-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:2px;margin-top:0}
 @media(max-width:1100px){.products-grid{grid-template-columns:repeat(2,1fr)}}
 @media(max-width:600px){.products-grid{grid-template-columns:1fr}}
 
@@ -101,13 +101,15 @@ body::before{content:'';position:fixed;inset:0;background-image:url("data:image/
 .product-card:hover::after{transform:scaleX(1)}
 .product-card.tapee360::after{background:var(--gold)}
 .product-card.xpscore::after{background:var(--xp)}
+.product-card.smflow::after{background:var(--blue)}
 
 .product-tag{display:inline-flex;align-items:center;gap:6px;font-family:var(--font-mono);font-size:9px;letter-spacing:.22em;text-transform:uppercase;padding:4px 10px;border-radius:9999px;margin-bottom:24px}
 .product-tag.live{background:rgba(34,197,94,0.08);border:1px solid rgba(34,197,94,0.25);color:#22C55E}
 .product-tag.live-xp{background:rgba(0,194,168,0.08);border:1px solid rgba(0,194,168,0.3);color:var(--xp)}
+.product-tag.live-blue{background:rgba(34,126,255,0.08);border:1px solid rgba(34,126,255,0.3);color:var(--blue)}
 .product-tag.soon{background:rgba(255,255,255,0.04);border:1px solid var(--stroke-light);color:rgba(255,255,255,0.3)}
 .product-tag-dot{width:5px;height:5px;border-radius:50%;background:currentColor}
-.product-tag.live .product-tag-dot,.product-tag.live-xp .product-tag-dot{animation:pulseDot 1.5s ease infinite}
+.product-tag.live .product-tag-dot,.product-tag.live-xp .product-tag-dot,.product-tag.live-blue .product-tag-dot{animation:pulseDot 1.5s ease infinite}
 
 .product-name{font-family:var(--font-sora);font-size:24px;font-weight:400;color:rgba(248,249,250,0.9);letter-spacing:-.6px;margin-bottom:10px;line-height:1.1}
 .product-tagline{font-family:var(--font-tight);font-size:12px;color:rgba(255,255,255,0.4);margin-bottom:24px;letter-spacing:.02em;line-height:1.7}
@@ -116,12 +118,14 @@ body::before{content:'';position:fixed;inset:0;background-image:url("data:image/
 .product-feature::before{content:'→';font-size:10px;color:var(--purple);flex-shrink:0}
 .product-card.tapee360 .product-feature::before{color:var(--gold)}
 .product-card.xpscore .product-feature::before{color:var(--xp)}
+.product-card.smflow .product-feature::before{color:var(--blue)}
 
 .product-price{font-family:var(--font-sora);font-size:20px;font-weight:400;color:rgba(248,249,250,0.9);letter-spacing:-.5px;margin-bottom:4px}
 .product-price-label{font-size:11px;color:rgba(255,255,255,0.3);letter-spacing:.08em;margin-bottom:18px}
 
 .live-ribbon{position:absolute;top:20px;right:20px;background:var(--gold);color:var(--bg-5);font-family:var(--font-mono);font-size:9px;font-weight:600;letter-spacing:.18em;text-transform:uppercase;padding:4px 12px;border-radius:9999px}
 .live-ribbon.xp{background:var(--xp)}
+.live-ribbon.blue{background:var(--blue);color:#fff}
 
 /* ── FREE TRIAL BANNER ────────────────────────────── */
 .trial-banner{
@@ -162,6 +166,7 @@ body::before{content:'';position:fixed;inset:0;background-image:url("data:image/
 .pc-btn-primary:hover{opacity:.85}
 .pc-btn-primary.tapee-btn{background:var(--gold);color:#000}
 .pc-btn-primary.xp-btn{background:var(--xp);color:#000}
+.pc-btn-primary.smflow-btn{background:var(--blue);color:#fff}
 .pc-btn-sec{
   font-family:var(--font-mono);font-size:10px;
   color:rgba(255,255,255,0.35);letter-spacing:.06em;text-decoration:none;
@@ -251,7 +256,7 @@ footer{background:var(--bg-5);border-top:1px solid var(--stroke-light);padding:6
     <a href="/onboarding.html?product=xpscore360" class="btn-outline">Try XPscore360 free ↗</a>
   </div>
   <div class="hero-stats">
-    <div><div class="hero-stat-num">2</div><div class="hero-stat-label">Products live now</div></div>
+    <div><div class="hero-stat-num">3</div><div class="hero-stat-label">Products live now</div></div>
     <div><div class="hero-stat-num">AU</div><div class="hero-stat-label">Built for Australia</div></div>
     <div><div class="hero-stat-num">3M+</div><div class="hero-stat-label">Hours saved by AITECHNIC</div></div>
     <div><div class="hero-stat-num">99%</div><div class="hero-stat-label">Client satisfaction</div></div>
@@ -262,6 +267,7 @@ footer{background:var(--bg-5);border-top:1px solid var(--stroke-light);padding:6
   <div class="marquee-track">
     <div class="marquee-item"><div class="marquee-dot"></div><div class="marquee-text">Tapee360 — Live now</div></div>
     <div class="marquee-item"><div class="marquee-dot xp"></div><div class="marquee-text">XPscore360 — Live now</div></div>
+    <div class="marquee-item"><div class="marquee-dot" style="background:var(--blue)"></div><div class="marquee-text">SMflow — Live now</div></div>
     <div class="marquee-item"><div class="marquee-dot"></div><div class="marquee-text">NFC tap ordering</div></div>
     <div class="marquee-item"><div class="marquee-dot xp"></div><div class="marquee-text">AI-driven customer feedback</div></div>
     <div class="marquee-item"><div class="marquee-dot"></div><div class="marquee-text">AI customer memory</div></div>
@@ -269,9 +275,11 @@ footer{background:var(--bg-5);border-top:1px solid var(--stroke-light);padding:6
     <div class="marquee-item"><div class="marquee-dot"></div><div class="marquee-text">Square POS integration</div></div>
     <div class="marquee-item"><div class="marquee-dot xp"></div><div class="marquee-text">Real-time manager alerts</div></div>
     <div class="marquee-item"><div class="marquee-dot"></div><div class="marquee-text">Sydney hosted · Supabase</div></div>
+    <div class="marquee-item"><div class="marquee-dot" style="background:var(--blue)"></div><div class="marquee-text">AI social media posting</div></div>
     <div class="marquee-item"><div class="marquee-dot"></div><div class="marquee-text">More products coming</div></div>
     <div class="marquee-item"><div class="marquee-dot"></div><div class="marquee-text">Tapee360 — Live now</div></div>
     <div class="marquee-item"><div class="marquee-dot xp"></div><div class="marquee-text">XPscore360 — Live now</div></div>
+    <div class="marquee-item"><div class="marquee-dot" style="background:var(--blue)"></div><div class="marquee-text">SMflow — Live now</div></div>
     <div class="marquee-item"><div class="marquee-dot"></div><div class="marquee-text">NFC tap ordering</div></div>
     <div class="marquee-item"><div class="marquee-dot xp"></div><div class="marquee-text">AI-driven customer feedback</div></div>
     <div class="marquee-item"><div class="marquee-dot"></div><div class="marquee-text">AI customer memory</div></div>
@@ -363,6 +371,28 @@ footer{background:var(--bg-5);border-top:1px solid var(--stroke-light);padding:6
         <div class="pc-trial-note">7 days free · No credit card · Live in 1 hour</div>
       </div>
 
+      <!-- SMFLOW -->
+      <div class="product-card smflow reveal">
+        <div class="live-ribbon blue">Live</div>
+        <div class="product-tag live-blue"><div class="product-tag-dot"></div>Social media · Now</div>
+        <div class="product-name">SMflow</div>
+        <div class="product-tagline">AI social media engine with a content-flavour rotation strategy built on proven marketing frameworks — not just a posting tool.</div>
+        <ul class="product-features">
+          <li class="product-feature">Content flavour rotation engine</li>
+          <li class="product-feature">Marketing-guru prompt frameworks (Ogilvy, GaryVee & more)</li>
+          <li class="product-feature">Outlook-style auto-posting calendar</li>
+          <li class="product-feature">Facebook & Instagram auto-publish — live now</li>
+          <li class="product-feature">LinkedIn (personal profile) — live now</li>
+        </ul>
+        <div class="product-price">$199 <span style="font-size:14px;color:rgba(255,255,255,0.3)">/ $499 / $750</span></div>
+        <div class="product-price-label">per month · Grow / Scale / Dominate</div>
+        <div class="pc-actions">
+          <a href="/onboarding.html?product=smflow" class="pc-btn-primary smflow-btn">Start free trial →</a>
+          <a href="/smflow-app/dashboard.html" class="pc-btn-sec">Sign in ↗</a>
+        </div>
+        <div class="pc-trial-note">7 days free · No credit card · Live in 1 hour</div>
+      </div>
+
       <!-- AIADVISOR -->
       <div class="product-card reveal">
         <div class="product-tag soon"><div class="product-tag-dot"></div>Coming soon</div>
@@ -434,10 +464,11 @@ footer{background:var(--bg-5);border-top:1px solid var(--stroke-light);padding:6
   <div class="cta-glow"></div>
   <p class="section-label" style="opacity:.5;margin-bottom:20px">Get started</p>
   <h2 class="cta-title reveal"><span style="color:rgba(248,249,250,0.9)">Start your</span><br><span style="color:rgba(248,249,250,0.25)">AI transformation</span><br><span style="color:rgba(248,249,250,0.9)">today.</span></h2>
-  <p class="cta-sub reveal">Two products live now for Sydney hospitality venues. Free 7-day trial. Hardware included. Set up in under an hour.</p>
+  <p class="cta-sub reveal">Three products live now for Australian businesses. Free 7-day trial. Set up in under an hour.</p>
   <div class="hero-actions reveal">
     <a href="https://tapee360.vercel.app" target="_blank" class="btn-white">Try Tapee360 free →</a>
     <a href="/onboarding.html?product=xpscore360" class="btn-outline">Try XPscore360 free ↗</a>
+    <a href="/onboarding.html?product=smflow" class="btn-outline">Try SMflow free ↗</a>
   </div>
 </section>
 
@@ -452,6 +483,7 @@ footer{background:var(--bg-5);border-top:1px solid var(--stroke-light);padding:6
         <h4>Products</h4>
         <a href="https://tapee360.vercel.app" target="_blank">Tapee360 ↗</a>
         <a href="/onboarding.html?product=xpscore360">XPscore360 ↗</a>
+        <a href="/onboarding.html?product=smflow">SMflow ↗</a>
         <a href="#">AIAdvisor — coming soon</a>
         <a href="#">MediFlow — coming soon</a>
       </div>
@@ -472,8 +504,12 @@ footer{background:var(--bg-5);border-top:1px solid var(--stroke-light);padding:6
     </div>
     <div class="footer-wordmark">AIFLOW360</div>
     <div class="footer-bottom">
-      <div class="footer-copy">© 2025 AITECHNIC Technology Solutions Pvt Ltd. All rights reserved.</div>
-      <div class="footer-copy">aiflow360.com · Sydney, NSW, Australia</div>
+      <div class="footer-copy">© 2026 AITECHNIC Technology Solutions Pvt Ltd. All rights reserved.</div>
+      <div style="display:flex;align-items:center;gap:20px">
+        <a href="/privacy.html" class="footer-copy" style="text-decoration:none">Privacy Policy</a>
+        <a href="/terms.html" class="footer-copy" style="text-decoration:none">Terms of Service</a>
+        <div class="footer-copy">aiflow360.com · Sydney, NSW, Australia</div>
+      </div>
     </div>
   </div>
 </footer>
