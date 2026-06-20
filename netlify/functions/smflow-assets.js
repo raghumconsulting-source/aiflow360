@@ -259,8 +259,29 @@ exports.handler = async function (event) {
     try {
 
       if (action === 'create_drive_folder') {
-        const { tenant_name, industry_code } = body;
+        const { tenant_name, industry_code, connected_by } = body;
         if (!tenant_name) return { statusCode: 400, headers: HEADERS, body: JSON.stringify({ error: 'tenant_name required' }) };
+
+        // Idempotency check: if this tenant already has a folder, return it instead of creating a duplicate.
+        // Self-serve clients could click "Create folder" more than once (double-click, page refresh mid-request,
+        // re-visiting Settings) — without this check each click would create a brand new orphaned Drive folder.
+        const existingConfig = await sb(`smflow_gdrive_config?tenant_id=eq.${tenant_id}&select=*&limit=1`);
+        if (existingConfig.length && existingConfig[0].folder_id) {
+          const cfg = existingConfig[0];
+          const subFolders = FOLDER_TEMPLATES[cfg.folder_structure] || FOLDER_TEMPLATES.default;
+          return {
+            statusCode: 200, headers: HEADERS,
+            body: JSON.stringify({
+              success:        true,
+              already_exists: true,
+              folder_id:      cfg.folder_id,
+              folder_url:     cfg.folder_url,
+              sub_folders:    subFolders,
+              share_message:  `Your SMflow photo folder:\n\n📁 ${cfg.folder_url}\n\nDrop your photos into the matching folder. There's a READ ME file inside with instructions.`,
+            }),
+          };
+        }
+
         const drive      = getDriveClient();
         const subFolders = FOLDER_TEMPLATES[industry_code] || FOLDER_TEMPLATES.default;
         const rootFolder = await driveCreateFolder(drive, `SMflow — ${tenant_name}`, null);
@@ -268,17 +289,19 @@ exports.handler = async function (event) {
         await driveCreateReadme(drive, rootFolder.id, subFolders);
         await driveShareFolder(drive, rootFolder.id, 'writer');
         const folderUrl = `https://drive.google.com/drive/folders/${rootFolder.id}`;
-        const existing  = await sb(`smflow_gdrive_config?tenant_id=eq.${tenant_id}&select=id&limit=1`);
         const configPayload = {
           tenant_id, folder_id: rootFolder.id,
           folder_name:      `SMflow — ${tenant_name}`,
           folder_url:       folderUrl,
           folder_structure: industry_code || 'default',
-          connected_by:     'aitechnic_admin',
+          connected_by:     connected_by || 'aitechnic_admin',
           sync_enabled:     true,
           updated_at:       new Date().toISOString(),
         };
-        if (existing.length) {
+        // Re-check existence right before insert to guard against a near-simultaneous duplicate request
+        // (e.g. a fast double-click firing two requests before the first one's response comes back).
+        const recheck = await sb(`smflow_gdrive_config?tenant_id=eq.${tenant_id}&select=id&limit=1`);
+        if (recheck.length) {
           await sb(`smflow_gdrive_config?tenant_id=eq.${tenant_id}`, { method:'PATCH', prefer:'return=minimal', body: configPayload });
         } else {
           await sb('smflow_gdrive_config', { method:'POST', prefer:'return=minimal', body: { ...configPayload, created_at: new Date().toISOString() } });
@@ -287,6 +310,7 @@ exports.handler = async function (event) {
           statusCode: 200, headers: HEADERS,
           body: JSON.stringify({
             success:       true,
+            already_exists: false,
             folder_id:     rootFolder.id,
             folder_url:    folderUrl,
             sub_folders:   subFolders,

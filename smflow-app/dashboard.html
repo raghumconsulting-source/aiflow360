@@ -1002,6 +1002,9 @@ textarea.sct:focus{border-color:var(--violet)}
                 <span id="gdrive-folder-name" style="font-size:12px;color:var(--green-t);font-weight:500"></span>
                 <a id="gdrive-folder-link" href="#" target="_blank" style="font-size:11px;color:var(--teal);margin-left:auto">Open in Drive →</a>
               </div>
+              <div id="gdrive-empty-hint" style="display:none;padding:10px 12px;background:var(--amber-bg);border:1px solid var(--amber);border-radius:var(--r);margin-bottom:12px;font-size:12px;color:var(--amber-t)">
+                📸 Your folder is ready and empty. Drop your photos into the matching sub-folders, then come back and hit <strong>Sync photos</strong>.
+              </div>
               <div style="display:flex;gap:16px;flex-wrap:wrap">
                 <div style="text-align:center">
                   <div style="font-size:22px;font-weight:500;color:var(--teal)" id="gdrive-asset-count">0</div>
@@ -1014,8 +1017,17 @@ textarea.sct:focus{border-color:var(--violet)}
               </div>
             </div>
             <div id="gdrive-connect-view">
+              <div id="gdrive-create-view">
+                <div class="setting-row" style="border:none;padding-top:0;padding-bottom:8px">
+                  <div><div class="setting-lbl">New here?</div><div class="setting-sub">We'll create a ready-to-use photo folder for your industry</div></div>
+                </div>
+                <button class="btn btn-primary btn-sm" style="width:100%" id="gdrive-create-btn" onclick="createGDriveFolder()">📁 Create my photo folder</button>
+              </div>
+              <div style="display:flex;align-items:center;gap:8px;margin:14px 0;color:var(--muted);font-size:11px">
+                <div style="flex:1;height:1px;background:var(--border)"></div>OR<div style="flex:1;height:1px;background:var(--border)"></div>
+              </div>
               <div class="setting-row" style="border:none;padding-top:0">
-                <div><div class="setting-lbl">Folder ID</div><div class="setting-sub">AITECHNIC curated photo pack</div></div>
+                <div><div class="setting-lbl">Folder ID</div><div class="setting-sub">Already have a Drive folder? Paste its ID</div></div>
                 <input type="text" class="sct" id="gdrive-folder-id" placeholder="Google Drive folder ID" style="width:160px">
               </div>
               <button class="btn btn-outline btn-sm" style="margin-top:8px;width:100%" onclick="connectGDrive()">Connect Google Drive</button>
@@ -2792,6 +2804,35 @@ function connectPlatform(platform) {
 // ── Selected asset for post attachment ───────────────────
 let selectedAssetUrl = null;
 
+async function createGDriveFolder() {
+  if (!TENANT) return toast('Please wait for your account to load');
+  const btn = document.getElementById('gdrive-create-btn');
+  const originalText = btn.textContent;
+  btn.textContent = '⏳ Creating your folder...'; btn.disabled = true;
+  try {
+    const res = await fetch(`${API_BASE}/smflow-assets`, {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({
+        action:        'create_drive_folder',
+        tenant_id:     TENANT.id,
+        tenant_name:   TENANT.display_name || TENANT.name || '',
+        industry_code: TENANT.industry_code || '_default',
+        connected_by:  'tenant_self_serve',
+      }),
+    });
+    const d = await res.json();
+    if (d.success) {
+      toast(d.already_exists ? '✓ You already have a photo folder' : '✓ Photo folder created!');
+      loadGDriveStatus();
+    } else {
+      toast('Error: ' + d.error);
+    }
+  } catch(e) {
+    toast('Could not create folder: ' + e.message);
+  }
+  btn.textContent = originalText; btn.disabled = false;
+}
+
 async function connectGDrive() {
   const folderId = document.getElementById('gdrive-folder-id').value.trim();
   if (!folderId || !TENANT) return toast('Enter a folder ID');
@@ -2821,6 +2862,8 @@ async function loadGDriveStatus() {
       const link = document.getElementById('gdrive-folder-link');
       if (link && d.folder_url) link.href = d.folder_url;
       document.getElementById('gdrive-asset-count').textContent = d.assets_in_db || 0;
+      const emptyHint = document.getElementById('gdrive-empty-hint');
+      if (emptyHint) emptyHint.style.display = (d.assets_in_db || 0) === 0 ? 'block' : 'none';
       if (d.last_synced_at) {
         const dt = new Date(d.last_synced_at);
         document.getElementById('gdrive-last-sync').textContent =
