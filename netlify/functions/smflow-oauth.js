@@ -18,15 +18,17 @@ const HEADERS = {
   'Content-Type':                 'application/json',
 };
 
-// ── Facebook + Instagram scopes ────────────────────────────
-const FB_SCOPES = [
-  'pages_show_list',
-  'pages_manage_posts',
-  'pages_read_engagement',
-  'instagram_basic',
-  'instagram_content_publish',
-  'business_management',
-].join(',');
+// Facebook Login for Business config_id — SMFLOW is a Business-type Meta
+// app, which requires logins to go through a saved Configuration rather
+// than a raw `scope` list. Meta's own docs say not to mix scope with
+// config_id for Business-type apps, so FB_SCOPES (above) is now unused for
+// this platform — kept only as a comment of which permissions the
+// configuration itself grants, for reference:
+//   pages_show_list, pages_manage_posts, pages_read_engagement,
+//   business_management, instagram_basic, instagram_content_publish
+// Configuration name: "SMflow Page and Instagram Publishing"
+// Created via App Dashboard → Facebook Login for Business → Configurations
+const META_LOGIN_CONFIG_ID = process.env.META_LOGIN_CONFIG_ID || '2182293842534897';
 
 // ── LinkedIn scopes ────────────────────────────────────────
 // Phase 1: Only OpenID scopes (always available) for initial connect
@@ -98,7 +100,10 @@ exports.handler = async function (event) {
     oauthUrl = new URL('https://www.facebook.com/v19.0/dialog/oauth');
     oauthUrl.searchParams.set('client_id',     META_APP_ID);
     oauthUrl.searchParams.set('redirect_uri',  CALLBACK_URL);
-    oauthUrl.searchParams.set('scope',         FB_SCOPES);
+    // config_id replaces scope for Business-type apps (SMFLOW is one) — see
+    // note above META_LOGIN_CONFIG_ID. Meta's docs explicitly say not to
+    // include scope alongside config_id, so it's intentionally omitted here.
+    oauthUrl.searchParams.set('config_id',     META_LOGIN_CONFIG_ID);
     oauthUrl.searchParams.set('response_type', 'code');
     oauthUrl.searchParams.set('state',         state);
   }
