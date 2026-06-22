@@ -95,7 +95,15 @@ async function handleFacebook(code, tenantId) {
     ? new Date(Date.now() + llData.expires_in * 1000).toISOString()
     : null;
 
-  // 3. Get all Facebook Pages the user manages
+  // 3. Get this person's own Facebook user ID. Meta's deauthorize webhook
+  // (smflow-meta-deauthorize.js) only ever sends THIS id, never a Page or
+  // IG Business Account id — so we store it alongside each row below to
+  // make that webhook able to find and deactivate the right accounts later.
+  const meRes  = await fetch(`https://graph.facebook.com/v19.0/me?fields=id&access_token=${longToken}`);
+  const meData = await meRes.json();
+  const fbUserId = meData.id || null;
+
+  // 4. Get all Facebook Pages the user manages
   const pagesRes = await fetch(
     `https://graph.facebook.com/v19.0/me/accounts?access_token=${longToken}&fields=id,name,access_token,category`
   );
@@ -113,6 +121,7 @@ async function handleFacebook(code, tenantId) {
       access_token:        page.access_token,
       token_expires_at:    expiresAt,
       meta_page_id:        page.id,
+      fb_user_id:          fbUserId,
     });
     fbCount++;
 
@@ -136,6 +145,7 @@ async function handleFacebook(code, tenantId) {
         token_expires_at:    expiresAt,
         meta_page_id:        page.id,
         meta_ig_account_id:  igId,
+        fb_user_id:          fbUserId,
       });
       igCount++;
     }
@@ -281,6 +291,55 @@ async function handleYouTube(code, tenantId) {
 }
 
 // ══════════════════════════════════════════════════════════
+// GOOGLE DRIVE HANDLER
+// ══════════════════════════════════════════════════════════
+async function handleGoogleDrive(code, tenantId) {
+  // 1. Exchange code for tokens (same Google token endpoint as YouTube —
+  // the client_id/secret pair is shared across Google OAuth platforms here)
+  const tokenRes = await fetch('https://oauth2.googleapis.com/token', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: new URLSearchParams({
+      code,
+      client_id:     YOUTUBE_CLIENT_ID,
+      client_secret: YOUTUBE_CLIENT_SECRET,
+      redirect_uri:  CALLBACK_URL,
+      grant_type:    'authorization_code',
+    }),
+  });
+  const tokenData = await tokenRes.json();
+  if (!tokenData.access_token) throw new Error(`Google Drive token exchange failed: ${JSON.stringify(tokenData)}`);
+
+  const accessToken  = tokenData.access_token;
+  const refreshToken = tokenData.refresh_token || null;
+  const expiresAt    = tokenData.expires_in
+    ? new Date(Date.now() + tokenData.expires_in * 1000).toISOString()
+    : null;
+
+  // 2. Get the connected Google account's email/name for display —
+  // drive.file scope can't list files, but userinfo is always readable
+  const profileRes = await fetch('https://www.googleapis.com/oauth2/v2/userinfo', {
+    headers: { 'Authorization': `Bearer ${accessToken}` },
+  });
+  const profile = await profileRes.json();
+  const accountEmail = profile.email || 'Google Drive account';
+
+  // 3. Save — platform_account_id uses the Google account id (profile.id)
+  // since a single client should only ever connect one Drive account.
+  await upsertAccount(tenantId, 'google_drive', {
+    platform_account_id: profile.id || accountEmail,
+    account_name:        accountEmail,
+    account_type:        'drive',
+    access_token:        accessToken,
+    refresh_token:       refreshToken,
+    token_expires_at:    expiresAt,
+    token_scopes:        ['drive.file'],
+  });
+
+  return `Google Drive (${accountEmail})`;
+}
+
+// ══════════════════════════════════════════════════════════
 // MAIN HANDLER
 // ══════════════════════════════════════════════════════════
 exports.handler = async function (event) {
@@ -326,6 +385,8 @@ exports.handler = async function (event) {
       successMsg = await handleLinkedIn(code, tenant_id);
     } else if (platform === 'youtube') {
       successMsg = await handleYouTube(code, tenant_id);
+    } else if (platform === 'google_drive') {
+      successMsg = await handleGoogleDrive(code, tenant_id);
     } else {
       throw new Error(`Unsupported platform: ${platform}`);
     }

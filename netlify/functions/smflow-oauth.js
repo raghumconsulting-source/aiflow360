@@ -54,6 +54,19 @@ const YOUTUBE_SCOPES = [
   'profile',
 ].join(' ');
 
+// ── Google Drive scopes ─────────────────────────────────────
+// drive.file: app can only see/manage files IT creates — not the client's
+// whole Drive. This is the minimum-privilege scope for "create a folder
+// for this client, under their own storage quota" and is what lets the
+// consent screen avoid Google's sensitive-scope verification review that
+// the full 'drive' scope would require.
+const GOOGLE_DRIVE_SCOPES = [
+  'https://www.googleapis.com/auth/drive.file',
+  'openid',
+  'email',
+  'profile',
+].join(' ');
+
 exports.handler = async function (event) {
   if (event.httpMethod === 'OPTIONS') return { statusCode: 204, headers: HEADERS, body: '' };
   if (event.httpMethod !== 'GET') {
@@ -110,6 +123,23 @@ exports.handler = async function (event) {
     oauthUrl.searchParams.set('redirect_uri',   CALLBACK_URL);
     oauthUrl.searchParams.set('response_type',  'code');
     oauthUrl.searchParams.set('scope',          YOUTUBE_SCOPES);
+    oauthUrl.searchParams.set('state',          state);
+    oauthUrl.searchParams.set('access_type',    'offline');  // get refresh token
+    oauthUrl.searchParams.set('prompt',         'consent');  // always show consent to ensure refresh token
+  }
+
+  // ── Google Drive ───────────────────────────────────────
+  // Reuses the same Google OAuth client as YouTube — Google OAuth clients
+  // are not platform-specific, only the requested scope differs. Kept as a
+  // separate platform value (not bundled into the youtube connect button)
+  // so a client can connect one without the other.
+  else if (platform === 'google_drive') {
+    if (!YOUTUBE_CLIENT_ID) return { statusCode: 500, headers: HEADERS, body: JSON.stringify({ error: 'YOUTUBE_CLIENT_ID not configured' }) };
+    oauthUrl = new URL('https://accounts.google.com/o/oauth2/v2/auth');
+    oauthUrl.searchParams.set('client_id',      YOUTUBE_CLIENT_ID);
+    oauthUrl.searchParams.set('redirect_uri',   CALLBACK_URL);
+    oauthUrl.searchParams.set('response_type',  'code');
+    oauthUrl.searchParams.set('scope',          GOOGLE_DRIVE_SCOPES);
     oauthUrl.searchParams.set('state',          state);
     oauthUrl.searchParams.set('access_type',    'offline');  // get refresh token
     oauthUrl.searchParams.set('prompt',         'consent');  // always show consent to ensure refresh token

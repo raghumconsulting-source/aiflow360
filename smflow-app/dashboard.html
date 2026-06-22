@@ -987,6 +987,14 @@ textarea.sct:focus{border-color:var(--violet)}
                 </div>
                 <button class="btn btn-outline btn-sm" id="acc-btn-youtube" onclick="connectPlatform('YouTube')">Connect</button>
               </div>
+              <div class="social-acc" id="acc-googledrive">
+                <div class="social-acc-icon" style="background:var(--surface)">📁</div>
+                <div class="social-acc-info">
+                  <div class="social-acc-name">Google Drive</div>
+                  <div class="social-acc-status" id="acc-status-googledrive">Required to create your photo folder</div>
+                </div>
+                <button class="btn btn-outline btn-sm" id="acc-btn-googledrive" onclick="connectPlatform('GoogleDrive')">Connect</button>
+              </div>
             </div>
           </div>
         </div>
@@ -1019,7 +1027,7 @@ textarea.sct:focus{border-color:var(--violet)}
             <div id="gdrive-connect-view">
               <div id="gdrive-create-view">
                 <div class="setting-row" style="border:none;padding-top:0;padding-bottom:8px">
-                  <div><div class="setting-lbl">New here?</div><div class="setting-sub">We'll create a ready-to-use photo folder for your industry</div></div>
+                  <div><div class="setting-lbl">New here?</div><div class="setting-sub">Connect Google Drive above first, then we'll create a ready-to-use photo folder in your own Drive for your industry</div></div>
                 </div>
                 <button class="btn btn-primary btn-sm" style="width:100%" id="gdrive-create-btn" onclick="createGDriveFolder()">📁 Create my photo folder</button>
               </div>
@@ -2740,7 +2748,7 @@ async function loadSocialAccounts() {
     const d        = await res.json();
     const accounts = d.social_accounts || [];
     // Reset all statuses first
-    ['facebook','instagram','linkedin','youtube'].forEach(p => {
+    ['facebook','instagram','linkedin','youtube','googledrive'].forEach(p => {
       const statusEl = document.getElementById(`acc-status-${p}`);
       const btnEl    = document.getElementById(`acc-btn-${p}`);
       if (statusEl) statusEl.textContent = 'Not connected';
@@ -2750,7 +2758,7 @@ async function loadSocialAccounts() {
     // Reset all platforms to disconnected state
     const platKeys = {
       'Facebook':'facebook','Instagram':'instagram','LinkedIn':'linkedin',
-      'Twitter/X':'twitterx','WhatsApp':'whatsapp','YouTube':'youtube'
+      'Twitter/X':'twitterx','WhatsApp':'whatsapp','YouTube':'youtube','google_drive':'googledrive'
     };
     Object.values(platKeys).forEach(k => {
       const statusEl = document.getElementById('acc-status-' + k);
@@ -2788,7 +2796,7 @@ async function loadSocialAccounts() {
 
 function connectPlatform(platform) {
   if (!TENANT) return toast('Not logged in');
-  const p            = platform.toLowerCase();
+  let p              = platform.toLowerCase();
   const redirectBack = window.location.href.split('?')[0];
 
   // WhatsApp — requires Meta Business API approval
@@ -2796,6 +2804,11 @@ function connectPlatform(platform) {
     toast('⚠ WhatsApp requires Meta Business API approval. Contact AITECHNIC to enable.');
     return;
   }
+
+  // Google Drive uses an underscored platform value server-side (google_drive),
+  // consistent with how it's referenced elsewhere — lowercasing 'GoogleDrive'
+  // alone would produce 'googledrive', which the backend doesn't recognise.
+  if (p === 'googledrive') p = 'google_drive';
 
   // All other platforms — route through smflow-oauth
   const oauthUrl = `/.netlify/functions/smflow-oauth?tenant_id=${TENANT.id}&platform=${p}&redirect_back=${encodeURIComponent(redirectBack)}`;

@@ -79,6 +79,64 @@ function getDriveClient() {
   return google.drive({ version: 'v3', auth });
 }
 
+// Service accounts have no storage quota of their own and can only create
+// files inside a Google Workspace Shared Drive — never in anyone's "My
+// Drive", not even their own (Google API error: "Service Accounts do not
+// have storage quota"). Personal/free Gmail accounts can't have Shared
+// Drives at all, so folder *creation* must happen under the client's own
+// OAuth-authorised account instead. getDriveClient() above (service account)
+// is still used for *reading* synced photos from a folder the client has
+// separately shared — that doesn't touch storage quota, only writes do.
+const GOOGLE_TOKEN_URL = 'https://oauth2.googleapis.com/token';
+const YOUTUBE_CLIENT_ID     = process.env.YOUTUBE_CLIENT_ID;     // same OAuth client used for Drive scope
+const YOUTUBE_CLIENT_SECRET = process.env.YOUTUBE_CLIENT_SECRET;
+
+async function getClientDriveAuth(tenantId) {
+  const accounts = await sb(`smflow_social_accounts?tenant_id=eq.${tenantId}&platform=eq.google_drive&is_active=eq.true&limit=1`);
+  if (!accounts.length) {
+    throw new Error('No Google Drive account connected for this tenant. Connect Google Drive first under Social accounts.');
+  }
+  const account = accounts[0];
+  let accessToken = account.access_token;
+
+  // Refresh if expired or expiring within the next 60 seconds
+  const expiresAt = account.token_expires_at ? new Date(account.token_expires_at).getTime() : 0;
+  if (!account.refresh_token) {
+    throw new Error('Google Drive connection is missing a refresh token — please reconnect Google Drive.');
+  }
+  if (Date.now() > expiresAt - 60000) {
+    const refreshRes = await fetch(GOOGLE_TOKEN_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams({
+        client_id:     YOUTUBE_CLIENT_ID,
+        client_secret: YOUTUBE_CLIENT_SECRET,
+        refresh_token: account.refresh_token,
+        grant_type:    'refresh_token',
+      }),
+    });
+    const refreshData = await refreshRes.json();
+    if (!refreshData.access_token) {
+      throw new Error(`Could not refresh Google Drive access — please reconnect Google Drive. (${refreshData.error || 'unknown error'})`);
+    }
+    accessToken = refreshData.access_token;
+    const newExpiresAt = refreshData.expires_in ? new Date(Date.now() + refreshData.expires_in * 1000).toISOString() : null;
+    await sb(`smflow_social_accounts?id=eq.${account.id}`, {
+      method: 'PATCH', prefer: 'return=minimal',
+      body: { access_token: accessToken, token_expires_at: newExpiresAt, updated_at: new Date().toISOString() },
+    });
+  }
+
+  const auth = new google.auth.OAuth2();
+  auth.setCredentials({ access_token: accessToken });
+  return auth;
+}
+
+async function getClientDriveClient(tenantId) {
+  const auth = await getClientDriveAuth(tenantId);
+  return google.drive({ version: 'v3', auth });
+}
+
 const FOLDER_TEMPLATES = {
   accommodation_food:     ['01-food-drinks','02-interior','03-exterior','04-team','05-behind-scenes','06-customers','07-events','08-specials-promos'],
   beauty:                 ['01-treatments-services','02-before-after-results','03-salon-interior','04-team','05-products','06-customers','07-events'],
@@ -143,12 +201,16 @@ function getTagsFromFolder(name) {
 
 async function driveCreateFolder(drive, name, parentId) {
   const meta = { name, mimeType: 'application/vnd.google-apps.folder' };
-  // Use provided parentId, or fall back to shared SMflow Clients folder
-  meta.parents = [parentId || SHARED_DRIVE_ID];
+  // If a parentId is given, nest there. Otherwise omit `parents` entirely so
+  // Drive places the folder at the root of whichever Drive this client
+  // belongs to ("My Drive" for client-OAuth calls). Previously this fell
+  // back to SHARED_DRIVE_ID, which only made sense for the old
+  // service-account flow — a client's personal Drive has no such folder.
+  if (parentId) meta.parents = [parentId];
   const res = await drive.files.create({
     requestBody: meta,
     fields: 'id,name,webViewLink',
-    supportsAllDrives: true,  // required for shared drives
+    supportsAllDrives: true,  // harmless no-op for personal Drive; still needed when reading via the service account elsewhere
   });
   return res.data;
 }
@@ -328,12 +390,18 @@ exports.handler = async function (event) {
         // 'pending' claim so a retry can actually proceed instead of being permanently stuck
         // behind a row that claims a folder exists but doesn't.
         try {
-          const drive      = getDriveClient();
+          // Folders are created under the CLIENT's own Google Drive (via their OAuth
+          // connection), not the AITECHNIC service account — service accounts have no
+          // storage quota and can't create files outside a Workspace Shared Drive, which
+          // personal Gmail accounts can't have. See getClientDriveClient() for details.
+          const drive      = await getClientDriveClient(tenant_id);
           const subFolders = FOLDER_TEMPLATES[industry_code] || FOLDER_TEMPLATES.default;
           const rootFolder = await driveCreateFolder(drive, `SMflow — ${tenant_name}`, null);
           for (const f of subFolders) await driveCreateFolder(drive, f, rootFolder.id);
           await driveCreateReadme(drive, rootFolder.id, subFolders);
-          await driveShareFolder(drive, rootFolder.id, 'writer');
+          // No driveShareFolder() call here — the client already owns this folder outright
+          // (it's in their own Drive), so there's no one else to share it with at creation
+          // time. They can share it themselves later if they want a teammate to drop photos in.
           const folderUrl = `https://drive.google.com/drive/folders/${rootFolder.id}`;
 
           await sb(`smflow_gdrive_config?tenant_id=eq.${tenant_id}`, {
