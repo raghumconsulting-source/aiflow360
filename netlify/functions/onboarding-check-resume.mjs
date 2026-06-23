@@ -39,7 +39,7 @@ import Stripe from 'stripe';
 // covers tenants where that ID was cleared (e.g. a stale test-mode id after
 // a live-mode key switch) or never set due to an earlier Stripe API error.
 const stripe = process.env.STRIPE_SECRET_KEY
-  ? Stripe(process.env.STRIPE_SECRET_KEY)
+  ? new Stripe(process.env.STRIPE_SECRET_KEY)
   : null;
 
 // Service-role client — used only for DB reads after identity is proven.

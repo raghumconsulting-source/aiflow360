@@ -16,7 +16,7 @@ const supabase = createClient(
 
 // ── Stripe (only initialise if key present) ────────────
 const stripe = process.env.STRIPE_SECRET_KEY
-  ? Stripe(process.env.STRIPE_SECRET_KEY)
+  ? new Stripe(process.env.STRIPE_SECRET_KEY)
   : null;
 
 // ── Plan limits per product + tier ─────────────────────
