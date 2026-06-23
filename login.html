@@ -117,8 +117,8 @@ input.err{border-color:var(--red)}
 
     <p class="foot">New here? <a href="/onboarding.html">Start your free trial</a></p>
 
-    <div id="dashboard-hint" style="display:none;margin-top:14px;padding:12px 14px;background:var(--faint);border-radius:var(--r);font-size:12.5px;color:var(--muted);text-align:center">
-      Already fully set up? Head to your product dashboard directly —
+    <div id="dashboard-hint" style="margin-top:14px;padding:12px 14px;background:var(--faint);border-radius:var(--r);font-size:12.5px;color:var(--muted);text-align:center">
+      Already set up? Jump straight to your product —
       <a href="/smflow-app/dashboard.html" style="color:var(--text);font-weight:500">SMflow</a>,
       <a href="/xpscore360-app/dashboard.html" style="color:var(--text);font-weight:500">XPscore360</a>, or
       <a href="https://tapee360.vercel.app" style="color:var(--text);font-weight:500" target="_blank">Tapee360</a>.
@@ -238,10 +238,9 @@ async function attemptLogin(){
       // Deliberately generic — matches the backend's identical-shape
       // failure response, so this page doesn't leak whether the email
       // exists, the account is already fully active, or the password
-      // was simply wrong. We can't tell which case this is, so the hint
-      // below is intentionally broad rather than a confident diagnosis.
-      showToast("We couldn't sign you in. Check your details, or if you're already set up, go to your product dashboard.", 'err');
-      document.getElementById('dashboard-hint').style.display = 'block';
+      // was simply wrong. The "jump to your dashboard" hint below is
+      // always visible on this page now, not just shown on error.
+      showToast("We couldn't sign you in. Check your details and try again.", 'err');
       btn.classList.remove('loading'); btn.disabled = false;
       return;
     }
