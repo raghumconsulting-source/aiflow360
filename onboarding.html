@@ -1886,6 +1886,20 @@ async function go6(){
   btn.classList.add('loading'); btn.disabled = true;
 
   try {
+    // If S.tenantId is already set, this person arrived via the /login.html
+    // resume flow (applyResumeData already set it) — they have a real
+    // account and tenant row already. Calling onboarding-complete again
+    // would try to create a SECOND Supabase Auth user with the same email,
+    // which onboarding-complete explicitly and correctly rejects with
+    // "An account with this email already exists. Please sign in to
+    // resume." — a dead-end loop, since they just did exactly that. Skip
+    // straight to Checkout instead, the same way resumeToCheckout() does
+    // for the "resume from step 1" path.
+    if (S.tenantId) {
+      await resumeToCheckout();
+      return;
+    }
+
     // Step A — create tenant, user, venue, Stripe customer
     const payload = {
       product:    S.product,
