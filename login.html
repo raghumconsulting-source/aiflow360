@@ -6,6 +6,7 @@
 <title>Sign In — AIFlow360</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;1,400&family=Geist:wght@300;400;500&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
 :root{
@@ -39,7 +40,6 @@ body{
   border-radius:16px;padding:40px 36px;
 }
 .logo-row{display:flex;align-items:center;gap:10px;margin-bottom:32px;justify-content:center}
-.logo-icon{width:36px;height:36px;border-radius:9px;background:#000;display:flex;align-items:center;justify-content:center;color:#fff;font-family:'Playfair Display',serif;font-weight:500;font-size:17px}
 .logo-text{font-family:'Playfair Display',serif;font-size:18px;font-weight:500}
 h1{font-family:'Playfair Display',serif;font-size:24px;font-weight:500;text-align:center;margin-bottom:6px}
 .sub{color:var(--muted);font-size:13px;text-align:center;margin-bottom:28px}
@@ -80,39 +80,62 @@ input.err{border-color:var(--red)}
 .foot{text-align:center;margin-top:22px;font-size:13px;color:var(--muted)}
 .foot a{color:var(--text);font-weight:500;text-decoration:none}
 .foot a:hover{text-decoration:underline}
+.forgot-link{display:block;text-align:right;font-size:12.5px;color:var(--muted);text-decoration:none;margin-top:-8px;margin-bottom:16px}
+.forgot-link:hover{color:var(--text);text-decoration:underline}
+.panel{display:none}
+.panel.show{display:block}
+.back-link{display:inline-flex;align-items:center;gap:4px;font-size:13px;color:var(--muted);text-decoration:none;margin-bottom:20px;cursor:pointer}
+.back-link:hover{color:var(--text)}
 </style>
 </head>
 <body>
 
 <div class="card">
   <div class="logo-row">
-    <div class="logo-icon">A</div>
+    <img src="/aiflow360-logo.png" width="36" height="36" style="border-radius:50%;object-fit:cover" alt="AIFlow360">
     <div class="logo-text">AIFlow360</div>
   </div>
-  <h1>Welcome back</h1>
-  <p class="sub">Sign in to continue where you left off</p>
 
-  <form id="login-form" onsubmit="return false">
-    <div class="field">
-      <label for="em">Email</label>
-      <input type="email" id="em" autocomplete="email" placeholder="you@business.com.au">
-      <div class="err-msg" id="em-err">Enter a valid email address</div>
+  <div class="panel show" id="panel-signin">
+    <h1>Welcome back</h1>
+    <p class="sub">Sign in to continue where you left off</p>
+
+    <form id="login-form" onsubmit="return false">
+      <div class="field">
+        <label for="em">Email</label>
+        <input type="email" id="em" autocomplete="email" placeholder="you@business.com.au">
+        <div class="err-msg" id="em-err">Enter a valid email address</div>
+      </div>
+      <div class="field">
+        <label for="pw">Password</label>
+        <input type="password" id="pw" autocomplete="current-password" placeholder="••••••••">
+        <div class="err-msg" id="pw-err">Enter your password</div>
+      </div>
+      <a class="forgot-link" onclick="showPanel('forgot')">Forgot password?</a>
+      <button type="submit" class="btn" id="submit-btn" onclick="attemptLogin()">Sign in</button>
+    </form>
+
+    <p class="foot">New here? <a href="/onboarding.html">Start your free trial</a></p>
+
+    <div id="dashboard-hint" style="display:none;margin-top:14px;padding:12px 14px;background:var(--faint);border-radius:var(--r);font-size:12.5px;color:var(--muted);text-align:center">
+      Already fully set up? Head to your product dashboard directly —
+      <a href="/smflow-app/dashboard.html" style="color:var(--text);font-weight:500">SMflow</a>,
+      <a href="/xpscore360-app/dashboard.html" style="color:var(--text);font-weight:500">XPscore360</a>, or
+      <a href="https://tapee360.vercel.app" style="color:var(--text);font-weight:500" target="_blank">Tapee360</a>.
     </div>
+  </div>
+
+  <div class="panel" id="panel-forgot">
+    <a class="back-link" onclick="showPanel('signin')">← Back to sign in</a>
+    <h1>Reset your password</h1>
+    <p class="sub">We'll email you a link to set a new one</p>
+
     <div class="field">
-      <label for="pw">Password</label>
-      <input type="password" id="pw" autocomplete="current-password" placeholder="••••••••">
-      <div class="err-msg" id="pw-err">Enter your password</div>
+      <label for="forgot-em">Email</label>
+      <input type="email" id="forgot-em" autocomplete="email" placeholder="you@business.com.au">
+      <div class="err-msg" id="forgot-em-err">Enter a valid email address</div>
     </div>
-    <button type="submit" class="btn" id="submit-btn" onclick="attemptLogin()">Sign in</button>
-  </form>
-
-  <p class="foot">New here? <a href="/onboarding.html">Start your free trial</a></p>
-
-  <div id="dashboard-hint" style="display:none;margin-top:14px;padding:12px 14px;background:var(--faint);border-radius:var(--r);font-size:12.5px;color:var(--muted);text-align:center">
-    Already fully set up? Head to your product dashboard directly —
-    <a href="/smflow-app/dashboard.html" style="color:var(--text);font-weight:500">SMflow</a>,
-    <a href="/xpscore360-app/dashboard.html" style="color:var(--text);font-weight:500">XPscore360</a>, or
-    <a href="https://tapee360.vercel.app" style="color:var(--text);font-weight:500" target="_blank">Tapee360</a>.
+    <button type="button" class="btn" id="forgot-btn" onclick="sendResetEmail()">Send reset link</button>
   </div>
 </div>
 
@@ -133,6 +156,57 @@ function clearErr(id){
 function setErr(id){
   document.getElementById(id).classList.add('err');
   document.getElementById(id+'-err').classList.add('show');
+}
+
+function showPanel(name){
+  document.getElementById('panel-signin').classList.toggle('show', name === 'signin');
+  document.getElementById('panel-forgot').classList.toggle('show', name === 'forgot');
+}
+
+// Supabase client is created lazily (only when the forgot-password panel
+// is actually used) rather than on every page load, since most visitors
+// to this page will just sign in normally and never need it.
+let sbClient = null;
+async function getSupabaseClient(){
+  if (sbClient) return sbClient;
+  const res = await fetch('/.netlify/functions/smflow-config-public');
+  if (!res.ok) throw new Error('Could not load configuration');
+  const cfg = await res.json();
+  const { createClient } = supabase;
+  sbClient = createClient(cfg.supabase_url, cfg.supabase_anon);
+  return sbClient;
+}
+
+async function sendResetEmail(){
+  clearErr('forgot-em');
+  const email = document.getElementById('forgot-em').value.trim();
+  if (!/\S+@\S+\.\S+/.test(email)) { setErr('forgot-em'); return; }
+
+  const btn = document.getElementById('forgot-btn');
+  btn.classList.add('loading'); btn.disabled = true;
+
+  try {
+    const client = await getSupabaseClient();
+    // redirectTo must be on this same domain and must be allow-listed in
+    // Supabase Auth settings (Authentication → URL Configuration → Redirect
+    // URLs) or Supabase will silently reject the redirect — see deploy notes.
+    const { error } = await client.auth.resetPasswordForEmail(email, {
+      redirectTo: `${window.location.origin}/reset-password.html`,
+    });
+
+    // Deliberately show the SAME success message regardless of whether the
+    // email actually exists in the system. Supabase itself doesn't reveal
+    // this (resetPasswordForEmail returns success either way by design),
+    // and showing a different message for "email not found" would let
+    // someone enumerate which email addresses have accounts.
+    if (error) console.warn('resetPasswordForEmail returned an error (showing generic success regardless):', error.message);
+    showToast("If an account exists for that email, we've sent a reset link.");
+    btn.classList.remove('loading'); btn.disabled = false;
+
+  } catch (e) {
+    showToast('Something went wrong. Please try again.', 'err');
+    btn.classList.remove('loading'); btn.disabled = false;
+  }
 }
 
 async function attemptLogin(){
@@ -191,6 +265,9 @@ async function attemptLogin(){
 
 document.getElementById('pw').addEventListener('keydown', e => {
   if (e.key === 'Enter') attemptLogin();
+});
+document.getElementById('forgot-em').addEventListener('keydown', e => {
+  if (e.key === 'Enter') sendResetEmail();
 });
 </script>
 </body>
