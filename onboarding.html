@@ -1382,22 +1382,68 @@ function applyResumeData(data) {
   show(2, false);
 }
 
-// `let tT` must be declared before init() runs below, not down near toast()
-// where it conceptually belongs. toast() is called from inside
-// applyResumeData(), which init()'s IIFE invokes immediately when this
-// script block executes — but `let` bindings are NOT hoisted the way
-// `function` declarations are; they sit in a temporal dead zone until
-// their own declaration line runs. Since toast() does `clearTimeout(tT)`,
-// calling it before reaching the original `let tT;` further down threw
-// "Cannot access 'tT' before initialization" — caught by the resume
-// handler's own try/catch, which silently swallowed it and fell through to
-// the normal (non-resumed) init path. That's why resume looked like it
-// "did nothing": every prefilled field that happened to be set BEFORE the
-// crash (bn, abn, etc.) stuck, but applyProduct/show, which run later in
-// the same function, never got the chance to. Found by reproducing the
-// exact bug live and reading the real console error, not by inspection
-// alone — the source code looked correct on every read-through.
+// `let tT`, PROG, INDUSTRY_SAVINGS, and ROI_CONFIG must all be declared
+// before init() runs below, not in their original locations further down
+// the file where they conceptually belong (next to toast()/show()/buildROI()
+// respectively). init()'s IIFE executes immediately when this script block
+// runs, and can call applyResumeData() → toast()/show()/buildROI() →
+// reference these — but `let`/`const` bindings are NOT hoisted the way
+// `function` declarations are; each sits in a temporal dead zone until its
+// own declaration line executes. Referencing one before that line throws
+// "Cannot access '<name>' before initialization" — which the resume
+// handler's own try/catch (built only to handle malformed JSON) silently
+// swallowed, falling through to the normal non-resumed init path. That's
+// why resume looked like it "did nothing" (tT) or "ignored the saved
+// product/plan" (PROG): whatever ran before the crash stuck, whatever came
+// after silently didn't. Found by reproducing the bug live in the browser
+// console and reading the real thrown error twice — the source code reads
+// correctly on inspection alone both times, which is exactly why this class
+// of bug is worth a long comment: every later edit that adds a top-level
+// `let`/`const` AFTER init() and ALSO reachable from applyResumeData()'s
+// call chain (toast, show, buildIndustryGrid, buildROI, buildPlans, etc.)
+// will reproduce this same failure mode. When in doubt, declare data
+// constants up here, above init(), not down near the function that uses
+// them.
 let tT;
+const PROG = {1:16,2:33,3:50,4:67,5:84,6:100};
+const INDUSTRY_SAVINGS = {
+  smflow: {
+    accommodation_food:     { label:'Hospitality',       agency:'$1,500–$3,000/mo' },
+    retail_trade:           { label:'Retail',            agency:'$1,500–$3,500/mo' },
+    healthcare:             { label:'Healthcare',        agency:'$1,500–$2,500/mo' },
+    beauty:                 { label:'Beauty & Hair',     agency:'$1,000–$2,500/mo' },
+    arts_recreation:        { label:'Fitness & Wellness',agency:'$1,500–$3,000/mo' },
+    professional_technical: { label:'Professional Svcs', agency:'$2,000–$5,000/mo' },
+    construction_trade:     { label:'Trades',            agency:'$1,500–$3,000/mo' },
+    real_estate:            { label:'Real Estate',       agency:'$2,500–$6,000/mo' },
+    information_media:      { label:'IT & Tech',         agency:'$2,000–$5,000/mo' },
+    education_training:     { label:'Education',         agency:'$1,500–$3,000/mo' },
+    financial_insurance:    { label:'Financial Svcs',    agency:'$2,000–$5,000/mo' },
+    ecommerce:              { label:'E-commerce',        agency:'$2,000–$5,000/mo' },
+    default:                { label:'Your industry',     agency:'$1,500–$5,000/mo' },
+  },
+  xpscore360: {
+    accommodation_food: 'Reputation management for hospitality typically costs $500–$1,500/mo through specialist agencies.',
+    healthcare:         'Healthcare reputation agencies charge $800–$2,000/mo for review management.',
+    retail_trade:       'Review management services for retail average $400–$1,000/mo.',
+    beauty:             'Salon reputation services run $300–$800/mo through marketing agencies.',
+    default:            'Review management agencies typically charge $500–$1,500/mo per location.',
+  },
+  tapee360: {
+    accommodation_food: 'Bopple charges $99–$249/mo (limited NFC). me&u starts at $200/mo for enterprise only. Mr Yum $150/mo+ with surcharges.',
+    default:            'Hospitality ordering platforms typically cost $150–$400/mo. Tapee360 includes NFC kits from $99/mo.',
+  },
+  aiflow360: {
+    default: 'AI automation consultants charge $150–$300/hr. AIflow360 replaces 10–20hrs/mo of manual workflow from $99/mo.',
+  },
+};
+const ROI_CONFIG = {
+  smflow: {
+    grow:     { price:199, brands:'1 brand',   agencyLow:1500, agencyHigh:3000 },
+    scale:    { price:499, brands:'5 brands',  agencyLow:2000, agencyHigh:5000 },
+    dominate: { price:750, brands:'Unlimited', agencyLow:3000, agencyHigh:8000 },
+  },
+};
 
 // ── Init ───────────────────────────────────────────────
 (function init() {
@@ -1574,46 +1620,6 @@ function buildSpecs(type) {
 }
 
 // ── ROI card + industry savings context ───────────────
-const INDUSTRY_SAVINGS = {
-  smflow: {
-    accommodation_food:     { label:'Hospitality',       agency:'$1,500–$3,000/mo' },
-    retail_trade:           { label:'Retail',            agency:'$1,500–$3,500/mo' },
-    healthcare:             { label:'Healthcare',        agency:'$1,500–$2,500/mo' },
-    beauty:                 { label:'Beauty & Hair',     agency:'$1,000–$2,500/mo' },
-    arts_recreation:        { label:'Fitness & Wellness',agency:'$1,500–$3,000/mo' },
-    professional_technical: { label:'Professional Svcs', agency:'$2,000–$5,000/mo' },
-    construction_trade:     { label:'Trades',            agency:'$1,500–$3,000/mo' },
-    real_estate:            { label:'Real Estate',       agency:'$2,500–$6,000/mo' },
-    information_media:      { label:'IT & Tech',         agency:'$2,000–$5,000/mo' },
-    education_training:     { label:'Education',         agency:'$1,500–$3,000/mo' },
-    financial_insurance:    { label:'Financial Svcs',    agency:'$2,000–$5,000/mo' },
-    ecommerce:              { label:'E-commerce',        agency:'$2,000–$5,000/mo' },
-    default:                { label:'Your industry',     agency:'$1,500–$5,000/mo' },
-  },
-  xpscore360: {
-    accommodation_food: 'Reputation management for hospitality typically costs $500–$1,500/mo through specialist agencies.',
-    healthcare:         'Healthcare reputation agencies charge $800–$2,000/mo for review management.',
-    retail_trade:       'Review management services for retail average $400–$1,000/mo.',
-    beauty:             'Salon reputation services run $300–$800/mo through marketing agencies.',
-    default:            'Review management agencies typically charge $500–$1,500/mo per location.',
-  },
-  tapee360: {
-    accommodation_food: 'Bopple charges $99–$249/mo (limited NFC). me&u starts at $200/mo for enterprise only. Mr Yum $150/mo+ with surcharges.',
-    default:            'Hospitality ordering platforms typically cost $150–$400/mo. Tapee360 includes NFC kits from $99/mo.',
-  },
-  aiflow360: {
-    default: 'AI automation consultants charge $150–$300/hr. AIflow360 replaces 10–20hrs/mo of manual workflow from $99/mo.',
-  },
-};
-
-const ROI_CONFIG = {
-  smflow: {
-    grow:     { price:199, brands:'1 brand',   agencyLow:1500, agencyHigh:3000 },
-    scale:    { price:499, brands:'5 brands',  agencyLow:2000, agencyHigh:5000 },
-    dominate: { price:750, brands:'Unlimited', agencyLow:3000, agencyHigh:8000 },
-  },
-};
-
 function buildROI() {
   const roiCard     = document.getElementById('roi-card');
   const roiIndustry = document.getElementById('roi-industry');
@@ -1653,7 +1659,6 @@ function buildROI() {
 
 
 // ── Progress ───────────────────────────────────────────
-const PROG = {1:16,2:33,3:50,4:67,5:84,6:100};
 
 function show(n, animate=true) {
   const prev = document.getElementById(`p${S.step}`);
