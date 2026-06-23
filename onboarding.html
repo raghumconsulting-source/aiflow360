@@ -1382,6 +1382,23 @@ function applyResumeData(data) {
   show(2, false);
 }
 
+// `let tT` must be declared before init() runs below, not down near toast()
+// where it conceptually belongs. toast() is called from inside
+// applyResumeData(), which init()'s IIFE invokes immediately when this
+// script block executes — but `let` bindings are NOT hoisted the way
+// `function` declarations are; they sit in a temporal dead zone until
+// their own declaration line runs. Since toast() does `clearTimeout(tT)`,
+// calling it before reaching the original `let tT;` further down threw
+// "Cannot access 'tT' before initialization" — caught by the resume
+// handler's own try/catch, which silently swallowed it and fell through to
+// the normal (non-resumed) init path. That's why resume looked like it
+// "did nothing": every prefilled field that happened to be set BEFORE the
+// crash (bn, abn, etc.) stuck, but applyProduct/show, which run later in
+// the same function, never got the chance to. Found by reproducing the
+// exact bug live and reading the real console error, not by inspection
+// alone — the source code looked correct on every read-through.
+let tT;
+
 // ── Init ───────────────────────────────────────────────
 (function init() {
   const params = new URLSearchParams(location.search);
@@ -1661,7 +1678,6 @@ function show(n, animate=true) {
 }
 
 // ── Toast ──────────────────────────────────────────────
-let tT;
 function toast(msg, type='ok') {
   const el = document.getElementById('toast');
   el.textContent = msg;
