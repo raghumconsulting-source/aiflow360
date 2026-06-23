@@ -1323,10 +1323,94 @@ const S = {
   tenantId:null, stripeCustomerId:null,
 };
 
+// ── Resume from /login.html ─────────────────────────────
+// Fills S and the visible DOM inputs from a verified resume payload, then
+// lands the person on step 2 (business details) rather than step 1 — step
+// 1 (name/email/password) was already proven via the login form they just
+// used, asking for it again would be redundant and slightly confusing.
+function applyResumeData(data) {
+  const p = data.prefill || {};
+
+  S.tenantId         = data.tenantId;
+  S.stripeCustomerId = data.stripeCustomerId;
+  if (data.product) S.product = data.product;
+
+  S.bn = p.bn || ''; S.abn = p.abn || '';
+  S.ws = p.ws || ''; S.be  = p.be  || ''; S.ph = p.ph || '';
+  S.a1 = p.a1 || ''; S.sb  = p.sb  || ''; S.st = p.st || ''; S.pc = p.pc || '';
+  S.industry_code      = p.industry_code      || '';
+  S.business_type_code = p.business_type_code || '';
+  S.color = p.color || S.color;
+  S.theme = p.theme || S.theme;
+
+  S.vn = p.vn || ''; S.va = p.va || ''; S.vsb = p.vsb || '';
+  S.vst = p.vst || ''; S.vpc = p.vpc || ''; S.vt = p.vt || '';
+  S.gp = p.gp || ''; S.kf = p.kf || ''; S.specs = Array.isArray(p.specs) ? p.specs : [];
+
+  // Render the product UI first (sets sidebar branding, builds plan grid) —
+  // but applyProduct() ALWAYS resets S.plan to that product's default, so
+  // the resumed plan/interval must be (re-)applied AFTER this call, not
+  // before, or the person's actual original plan choice gets silently
+  // discarded in favour of the default. (Found in code review — this was
+  // backwards in the first draft of this function.)
+  applyProduct(S.product);
+  if (data.plan)     S.plan     = data.plan;
+  if (data.interval) S.interval = data.interval;
+  buildPlans(); // re-render the plan grid so the restored S.plan is reflected/selected, not just held in state
+
+  // Write values into the actual visible inputs. Steps the person hasn't
+  // reached yet on a re-render still need their inputs populated, since
+  // show(n) doesn't write S back into the DOM — only reading the DOM into
+  // S on "Next" exists today (see go2()/go3()/etc.), so prefill has to
+  // happen on the input side directly.
+  const setVal = (id, val) => { const el = document.getElementById(id); if (el && val) el.value = val; };
+  setVal('bn', S.bn);   setVal('abn', S.abn); setVal('ws', S.ws);
+  setVal('be', S.be);   setVal('a1', S.a1);   setVal('sb2', S.sb);
+  setVal('pc2', S.pc);
+  if (S.st) { const stEl = document.getElementById('st'); if (stEl) stEl.value = S.st; }
+
+  setVal('vn', S.vn);   setVal('va', S.va);   setVal('vsb', S.vsb);
+  setVal('vpc', S.vpc);
+  if (S.vst) { const vstEl = document.getElementById('vst'); if (vstEl) vstEl.value = S.vst; }
+
+  toast(`Welcome back — resuming your signup for ${data.bizName || 'your business'}`, 'ok');
+
+  // Land on step 2 (business details) with everything already filled in.
+  // The person reviews/confirms/edits from here through the normal flow —
+  // we don't silently jump all the way to payment, since that risks them
+  // not noticing or confirming something that matters, like plan selection.
+  show(2, false);
+}
+
 // ── Init ───────────────────────────────────────────────
 (function init() {
   const params = new URLSearchParams(location.search);
   const prod   = params.get('product');
+
+  // ── Handle resume from /login.html ─────────────────
+  // The full resume payload (business details, address, plan, etc.) was
+  // handed off via sessionStorage rather than a URL query string, since it
+  // contains things like ABN and address that shouldn't sit in browser
+  // history or server logs as plain query parameters. Read it once, then
+  // clear it immediately — a stale leftover payload from a previous visit
+  // should never silently reapply itself on a later, unrelated page load.
+  if (params.get('resume') === '1') {
+    const raw = sessionStorage.getItem('smflow_resume_payload');
+    sessionStorage.removeItem('smflow_resume_payload');
+    if (raw) {
+      try {
+        const data = JSON.parse(raw);
+        if (data.resumable) {
+          applyResumeData(data);
+          return; // applyResumeData() takes over rendering from here
+        }
+      } catch (e) {
+        console.warn('Could not parse resume payload:', e.message);
+        // fall through to normal init below — better to show a fresh
+        // onboarding form than to crash on a malformed sessionStorage value
+      }
+    }
+  }
 
   // ── Handle Stripe Checkout return ──────────────────
   if (params.get('checkout') === 'success') {

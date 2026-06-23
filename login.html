@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sign In — AIFlow360</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;1,400&family=Geist:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+:root{
+  --bg:       #FFFFFF;
+  --surface:  #F7F7F5;
+  --card:     #FAFAF8;
+  --border:   #E8E8E4;
+  --border-d: #D0D0CA;
+  --text:     #0F0F0D;
+  --muted:    #888880;
+  --faint:    #F0F0EC;
+  --accent:   #0F0F0D;
+  --accent-t: #FFFFFF;
+  --green:    #1A7A4A;
+  --green-bg: rgba(26,122,74,.06);
+  --red:      #C94C4C;
+  --red-bg:   rgba(201,76,76,.06);
+  --r:        10px;
+  --pill:     999px;
+  --ease:     cubic-bezier(.32,1,.5,1);
+}
+html{height:100%;background:#fff}
+body{
+  min-height:100vh;font-family:'Geist',sans-serif;
+  font-size:15px;line-height:1.6;color:var(--text);
+  background:var(--surface);display:flex;align-items:center;justify-content:center;
+  padding:24px;
+}
+.card{
+  width:100%;max-width:420px;background:var(--bg);border:1px solid var(--border);
+  border-radius:16px;padding:40px 36px;
+}
+.logo-row{display:flex;align-items:center;gap:10px;margin-bottom:32px;justify-content:center}
+.logo-icon{width:36px;height:36px;border-radius:9px;background:#000;display:flex;align-items:center;justify-content:center;color:#fff;font-family:'Playfair Display',serif;font-weight:500;font-size:17px}
+.logo-text{font-family:'Playfair Display',serif;font-size:18px;font-weight:500}
+h1{font-family:'Playfair Display',serif;font-size:24px;font-weight:500;text-align:center;margin-bottom:6px}
+.sub{color:var(--muted);font-size:13px;text-align:center;margin-bottom:28px}
+.field{margin-bottom:16px}
+label{display:block;font-size:12.5px;font-weight:500;color:var(--muted);margin-bottom:6px}
+input{
+  width:100%;padding:11px 14px;border:1px solid var(--border-d);border-radius:var(--r);
+  font-family:'Geist',sans-serif;font-size:14.5px;color:var(--text);background:var(--bg);
+  transition:border-color .2s var(--ease);
+}
+input:focus{outline:none;border-color:var(--text)}
+input.err{border-color:var(--red)}
+.err-msg{color:var(--red);font-size:12px;margin-top:5px;display:none}
+.err-msg.show{display:block}
+.btn{
+  width:100%;padding:13px;border:none;border-radius:var(--pill);
+  background:var(--accent);color:var(--accent-t);font-family:'Geist',sans-serif;
+  font-size:14.5px;font-weight:500;cursor:pointer;margin-top:8px;
+  transition:opacity .2s var(--ease);
+}
+.btn:hover{opacity:.88}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+.btn.loading{position:relative;color:transparent}
+.btn.loading::after{
+  content:'';position:absolute;left:50%;top:50%;width:16px;height:16px;
+  margin:-8px 0 0 -8px;border:2px solid rgba(255,255,255,.4);border-top-color:#fff;
+  border-radius:50%;animation:spin .7s linear infinite;
+}
+@keyframes spin{to{transform:rotate(360deg)}}
+.toast{
+  position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(8px);
+  background:var(--text);color:#fff;padding:11px 20px;border-radius:var(--pill);
+  font-size:13.5px;opacity:0;pointer-events:none;transition:all .25s var(--ease);
+  max-width:90vw;text-align:center;
+}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+.toast.err{background:var(--red)}
+.foot{text-align:center;margin-top:22px;font-size:13px;color:var(--muted)}
+.foot a{color:var(--text);font-weight:500;text-decoration:none}
+.foot a:hover{text-decoration:underline}
+</style>
+</head>
+<body>
+
+<div class="card">
+  <div class="logo-row">
+    <div class="logo-icon">A</div>
+    <div class="logo-text">AIFlow360</div>
+  </div>
+  <h1>Welcome back</h1>
+  <p class="sub">Sign in to continue where you left off</p>
+
+  <form id="login-form" onsubmit="return false">
+    <div class="field">
+      <label for="em">Email</label>
+      <input type="email" id="em" autocomplete="email" placeholder="you@business.com.au">
+      <div class="err-msg" id="em-err">Enter a valid email address</div>
+    </div>
+    <div class="field">
+      <label for="pw">Password</label>
+      <input type="password" id="pw" autocomplete="current-password" placeholder="••••••••">
+      <div class="err-msg" id="pw-err">Enter your password</div>
+    </div>
+    <button type="submit" class="btn" id="submit-btn" onclick="attemptLogin()">Sign in</button>
+  </form>
+
+  <p class="foot">New here? <a href="/onboarding.html">Start your free trial</a></p>
+
+  <div id="dashboard-hint" style="display:none;margin-top:14px;padding:12px 14px;background:var(--faint);border-radius:var(--r);font-size:12.5px;color:var(--muted);text-align:center">
+    Already fully set up? Head to your product dashboard directly —
+    <a href="/smflow-app/dashboard.html" style="color:var(--text);font-weight:500">SMflow</a>,
+    <a href="/xpscore360-app/dashboard.html" style="color:var(--text);font-weight:500">XPscore360</a>, or
+    <a href="https://tapee360.vercel.app" style="color:var(--text);font-weight:500" target="_blank">Tapee360</a>.
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+function showToast(msg, type){
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = 'toast show' + (type === 'err' ? ' err' : '');
+  setTimeout(() => t.classList.remove('show'), 4000);
+}
+
+function clearErr(id){
+  document.getElementById(id).classList.remove('err');
+  document.getElementById(id+'-err').classList.remove('show');
+}
+function setErr(id){
+  document.getElementById(id).classList.add('err');
+  document.getElementById(id+'-err').classList.add('show');
+}
+
+async function attemptLogin(){
+  clearErr('em'); clearErr('pw');
+  const email = document.getElementById('em').value.trim();
+  const password = document.getElementById('pw').value;
+
+  let ok = true;
+  if (!/\S+@\S+\.\S+/.test(email)) { setErr('em'); ok = false; }
+  if (!password) { setErr('pw'); ok = false; }
+  if (!ok) return;
+
+  const btn = document.getElementById('submit-btn');
+  btn.classList.add('loading'); btn.disabled = true;
+
+  try {
+    // Same endpoint that powers the onboarding wizard's own "resume" check
+    // (step 1, "already have an account?" path) — this page is just a
+    // dedicated entry point to it, so a person doesn't have to know to
+    // re-enter their email/password inside the onboarding form itself.
+    const res = await fetch('/.netlify/functions/onboarding-check-resume', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password }),
+    });
+    const data = await res.json();
+
+    if (!data.resumable) {
+      // Deliberately generic — matches the backend's identical-shape
+      // failure response, so this page doesn't leak whether the email
+      // exists, the account is already fully active, or the password
+      // was simply wrong. We can't tell which case this is, so the hint
+      // below is intentionally broad rather than a confident diagnosis.
+      showToast("We couldn't sign you in. Check your details, or if you're already set up, go to your product dashboard.", 'err');
+      document.getElementById('dashboard-hint').style.display = 'block';
+      btn.classList.remove('loading'); btn.disabled = false;
+      return;
+    }
+
+    // Hand the full resume payload to onboarding.html via sessionStorage
+    // rather than a URL query string — this data includes business
+    // address, ABN, plan, etc., which has no business sitting in browser
+    // history or server access logs as plain-text query parameters.
+    sessionStorage.setItem('smflow_resume_payload', JSON.stringify(data));
+
+    showToast(`Welcome back — resuming your signup for ${data.bizName || 'your business'}`);
+    setTimeout(() => {
+      window.location.href = '/onboarding.html?resume=1';
+    }, 600);
+
+  } catch (e) {
+    showToast('Something went wrong. Please try again.', 'err');
+    btn.classList.remove('loading'); btn.disabled = false;
+  }
+}
+
+document.getElementById('pw').addEventListener('keydown', e => {
+  if (e.key === 'Enter') attemptLogin();
+});
+</script>
+</body>
+</html>

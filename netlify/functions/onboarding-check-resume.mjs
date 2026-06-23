@@ -19,20 +19,15 @@
 //   to that step.
 //
 // POST { email, password }
-//   → 200 { resumable:false }                                   (no match,
-//                                                                  or wrong
-//                                                                  password —
-//                                                                  identical
-//                                                                  response
-//                                                                  shape so
-//                                                                  callers
-//                                                                  can't
-//                                                                  distinguish
-//                                                                  "no account"
-//                                                                  from "wrong
-//                                                                  password")
-//   → 200 { resumable:true, tenantId, stripeCustomerId, product,
-//           plan, interval, bizName }                            (verified)
+//   → 200 { resumable:false }                     (no match, wrong password,
+//                                                    or not in a resumable
+//                                                    state — identical shape
+//                                                    so callers can't tell
+//                                                    these apart)
+//   → 200 { resumable:true, tenantId, stripeCustomerId, product, plan,
+//           interval, bizName, prefill:{ ...every field the onboarding
+//           wizard's S state object tracks, so the UI can restore every
+//           step exactly as the person left it, not just skip to payment } }
 
 import { withLambda } from '@netlify/aws-lambda-compat';
 import { createClient } from '@supabase/supabase-js';
@@ -126,12 +121,45 @@ const handler = async (event) => {
 
     const { data: tenant } = await supabaseAdmin
       .from('tenants')
-      .select('id, name, display_name, subscription_status, stripe_customer_id, current_product, current_plan, current_interval')
+      .select(`
+        id, name, display_name, subscription_status, stripe_customer_id,
+        current_product, current_plan, current_interval,
+        abn, business_type, business_type_code, industry, industry_code,
+        contact_email, contact_phone, website_url,
+        address_line1, address_line2, suburb, state, postcode, country,
+        primary_color, widget_theme
+      `)
       .eq('id', userRow.tenant_id)
       .maybeSingle();
 
     if (!tenant || !RESUMABLE_STATUSES.includes(tenant.subscription_status)) {
       return NOT_RESUMABLE;
+    }
+
+    // Venue is a separate table (1 tenant : 1 venue for the products that
+    // collect this during onboarding). Not every product's onboarding asks
+    // for a venue, so a missing row is normal. A genuine query ERROR here
+    // (RLS misconfig, transient network issue) must not be allowed to fail
+    // the entire resume though — venue data is optional prefill, losing it
+    // is a much smaller problem than wrongly telling someone their account
+    // isn't resumable. Isolated in its own try/catch for exactly that reason.
+    let venue = null;
+    try {
+      const { data: venueData, error: venueError } = await supabaseAdmin
+        .from('venues')
+        .select(`
+          name, address_line1, suburb, state, postcode,
+          google_place_id, venue_type, specialties, known_for
+        `)
+        .eq('tenant_id', tenant.id)
+        .maybeSingle();
+      if (venueError) {
+        console.warn('onboarding-check-resume: venue lookup failed (non-fatal):', venueError.message);
+      } else {
+        venue = venueData;
+      }
+    } catch (venueErr) {
+      console.warn('onboarding-check-resume: venue lookup threw (non-fatal):', venueErr.message);
     }
 
     let stripeCustomerId = tenant.stripe_customer_id;
@@ -212,6 +240,37 @@ const handler = async (event) => {
         plan:              tenant.current_plan,
         interval:          tenant.current_interval || 'monthly',
         bizName:           tenant.display_name || tenant.name,
+        // Full prefill payload — field names match onboarding.html's `S`
+        // state object directly so the frontend can assign these straight
+        // across (S.bn = prefill.bn, etc.) without a translation layer.
+        // Password is deliberately never included — it was only used to
+        // verify identity above and is never stored in retrievable form.
+        prefill: {
+          bn: tenant.display_name || tenant.name || '',
+          abn: tenant.abn || '',
+          ws: tenant.website_url || '',
+          be: tenant.contact_email || '',
+          ph: tenant.contact_phone || '',
+          a1: tenant.address_line1 || '',
+          sb: tenant.suburb || '',
+          st: tenant.state || '',
+          pc: tenant.postcode || '',
+          industry_code:      tenant.industry_code || '',
+          business_type_code: tenant.business_type_code || '',
+          color: tenant.primary_color || '',
+          theme: tenant.widget_theme || '',
+          // Venue fields (only meaningful for products whose onboarding
+          // includes a venue step — harmless empty strings otherwise)
+          vn:  venue?.name || '',
+          va:  venue?.address_line1 || '',
+          vsb: venue?.suburb || '',
+          vst: venue?.state || '',
+          vpc: venue?.postcode || '',
+          vt:  venue?.venue_type || '',
+          gp:  venue?.google_place_id || '',
+          kf:  venue?.known_for || '',
+          specs: venue?.specialties || [],
+        },
       }),
     };
 
