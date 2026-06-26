@@ -64,12 +64,29 @@ async function upsertAccount(tenantId, platform, accountData) {
       `smflow_social_accounts?tenant_id=eq.${tenantId}&platform=eq.${platform}&platform_account_id=eq.${accountData.platform_account_id}`,
       { method: 'PATCH', prefer: 'return=minimal', body: payload }
     );
-  } else {
-    await sb('smflow_social_accounts', {
-      method: 'POST', prefer: 'return=minimal',
-      body: { ...payload, connected_at: now },
-    });
+    return;
   }
+
+  // No row matches this exact platform_account_id. But the DB also enforces
+  // a SEPARATE partial unique index: (tenant_id, platform) WHERE is_active = true
+  // — only one *active* connection per platform per tenant. If the tenant is
+  // reconnecting with a different account_id (e.g. picked a different Page),
+  // any existing active row for this tenant+platform must be deactivated
+  // first, or the INSERT below will collide with that index.
+  const activeOther = await sb(
+    `smflow_social_accounts?tenant_id=eq.${tenantId}&platform=eq.${platform}&is_active=eq.true&select=id&limit=1`
+  );
+  if (activeOther.length) {
+    await sb(
+      `smflow_social_accounts?tenant_id=eq.${tenantId}&platform=eq.${platform}&is_active=eq.true`,
+      { method: 'PATCH', prefer: 'return=minimal', body: { is_active: false, updated_at: now } }
+    );
+  }
+
+  await sb('smflow_social_accounts', {
+    method: 'POST', prefer: 'return=minimal',
+    body: { ...payload, connected_at: now },
+  });
 }
 
 // ══════════════════════════════════════════════════════════
