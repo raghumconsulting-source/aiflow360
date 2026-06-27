@@ -6,6 +6,7 @@
 <title>Get Started</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;1,400&family=Geist:wght@300;400;500&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
 :root{
@@ -600,8 +601,28 @@ textarea{resize:vertical;min-height:80px}
           </div>
         </div>
 
-        <div class="grid one">
-          <div class="field" id="f-fn">
+        <div class="grid one" id="google-signup-block" style="margin-bottom:4px">
+          <button type="button" id="google-signup-btn" onclick="signUpWithGoogle()"
+            style="width:100%;padding:12px;border-radius:var(--r);border:1px solid var(--border);background:#fff;color:#1f1f1f;display:flex;align-items:center;justify-content:center;gap:10px;cursor:pointer;font-family:'Geist',sans-serif;font-size:14px">
+            <svg viewBox="0 0 24 24" width="18" height="18"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
+            Continue with Google
+          </button>
+          <div style="display:flex;align-items:center;gap:10px;margin:14px 0;color:var(--muted);font-size:12px">
+            <div style="flex:1;height:1px;background:var(--border)"></div>
+            <span>OR CONTINUE WITH EMAIL</span>
+            <div style="flex:1;height:1px;background:var(--border)"></div>
+          </div>
+        </div>
+
+        <div id="google-signed-in-banner" style="display:none;margin-bottom:16px;padding:12px 14px;background:rgba(34,139,87,.08);border:1px solid rgba(34,139,87,.25);border-radius:var(--r);font-size:13px;color:var(--text)">
+          ✓ Signed in with Google as <strong id="google-signed-in-email"></strong>.
+          This is your login from now on — you can add a password as a backup
+          sign-in option later from Settings, but it's not required.
+          <a href="#" onclick="undoGoogleSignIn();return false" style="display:block;margin-top:6px;font-size:12px;color:var(--muted)">Not you? Use a different email instead</a>
+        </div>
+
+        <div class="grid one" id="f-fn">
+          <div class="field">
             <label>Full name <span class="req">*</span></label>
             <input type="text" id="fn" placeholder="Alex Johnson" autocomplete="name"/>
             <span class="err-msg">Please enter your full name</span>
@@ -872,7 +893,7 @@ textarea{resize:vertical;min-height:80px}
       <div class="panel" id="p6" style="display:none">
         <div class="eyebrow">Step 6 of 6 · Payment</div>
         <h1 class="heading" id="pay-h">Secure<br><em>payment</em></h1>
-        <p class="subhead" id="pay-s">You'll be taken to Stripe's secure checkout. Cancel anytime.</p>
+        <p class="subhead" id="pay-s">Your account is created the moment you click below — Stripe checkout is the last step to activate your plan. Didn't finish payment? Just sign back in with your email and password to pick up right where you left off.</p>
 
         <!-- Order summary -->
         <div class="order-summary" id="order-summary">
@@ -934,7 +955,7 @@ textarea{resize:vertical;min-height:80px}
         <div class="btn-row">
           <button class="btn btn-ghost" onclick="show(5)">← Back</button>
           <button class="btn btn-primary" id="complete-btn" onclick="go6()">
-            <span class="btn-txt" id="complete-lbl">Continue to payment →</span><div class="spin"></div>
+            <span class="btn-txt" id="complete-lbl">Create account & continue to payment →</span><div class="spin"></div>
           </button>
         </div>
         <p style="font-size:12px;color:var(--muted);margin-top:16px;line-height:1.6">
@@ -1477,6 +1498,7 @@ const S = {
   dn:'',logoFile:null,color:'#0F0F0D',theme:'dark',
   vn:'',va:'',vsb:'',vst:'',vpc:'',vt:'',gp:'',specs:[],kf:'',
   tenantId:null, stripeCustomerId:null,
+  googleAccessToken:null, googleEmail:null,
 };
 
 // ── Resume from /login.html ─────────────────────────────
@@ -1917,22 +1939,141 @@ function setLoad(btnId,on){ const b=document.getElementById(btnId)||document.que
   if(!btnId){document.querySelectorAll('.btn-primary').forEach(b=>{ b.classList.toggle('loading',on);b.disabled=on; }); return;}
   const el=document.getElementById(btnId); if(el){el.classList.toggle('loading',on);el.disabled=on;}}
 
+// ── Google sign-up (Step 1 alternative to email+password) ──────────
+// Supabase client is created lazily, the same pattern login.html uses —
+// most people who land here will never touch this path.
+let sbClientForGoogle = null;
+async function getSupabaseClientForGoogle(){
+  if (sbClientForGoogle) return sbClientForGoogle;
+  const res = await fetch('/.netlify/functions/smflow-config-public');
+  if (!res.ok) throw new Error('Could not load configuration');
+  const cfg = await res.json();
+  const { createClient } = supabase;
+  sbClientForGoogle = createClient(cfg.supabase_url, cfg.supabase_anon);
+  return sbClientForGoogle;
+}
+
+async function signUpWithGoogle(){
+  const btn = document.getElementById('google-signup-btn');
+  btn.disabled = true;
+  try {
+    const client = await getSupabaseClientForGoogle();
+    const { error } = await client.auth.signInWithOAuth({
+      provider: 'google',
+      options: { redirectTo: window.location.origin + '/onboarding.html' },
+    });
+    if (error) {
+      toast('Could not start Google sign-up. Please try again.', 'err');
+      btn.disabled = false;
+    }
+    // Browser navigates to Google immediately on success — control
+    // returns via checkGoogleSignupSession() below once Google redirects
+    // back here.
+  } catch (e) {
+    toast('Something went wrong. Please try again.', 'err');
+    btn.disabled = false;
+  }
+}
+
+// Runs on page load. If we just came back from Google (or already have a
+// live Supabase session from earlier in this same browser), pick up the
+// verified email + access token, lock the email field to it, hide the
+// password requirement, and show the confirmation banner — matching the
+// same identity the wizard will use to actually create the account.
+async function checkGoogleSignupSession(){
+  try {
+    const client = await getSupabaseClientForGoogle();
+    const { data: { session } } = await client.auth.getSession();
+    if (!session) return;
+
+    S.googleAccessToken = session.access_token;
+    S.googleEmail       = session.user.email;
+
+    const emEl = document.getElementById('em');
+    if (emEl) { emEl.value = session.user.email; emEl.readOnly = true; }
+
+    const pwField = document.getElementById('f-pw');
+    if (pwField) pwField.style.display = 'none';
+
+    const googleBlock = document.getElementById('google-signup-block');
+    if (googleBlock) googleBlock.style.display = 'none';
+
+    const banner = document.getElementById('google-signed-in-banner');
+    const emailSpan = document.getElementById('google-signed-in-email');
+    if (banner && emailSpan) {
+      emailSpan.textContent = session.user.email;
+      banner.style.display = 'block';
+    }
+
+    // Prefill full name from Google profile if the wizard hasn't been
+    // given one yet — still editable, just a convenience.
+    const fnEl = document.getElementById('fn');
+    if (fnEl && !fnEl.value && session.user.user_metadata?.full_name) {
+      fnEl.value = session.user.user_metadata.full_name;
+    }
+  } catch (e) {
+    console.warn('checkGoogleSignupSession failed (non-fatal):', e.message);
+  }
+}
+checkGoogleSignupSession();
+
+// Lets someone back out of a Google session they didn't mean to use here
+// (e.g. signed into the wrong Google account) and fall back to typing a
+// different email + password manually instead.
+async function undoGoogleSignIn(){
+  try {
+    const client = await getSupabaseClientForGoogle();
+    await client.auth.signOut();
+  } catch (e) { /* non-fatal, proceed to reset the UI regardless */ }
+
+  S.googleAccessToken = null;
+  S.googleEmail = null;
+
+  const emEl = document.getElementById('em');
+  if (emEl) { emEl.value = ''; emEl.readOnly = false; }
+
+  const pwField = document.getElementById('f-pw');
+  if (pwField) pwField.style.display = '';
+
+  const googleBlock = document.getElementById('google-signup-block');
+  if (googleBlock) googleBlock.style.display = '';
+
+  const banner = document.getElementById('google-signed-in-banner');
+  if (banner) banner.style.display = 'none';
+}
+
 // ── Step 1 ─────────────────────────────────────────────
 async function go1(){
   clearErrs('fn','em','pw');
   let ok=true;
   if(!v('fn')){setErr('fn',true);ok=false;}
-  if(!/\S+@\S+\.\S+/.test(v('em'))){setErr('em',true);ok=false;}
-  const pwVal=document.getElementById('pw').value; if(pwVal.length<8){setErr('pw',true);ok=false;}
+  if(!S.googleAccessToken && !/\S+@\S+\.\S+/.test(v('em'))){setErr('em',true);ok=false;}
+  if (!S.googleAccessToken) {
+    const pwVal=document.getElementById('pw').value; if(pwVal.length<8){setErr('pw',true);ok=false;}
+  }
   if(!document.getElementById('terms').checked){toast('Please accept the Terms & Privacy Policy','err');ok=false;}
   if(!ok) return;
-  S.fn=v('fn');S.em=v('em').trim().toLowerCase();S.ph=v('ph');S.jt=v('jt');S.pw=document.getElementById('pw').value;
+  S.fn=v('fn');S.ph=v('ph');S.jt=v('jt');
+  if (S.googleAccessToken) {
+    S.em = S.googleEmail;
+    S.pw = null;
+  } else {
+    S.em=v('em').trim().toLowerCase();S.pw=document.getElementById('pw').value;
+  }
 
   // Check if this email+password matches an account stuck pending payment —
   // if so, skip straight to Checkout instead of making them redo steps 2-6.
   // SECURITY: this requires the real password (verified server-side via a
   // genuine Supabase sign-in) — resuming is never granted on email alone.
+  // Google sign-ins have no password to verify with, so this check is
+  // skipped entirely for them — onboarding-complete.mjs's own existing-email
+  // hard block still catches a real duplicate (it'll say "sign in to
+  // resume" instead, same as it does for anyone else hitting that case).
   const btn1 = document.querySelector('#p1 .btn-primary');
+  if (S.googleAccessToken) {
+    show(2);
+    return;
+  }
   if (btn1) { btn1.classList.add('loading'); btn1.disabled = true; }
   try {
     const r = await fetch('/.netlify/functions/onboarding-check-resume', {
@@ -2080,7 +2221,9 @@ async function go6(){
     // Step A — create tenant, user, venue, Stripe customer
     const payload = {
       product:    S.product,
-      fullName:   S.fn, email: S.em, phone: S.ph, jobTitle: S.jt, password: S.pw,
+      fullName:   S.fn, email: S.em, phone: S.ph, jobTitle: S.jt,
+      password:           S.googleAccessToken ? undefined : S.pw,
+      googleAccessToken:  S.googleAccessToken || undefined,
       bizName:    S.bn, abn: S.abn, bizType: S.bt, website: S.ws, contactEmail: S.be,
       address:    { line1: S.a1, suburb: S.sb, state: S.st, postcode: S.pc, country: 'AU' },
       displayName: S.dn, primaryColor: S.color, widgetTheme: S.theme,

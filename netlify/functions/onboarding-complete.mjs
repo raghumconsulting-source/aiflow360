@@ -90,7 +90,18 @@ const handler = async (event) => {
   }
 
   // ── 1. Validate required fields ──────────────────────
-  const required = ['fullName', 'email', 'password', 'bizName', 'abn', 'plan', 'product'];
+  // password is required UNLESS the person authenticated via Google
+  // (googleAccessToken present) — that case is verified separately in
+  // step 1a below, which establishes authUserId without ever needing a
+  // password at all.
+  const required = ['fullName', 'email', 'bizName', 'abn', 'plan', 'product'];
+  if (!body.googleAccessToken && !body.password) {
+    return {
+      statusCode: 400,
+      headers: corsHeaders(),
+      body: JSON.stringify({ error: 'Missing required field: password' }),
+    };
+  }
   for (const field of required) {
     if (!body[field]) {
       return {
@@ -111,6 +122,30 @@ const handler = async (event) => {
     };
   }
 
+  // ── 1a. If signing up via Google, verify the access token server-side ──
+  // We never trust a client-supplied user id or email directly — that
+  // would let anyone claim to be any existing user. Instead, the frontend
+  // sends the real Supabase access token from the Google OAuth session it
+  // already has, and we ask Supabase itself who that token actually
+  // belongs to. This MUST run before the email-normalize/existing-user
+  // check below, since it's what establishes the only email we trust for
+  // a Google sign-up — body.email as typed by the client is not used in
+  // that case.
+  let googleAuthUserId = null;
+  if (body.googleAccessToken) {
+    const { data: googleUserData, error: googleAuthError } =
+      await supabase.auth.getUser(body.googleAccessToken);
+    if (googleAuthError || !googleUserData?.user) {
+      return {
+        statusCode: 401,
+        headers: corsHeaders(),
+        body: JSON.stringify({ error: 'Your Google session has expired. Please sign in with Google again.' }),
+      };
+    }
+    body.email = googleUserData.user.email;
+    googleAuthUserId = googleUserData.user.id;
+  }
+
   // Normalize email once, up front — every downstream write (auth user,
   // users table, Stripe customer, contact_email fallback) and the lookup
   // just below must agree on casing, or the resume-by-email matching in
@@ -126,6 +161,12 @@ const handler = async (event) => {
   // doing so would let an unauthenticated caller pull another tenant's
   // stripe_customer_id and rewrite their pending plan. See code review
   // notes (2026-06) for the incident this guards against.
+  //
+  // For a Google sign-up specifically: if this email is already
+  // registered, it could be the same person re-attempting (their Google
+  // identity matches an existing tenant) — but resuming still requires
+  // going through onboarding-check-resume.mjs like any other resume, not
+  // a silent bypass here just because Google already authenticated them.
   const { data: existingUser } = await supabase
     .from('users')
     .select('id')
@@ -152,24 +193,30 @@ const handler = async (event) => {
     slug = `${slug}-${Math.random().toString(36).slice(2, 6)}`;
   }
 
-  // ── 4. Create Supabase Auth user ─────────────────────
-  const { data: authData, error: authError } = await supabase.auth.admin.createUser({
-    email: body.email,
-    password: body.password,
-    email_confirm: true,
-    user_metadata: { full_name: body.fullName },
-  });
+  // ── 4. Create Supabase Auth user (skipped for Google sign-ups — ──
+  //      that identity already exists, verified above)
+  let authUserId;
+  if (googleAuthUserId) {
+    authUserId = googleAuthUserId;
+  } else {
+    const { data: authData, error: authError } = await supabase.auth.admin.createUser({
+      email: body.email,
+      password: body.password,
+      email_confirm: true,
+      user_metadata: { full_name: body.fullName },
+    });
 
-  if (authError) {
-    console.error('Auth create error:', authError);
-    return {
-      statusCode: 400,
-      headers: corsHeaders(),
-      body: JSON.stringify({ error: authError.message }),
-    };
+    if (authError) {
+      console.error('Auth create error:', authError);
+      return {
+        statusCode: 400,
+        headers: corsHeaders(),
+        body: JSON.stringify({ error: authError.message }),
+      };
+    }
+
+    authUserId = authData.user.id;
   }
-
-  const authUserId = authData.user.id;
 
   // Resolve plan limits for this product + tier
   const productLimits = PLAN_LIMITS[body.product] || {};
@@ -248,7 +295,13 @@ const handler = async (event) => {
 
   if (tenantError) {
     console.error('Tenant create error:', tenantError);
-    await supabase.auth.admin.deleteUser(authUserId);
+    // Only roll back the auth user if THIS request created it. A Google
+    // sign-up reuses an identity that already existed before this call —
+    // deleting it here would destroy someone's real login over an
+    // unrelated tenant-insert failure, not just undo this attempt.
+    if (!googleAuthUserId) {
+      await supabase.auth.admin.deleteUser(authUserId);
+    }
     return {
       statusCode: 500,
       headers: corsHeaders(),
