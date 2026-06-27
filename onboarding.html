@@ -790,15 +790,8 @@ textarea{resize:vertical;min-height:80px}
           </div>
           <div class="field">
             <label>Venue type</label>
-            <select id="vt" onchange="buildSpecs(this.value)">
+            <select id="vt">
               <option value="">Select...</option>
-              <option>Fine dining restaurant</option>
-              <option>Casual dining restaurant</option>
-              <option>Cafe</option><option>Bar / Pub</option>
-              <option>Hotel / Accommodation</option>
-              <option>Retail store</option>
-              <option>Health & Beauty salon</option>
-              <option>Other</option>
             </select>
           </div>
         </div>
@@ -1219,6 +1212,177 @@ const INDUSTRIES = [
     {code:'online_store',label:'Online Store'},
   ]},
 ]// ── Build industry grid ────────────────────────────────
+
+// ── Venue type options, scoped by industry + business type ──
+// Used to populate the Step 4 "Venue type" dropdown so it reflects what was
+// actually selected on Step 3, instead of always showing a fixed
+// restaurant-flavoured list regardless of industry. Falls back to
+// DEFAULT_VENUE_TYPES for any business type not covered here.
+const VENUE_TYPES = {
+  accommodation_food: {
+    bar: ['Cocktail bar', 'Sports bar', 'Pub / Tavern', 'Wine bar', 'Brewery taproom', 'Rooftop bar'],
+    cafe: ['Specialty coffee cafe', 'Casual cafe', 'Bakery cafe', 'Breakfast & brunch cafe', 'Cafe + retail'],
+    catering: ['Event catering', 'Corporate catering', 'Wedding catering', 'Mobile / food truck catering'],
+    hotel: ['Boutique hotel', 'Business hotel', 'Resort', 'Motel', 'B&B / Guesthouse', 'Serviced apartments'],
+    restaurant: ['Fine dining restaurant', 'Casual dining restaurant', 'Family restaurant', 'Fast casual', 'Buffet restaurant', 'Fusion / specialty cuisine'],
+    takeaway: ['Fast food takeaway', 'Fish & chips', 'Kebab / grill takeaway', 'Pizza takeaway', 'Asian takeaway'],
+  },
+  admin_support: {
+    cleaning: ['Residential cleaning', 'Commercial / office cleaning', 'Carpet & upholstery cleaning', 'End-of-lease cleaning', 'Window cleaning'],
+    employment_agency: ['Recruitment agency', 'Labour hire', 'Executive search', 'Temp staffing agency'],
+    gardening: ['Residential gardening', 'Commercial landscaping maintenance', 'Lawn mowing service', 'Tree services'],
+    home_cleaning: ['Residential house cleaning', 'NDIS/disability cleaning service', 'Move-in/move-out cleaning'],
+    other_support: ['Virtual assistant service', 'Administrative support agency', 'Concierge service'],
+    pest_control: ['Residential pest control', 'Commercial pest control', 'Termite inspection & treatment', 'Pre-purchase pest inspection'],
+    security: ['Static guarding service', 'Mobile patrol service', 'Event security service', 'Alarm monitoring company'],
+  },
+  agriculture: {
+    farm: ['Crop farm', 'Livestock farm', 'Dairy farm', 'Mixed farm', 'Orchard / vineyard'],
+    nursery: ['Retail plant nursery', 'Wholesale nursery', 'Landscaping supplier nursery', 'Native plant nursery'],
+    other_agriculture: ['Produce stall/farm gate', 'Agricultural supplier', 'Specialty crop grower'],
+  },
+  arts_recreation: {
+    amusement_park: ['Theme park', 'Water park', 'Family entertainment centre', 'Go-kart / mini golf venue'],
+    cinema_theatre: ['Multiplex cinema', 'Independent cinema', 'Live theatre', 'Comedy / performance venue'],
+    gym: ['Traditional gym', 'Boutique fitness studio', 'CrossFit / functional training box', '24-hour gym', 'Yoga / Pilates studio'],
+    martial_arts: ['Karate/Taekwondo dojo', 'Brazilian Jiu-Jitsu academy', 'Boxing/Muay Thai gym', 'Mixed martial arts academy'],
+    massage: ['Remedial massage clinic', 'Relaxation massage studio', 'Sports massage clinic', 'Mobile massage service'],
+    museum_gallery: ['Art gallery', 'History museum', 'Science / interactive museum', 'Cultural centre'],
+    personal_training: ['1-on-1 personal training studio', 'Outdoor bootcamp/group PT', 'Mobile personal trainer'],
+    spa: ['Day spa', 'Wellness retreat spa', 'Hotel/resort spa'],
+    sports_club: ['Team sports club', 'Tennis / squash club', 'Golf club', 'Swimming club', 'Social sports league'],
+    yoga: ['Yoga studio', 'Pilates studio', 'Hot yoga studio', 'Online/hybrid yoga studio'],
+  },
+  automotive: {
+    auto_mechanic: ['General mechanical repair', 'Tyre & wheel specialist', 'Auto electrical', 'Smash repairs', 'European specialist'],
+    car_dealership: ['New car dealership', 'Used car dealership', 'Specialty/luxury car dealership'],
+    car_wash: ['Self-serve car wash', 'Hand car wash & detailing', 'Drive-through car wash', 'Mobile detailing'],
+    other_auto: ['Auto electrical specialist', 'Window tinting service', 'Auto upholstery shop'],
+    panel_beating: ['Smash repair shop', 'Panel & paint specialist', 'Hail damage repair specialist'],
+    tyre_shop: ['Independent tyre shop', 'Tyre & mechanical combo shop', 'Mobile tyre fitting service'],
+  },
+  beauty: {
+    barber: ['Traditional barbershop', 'Modern grooming lounge', 'Mobile barber'],
+    beauty_salon: ['Day spa', 'Nail salon', 'Skin & facial salon', 'Lash & brow studio', 'Beauty therapy clinic'],
+    hair_salon: ['Hair salon (unisex)', 'Barbershop', 'Hair extension specialist', 'Colour specialist salon', 'Mobile hairdresser'],
+    lash_brow: ['Lash extension studio', 'Brow bar', 'Lash & brow combo studio'],
+    nail_salon: ['Nail salon', 'Mobile nail technician', 'Nail art studio'],
+    tattoo: ['Tattoo studio', 'Piercing studio', 'Tattoo & piercing combo studio'],
+  },
+  construction_trade: {
+    builder: ['Residential builder', 'Commercial builder', 'Renovation / extension builder', 'Custom home builder'],
+    carpenter: ['Cabinet maker', 'Framing carpenter', 'Finish / trim carpenter', 'Deck & pergola specialist'],
+    electrician: ['Residential electrician', 'Commercial electrician', 'Solar installer', 'Air-con / electrical combo'],
+    landscaper: ['Garden design & landscaping', 'Hardscaping / paving specialist', 'Irrigation specialist', 'Turf & lawn installer'],
+    painter: ['Residential painter', 'Commercial painter', 'Spray painting specialist', 'Decorative / specialty finishes'],
+    plumber: ['General plumber', 'Emergency / 24hr plumber', 'Gas fitter', 'Drain & blockage specialist', 'Bathroom renovation plumber'],
+  },
+  ecommerce: {
+    online_store: ['Fashion / apparel store', 'Homewares store', 'Electronics store', 'Beauty / cosmetics store', 'Niche / handmade store', 'Dropship / multi-category store'],
+  },
+  education_training: {
+    dance_school: ['Ballet/classical dance school', 'Hip hop/contemporary dance studio', 'Ballroom/social dance studio'],
+    driving_school: ['Manual driving school', 'Automatic driving school', 'Defensive driving school', 'Motorcycle licence school'],
+    music_school: ['Private music school', 'Instrument-specific studio (piano, guitar etc)', 'Group music lesson studio'],
+    other_education: ['Early learning enrichment centre', 'Coding/STEM education centre', 'Language school'],
+    training_provider: ['Vocational (RTO) training', 'Corporate training provider', 'Trade skills training', 'Compliance / safety training'],
+    tutoring: ['Primary school tutoring', 'High school tutoring', 'Test prep tutoring', 'Music / instrument tutoring', 'Language tutoring'],
+  },
+  financial_insurance: {
+    accountant: ['Small business accountant', 'Tax agent', 'Bookkeeping service', 'Audit & assurance firm'],
+    bank: ['Retail bank branch', 'Credit union branch', 'Digital/neobank service centre'],
+    financial_planner: ['Retirement planning', 'Wealth management', 'SMSF specialist', 'Personal finance coaching'],
+    insurance_broker: ['General insurance broker', 'Life insurance broker', 'Business insurance broker', 'Health insurance broker'],
+    mortgage_broker: ['Independent mortgage broker', 'Franchise mortgage broker', 'Commercial finance broker'],
+  },
+  healthcare: {
+    aged_care: ['Residential aged care', 'In-home care provider', 'Respite care', 'Retirement village'],
+    allied_health: ['Podiatry clinic', 'Speech therapy practice', 'Occupational therapy practice', 'Dietitian / nutritionist clinic'],
+    childcare: ['Long day care centre', 'Family day care', 'Before/after school care', 'Early learning centre'],
+    dentist: ['General dentist', 'Cosmetic dentist', 'Orthodontist', 'Paediatric dentist', 'Emergency dental clinic'],
+    medical_clinic: ['GP clinic', 'Specialist clinic', 'Bulk-billing clinic', 'Skin / cosmetic clinic', 'Telehealth clinic'],
+    optometry: ['Independent optometrist', 'Chain optical store', 'Mobile optometry service'],
+    pharmacy: ['Community pharmacy', 'Discount pharmacy', 'Compounding pharmacy', 'Hospital pharmacy'],
+    physiotherapist: ['Sports physiotherapy', 'General physiotherapy', 'Hydrotherapy clinic', 'Remedial massage + physio'],
+    psychology: ['Clinical psychology practice', 'Counselling practice', 'Telehealth psychology'],
+    specialist: ['Surgical specialist', 'Cardiology / internal medicine', 'Paediatric specialist', 'Dermatology clinic'],
+  },
+  information_media: {
+    it_services: ['Managed IT services (MSP)', 'Web / software development', 'Cybersecurity services', 'IT support & repair', 'Cloud / hosting services'],
+    other_it: ['Web design studio', 'Digital marketing & IT agency', 'Hardware/device repair shop'],
+    telco: ['Mobile network retail store', 'Internet/broadband provider', 'Telco reseller'],
+  },
+  manufacturing: {
+    manufacturer: ['Garment / textile manufacturer', 'Food & beverage manufacturer', 'Furniture manufacturer', 'Metal fabrication', 'Plastics / packaging manufacturer', 'Contract / private-label manufacturer'],
+  },
+  personal_services: {
+    events: ['Wedding planning service', 'Corporate event planning', 'Party/celebration planning'],
+    laundry: ['Self-serve laundromat', 'Dry cleaning service', 'Commercial / industrial laundry', 'Pickup & delivery laundry'],
+    other_personal: ['Personal styling service', 'Life coaching practice', 'Errand/concierge service'],
+    pet_grooming: ['Dog grooming', 'Cat grooming', 'Mobile pet grooming', 'Full-service grooming + spa'],
+  },
+  professional_technical: {
+    architect: ['Residential architect', 'Commercial architect', 'Interior architect', 'Landscape architect'],
+    consulting: ['Management consulting firm', 'Strategy consulting boutique', 'Industry-specific consultancy'],
+    financial_planning: ['Independent financial planning firm', 'Wealth management practice', 'Retirement planning specialist'],
+    lawyer: ['Family law firm', 'Commercial law firm', 'Conveyancing / property law', 'Criminal law firm', 'Personal injury law firm'],
+    marketing_agency: ['Digital marketing agency', 'Branding / design agency', 'PR agency', 'SEO / content agency', 'Full-service ad agency'],
+    photographer: ['Wedding photographer', 'Portrait / family photographer', 'Commercial / product photographer', 'Real estate photographer'],
+    recruitment: ['Generalist recruitment agency', 'Executive search firm', 'Niche/specialist recruiter', 'Labour hire agency'],
+    veterinarian: ['General vet clinic', 'Emergency / 24hr vet', 'Specialist vet referral centre', 'Mobile vet service'],
+  },
+  real_estate: {
+    buyers_agent: ['Residential buyers agent', 'Commercial buyers agent', 'Investment-focused buyers agent'],
+    car_rental: ['Daily car rental', 'Long-term / fleet rental', 'Luxury / specialty car rental', 'Van & truck rental'],
+    conveyancing: ['Independent conveyancing practice', 'Law firm conveyancing division', 'Online conveyancing service'],
+    equipment_hire: ['Construction equipment hire', 'Party / event equipment hire', 'Tool hire', 'Audio-visual equipment hire'],
+    real_estate_agent: ['Residential sales agency', 'Property management agency', 'Commercial real estate agency', 'Rural / land agency'],
+    strata: ['Residential strata management', 'Commercial strata management', 'Boutique strata firm'],
+  },
+  retail_trade: {
+    clothing_store: ['Fashion / apparel boutique', 'Activewear store', 'Childrenswear store', 'Footwear store', 'Menswear / womenswear specialist', 'Online + physical fashion retailer'],
+    electronics_store: ['Consumer electronics store', 'Mobile phone & accessories store', 'Computer / IT hardware store', 'Appliance store'],
+    furniture_store: ['Home furniture store', 'Office furniture store', 'Outdoor furniture store', 'Custom / bespoke furniture'],
+    gift_shop: ['Gift & novelty shop', 'Cards & stationery shop', 'Souvenir shop'],
+    grocery_store: ['Supermarket', 'Convenience store', 'Specialty / gourmet grocer', 'Butcher / deli', 'Organic / health food store'],
+    hardware_store: ['General hardware store', 'Trade-focused hardware supplier', 'Garden & hardware centre', 'Paint & hardware specialist'],
+    other_retail: ['General store', 'Specialty retailer', 'Pop-up shop'],
+    pharmacy_retail: ['Community pharmacy', 'Discount pharmacy', 'Health & beauty pharmacy'],
+  },
+  tourism: {
+    entertainment: ['Theme park/attraction', 'Cinema/theatre venue', 'Indoor entertainment centre'],
+    event_venue: ['Wedding & function venue', 'Conference & corporate venue', 'Outdoor/garden event venue'],
+    holiday_accommodation: ['Holiday rental house/apartment', 'Caravan park / campground', 'Eco-lodge', 'Glamping site'],
+    tour_operator: ['Day tour operator', 'Adventure / outdoor tour operator', 'Cultural / heritage tour operator', 'Multi-day tour package operator'],
+    travel_agent: ['Leisure travel agency', 'Corporate travel agency', 'Cruise specialist agency', 'Honeymoon / luxury travel specialist'],
+  },
+  transport: {
+    courier: ['Local courier', 'Same-day delivery courier', 'Parcel / freight courier', 'Bicycle courier'],
+    other_transport: ['Bus charter service', 'Boat/marine transport', 'Specialised freight service'],
+    removalist: ['Residential removalist', 'Office / commercial removalist', 'Interstate removalist', 'Furniture/piano specialist removalist'],
+    storage: ['Self-storage facility', 'Container storage yard', 'Climate-controlled storage facility'],
+    taxi_rideshare: ['Taxi service', 'Rideshare driver/fleet', 'Airport transfer service', 'Limousine / chauffeur service'],
+  },
+};
+const DEFAULT_VENUE_TYPES = ['Main location', 'Branch / second location', 'Other'];
+
+// Populates the Step 4 venue-type <select> based on the industry + business
+// type chosen in Step 3. Called when entering Step 4, and safe to call again
+// if the person navigates back and forward. Preserves the previously chosen
+// value (S.vt) if it's still a valid option in the new list.
+function populateVenueTypes() {
+  const sel = document.getElementById('vt');
+  if (!sel) return;
+  const opts = (VENUE_TYPES[S.industry_code] && VENUE_TYPES[S.industry_code][S.business_type_code])
+    || DEFAULT_VENUE_TYPES;
+  const previousValue = S.vt || sel.value;
+  sel.innerHTML = '<option value="">Select...</option>'
+    + opts.map(o => `<option value="${o}">${o}</option>`).join('');
+  if (previousValue && opts.includes(previousValue)) {
+    sel.value = previousValue;
+  }
+}
+
 function buildIndustryGrid() {
   const grid = document.getElementById('industry-grid');
   if (!grid || grid.children.length > 0) return;
@@ -1298,6 +1462,7 @@ function go3() {
     document.getElementById('biz-err').style.display = 'block';
     return;
   }
+  populateVenueTypes();
   show(4);
 }
 
