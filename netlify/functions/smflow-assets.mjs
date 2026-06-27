@@ -73,31 +73,66 @@ async function sb(path, options = {}) {
   return Array.isArray(parsed) ? parsed : parsed;
 }
 
-function getDriveClient() {
-  const keyData = loadServiceAccountKey();
-  if (!keyData || !keyData.private_key) throw new Error('Google service account credentials not configured');
-  const auth = new google.auth.GoogleAuth({
-    credentials: { client_email: keyData.client_email || SA_EMAIL, private_key: keyData.private_key },
-    scopes: ['https://www.googleapis.com/auth/drive'],
-  });
-  return google.drive({ version: 'v3', auth });
+// Service accounts have no storage quota of their own and can only create
+// files inside a Google Workspace Shared Drive — never in anyone's "My
+// Drive", not even their own (Google API error: "Service Accounts do not
+// have storage quota"). Personal/free Gmail accounts can't have Shared
+// Drives at all, so folder *creation* must happen under the client's own
+// OAuth-authorised account instead. getDriveClient() below (service account)
+// is still used for *reading* synced photos from a folder the client has
+// separately shared — that doesn't touch storage quota, only writes do.
+// Ported from smflow-assets.js (2026-06), where this was built but never
+// carried over to this .mjs file — meaning create_drive_folder kept hitting
+// the broken service-account path here even after the fix shipped.
+const GOOGLE_TOKEN_URL = 'https://oauth2.googleapis.com/token';
+const YOUTUBE_CLIENT_ID     = process.env.YOUTUBE_CLIENT_ID;     // same OAuth client used for Drive scope
+const YOUTUBE_CLIENT_SECRET = process.env.YOUTUBE_CLIENT_SECRET;
+
+async function getClientDriveAuth(tenantId) {
+  const accounts = await sb(`smflow_social_accounts?tenant_id=eq.${tenantId}&platform=eq.google_drive&is_active=eq.true&limit=1`);
+  if (!accounts.length) {
+    throw new Error('No Google Drive account connected for this tenant. Connect Google Drive first under Social accounts.');
+  }
+  const account = accounts[0];
+  let accessToken = account.access_token;
+
+  // Refresh if expired or expiring within the next 60 seconds
+  const expiresAt = account.token_expires_at ? new Date(account.token_expires_at).getTime() : 0;
+  if (!account.refresh_token) {
+    throw new Error('Google Drive connection is missing a refresh token — please reconnect Google Drive.');
+  }
+  if (Date.now() > expiresAt - 60000) {
+    const refreshRes = await fetch(GOOGLE_TOKEN_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams({
+        client_id:     YOUTUBE_CLIENT_ID,
+        client_secret: YOUTUBE_CLIENT_SECRET,
+        refresh_token: account.refresh_token,
+        grant_type:    'refresh_token',
+      }),
+    });
+    const refreshData = await refreshRes.json();
+    if (!refreshData.access_token) {
+      throw new Error(`Could not refresh Google Drive access — please reconnect Google Drive. (${refreshData.error || 'unknown error'})`);
+    }
+    accessToken = refreshData.access_token;
+    const newExpiresAt = refreshData.expires_in ? new Date(Date.now() + refreshData.expires_in * 1000).toISOString() : null;
+    await sb(`smflow_social_accounts?id=eq.${account.id}`, {
+      method: 'PATCH', prefer: 'return=minimal',
+      body: { access_token: accessToken, token_expires_at: newExpiresAt, updated_at: new Date().toISOString() },
+    });
+  }
+
+  const auth = new google.auth.OAuth2();
+  auth.setCredentials({ access_token: accessToken });
+  return auth;
 }
 
-const FOLDER_TEMPLATES = {
-  accommodation_food:     ['01-food-drinks','02-interior','03-exterior','04-team','05-behind-scenes','06-customers','07-events','08-specials-promos'],
-  beauty:                 ['01-treatments-services','02-before-after-results','03-salon-interior','04-team','05-products','06-customers','07-events'],
-  arts_recreation:        ['01-facilities-equipment','02-classes-in-action','03-trainers-coaches','04-member-results','05-events-competitions','06-behind-scenes'],
-  retail_trade:           ['01-products-new-arrivals','02-store-interior','03-team','04-customers','05-events-sales','06-behind-scenes'],
-  healthcare:             ['01-clinic-interior','02-team-practitioners','03-equipment-technology','04-community-events','05-awards-certificates'],
-  professional_technical: ['01-office-workspace','02-team','03-work-in-action','04-events-seminars','05-awards-certificates','06-community'],
-  financial_insurance:    ['01-office','02-team','03-events-seminars','04-awards-community','05-client-meetings'],
-  information_media:      ['01-office-workspace','02-team','03-work-in-action','04-events-conferences','05-products-demos'],
-  transport:              ['01-vehicles-fleet','02-team-drivers','03-operations','04-community'],
-  admin_support:          ['01-team-at-work','02-before-after','03-equipment','04-customers','05-community'],
-  personal_services:      ['01-services-in-action','02-results','03-team','04-customers','05-events'],
-  tourism:                ['01-experiences','02-locations-scenery','03-team-guides','04-customers-guests','05-events','06-behind-scenes'],
-  default:                ['01-business-photos','02-team','03-customers','04-products-services','05-events','06-behind-scenes'],
-};
+async function getClientDriveClient(tenantId) {
+  const auth = await getClientDriveAuth(tenantId);
+  return google.drive({ version: 'v3', auth });
+}
 
 const FOLDER_TAG_MAP = {
   'food-drinks':          { topic:['food','drinks','menu','coffee'],        flavor:['social_proof','fomo','inspiration','humor'] },
@@ -131,7 +166,85 @@ const FOLDER_TAG_MAP = {
   'locations-scenery':    { topic:['location','scenery','destination'],      flavor:['inspiration','fomo','awareness'] },
   'business-photos':      { topic:['business','professional'],               flavor:['awareness','social_proof','inspiration'] },
   'products-services':    { topic:['products','services','offering'],        flavor:['education','social_proof','fomo'] },
+  // ── Backfilled — these folder keys were already used in FOLDER_TEMPLATES
+  // above but had no entry here, so they silently fell through to the
+  // generic word-split fallback in getTagsFromFolder() instead of getting
+  // real curated tags. Found during the ecommerce/industry-gap audit (2026-06). ──
+  'office':               { topic:['office','workspace','professional'],     flavor:['behind_scenes','social_proof','inspiration'] },
+  'operations':           { topic:['operations','logistics','process'],      flavor:['behind_scenes','education','social_proof'] },
+  'team-at-work':         { topic:['team','staff','working'],                flavor:['behind_scenes','social_proof','humor'] },
+  'customers-guests':     { topic:['customers','guests','happy'],            flavor:['social_proof','fomo','inspiration'] },
+  'events-sales':         { topic:['sale','promotion','event'],              flavor:['urgency','fomo','trending'] },
+  'team-drivers':         { topic:['team','driver','staff'],                 flavor:['behind_scenes','social_proof','education'] },
+  'team-guides':          { topic:['team','guide','host'],                   flavor:['social_proof','education','inspiration'] },
+  'before-after':         { topic:['before','after','transformation'],       flavor:['social_proof','inspiration','myth_bust'] },
+  'events-conferences':   { topic:['events','conference','seminar'],         flavor:['fomo','inspiration','social_proof'] },
+  'services-in-action':   { topic:['service','process','action'],           flavor:['behind_scenes','education','social_proof'] },
+  'events-competitions':  { topic:['events','competition','challenge'],      flavor:['fomo','urgency','social_proof'] },
+  'community-events':     { topic:['community','event','local'],            flavor:['inspiration','social_proof','behind_scenes'] },
+  'client-meetings':      { topic:['client','meeting','consultation'],       flavor:['behind_scenes','education','social_proof'] },
+  'products-demos':       { topic:['product','demo','showcase'],            flavor:['education','awareness','social_proof'] },
+  'results':              { topic:['results','outcome','success'],          flavor:['social_proof','inspiration','myth_bust'] },
+  'equipment':             { topic:['equipment','tools','gear'],             flavor:['education','awareness','social_proof'] },
+  'awards-community':     { topic:['awards','community','recognition'],      flavor:['social_proof','inspiration','education'] },
+  // ── New folder keys introduced by the 7 newly-added industry templates below ──
+  'menswear-womenswear':  { topic:['menswear','womenswear','apparel'],       flavor:['awareness','social_proof','fomo'] },
+  'packaging-shipping':   { topic:['packaging','shipping','unboxing'],       flavor:['behind_scenes','social_proof','trending'] },
+  'reviews-ugc':          { topic:['reviews','testimonial','customer photo'],flavor:['social_proof','myth_bust','fomo'] },
+  'website-product-shots':{ topic:['product shot','online store','catalogue'],flavor:['awareness','education','fomo'] },
+  'job-sites':            { topic:['job site','worksite','construction'],    flavor:['behind_scenes','social_proof','education'] },
+  'tools-vehicles':       { topic:['tools','vehicle','equipment'],           flavor:['awareness','education','social_proof'] },
+  'completed-projects':   { topic:['project','renovation','build'],         flavor:['social_proof','inspiration','myth_bust'] },
+  'workshop-garage':      { topic:['workshop','garage','service bay'],       flavor:['behind_scenes','education','social_proof'] },
+  'vehicles-in-service':  { topic:['vehicle','car','service'],              flavor:['social_proof','education','behind_scenes'] },
+  'classroom-learning':   { topic:['classroom','lesson','learning'],         flavor:['education','social_proof','inspiration'] },
+  'students-success':     { topic:['student','success','graduation'],       flavor:['social_proof','inspiration','fomo'] },
+  'properties-listings':  { topic:['property','listing','real estate'],      flavor:['awareness','fomo','trending'] },
+  'open-homes':           { topic:['open home','inspection','viewing'],     flavor:['urgency','fomo','awareness'] },
+  'sold-leased':          { topic:['sold','leased','success'],              flavor:['social_proof','fomo','inspiration'] },
+  'farm-produce':         { topic:['farm','produce','harvest'],             flavor:['behind_scenes','education','social_proof'] },
+  'seasonal':             { topic:['seasonal','harvest','growing'],         flavor:['trending','awareness','inspiration'] },
+  'production-line':      { topic:['production','manufacturing','factory'], flavor:['behind_scenes','education','social_proof'] },
+  'finished-products':    { topic:['finished product','quality','craftsmanship'], flavor:['social_proof','education','awareness'] },
+  'quality-control':      { topic:['quality control','inspection','standards'], flavor:['education','social_proof','myth_bust'] },
 };
+
+function getDriveClient() {
+  const keyData = loadServiceAccountKey();
+  if (!keyData || !keyData.private_key) throw new Error('Google service account credentials not configured');
+  const auth = new google.auth.GoogleAuth({
+    credentials: { client_email: keyData.client_email || SA_EMAIL, private_key: keyData.private_key },
+    scopes: ['https://www.googleapis.com/auth/drive'],
+  });
+  return google.drive({ version: 'v3', auth });
+}
+
+const FOLDER_TEMPLATES = {
+  accommodation_food:     ['01-food-drinks','02-interior','03-exterior','04-team','05-behind-scenes','06-customers','07-events','08-specials-promos'],
+  beauty:                 ['01-treatments-services','02-before-after-results','03-salon-interior','04-team','05-products','06-customers','07-events'],
+  arts_recreation:        ['01-facilities-equipment','02-classes-in-action','03-trainers-coaches','04-member-results','05-events-competitions','06-behind-scenes'],
+  retail_trade:           ['01-products-new-arrivals','02-store-interior','03-team','04-customers','05-events-sales','06-behind-scenes'],
+  healthcare:             ['01-clinic-interior','02-team-practitioners','03-equipment-technology','04-community-events','05-awards-certificates'],
+  professional_technical: ['01-office-workspace','02-team','03-work-in-action','04-events-seminars','05-awards-certificates','06-community'],
+  financial_insurance:    ['01-office','02-team','03-events-seminars','04-awards-community','05-client-meetings'],
+  information_media:      ['01-office-workspace','02-team','03-work-in-action','04-events-conferences','05-products-demos'],
+  transport:              ['01-vehicles-fleet','02-team-drivers','03-operations','04-community'],
+  admin_support:          ['01-team-at-work','02-before-after','03-equipment','04-customers','05-community'],
+  personal_services:      ['01-services-in-action','02-results','03-team','04-customers','05-events'],
+  tourism:                ['01-experiences','02-locations-scenery','03-team-guides','04-customers-guests','05-events','06-behind-scenes'],
+  // ── Added 2026-06 — these 7 industries had no template at all and were
+  // silently falling through to `default` (generic, not industry-shaped).
+  // Found during the FEMIQN/ecommerce folder-creation audit. ──
+  ecommerce:              ['01-products-new-arrivals','02-packaging-shipping','03-customers','04-reviews-ugc','05-behind-scenes','06-website-product-shots'],
+  construction_trade:     ['01-job-sites','02-tools-vehicles','03-team','04-completed-projects','05-before-after'],
+  automotive:              ['01-vehicles-fleet','02-workshop-garage','03-team','04-vehicles-in-service','05-customers'],
+  education_training:      ['01-classroom-learning','02-team','03-students-success','04-events','05-behind-scenes'],
+  real_estate:             ['01-properties-listings','02-open-homes','03-team','04-sold-leased','05-events'],
+  agriculture:             ['01-farm-produce','02-team','03-seasonal','04-behind-scenes','05-customers'],
+  manufacturing:           ['01-production-line','02-finished-products','03-team','04-behind-scenes','05-quality-control'],
+  default:                ['01-business-photos','02-team','03-customers','04-products-services','05-events','06-behind-scenes'],
+};
+
 
 function getFolderKey(name) {
   return name.toLowerCase().replace(/^\d+-/, '').replace(/\s+/g, '-').trim();
@@ -275,40 +388,102 @@ const handler = async function (event) {
     try {
 
       if (action === 'create_drive_folder') {
-        const { tenant_name, industry_code } = body;
+        const { tenant_name, industry_code, connected_by } = body;
         if (!tenant_name) return { statusCode: 400, headers: HEADERS, body: JSON.stringify({ error: 'tenant_name required' }) };
-        const drive      = getDriveClient();
-        const subFolders = FOLDER_TEMPLATES[industry_code] || FOLDER_TEMPLATES.default;
-        const rootFolder = await driveCreateFolder(drive, `SMflow — ${tenant_name}`, null);
-        for (const f of subFolders) await driveCreateFolder(drive, f, rootFolder.id);
-        await driveCreateReadme(drive, rootFolder.id, subFolders);
-        await driveShareFolder(drive, rootFolder.id, 'writer');
-        const folderUrl = `https://drive.google.com/drive/folders/${rootFolder.id}`;
-        const existing  = await sb(`smflow_gdrive_config?tenant_id=eq.${tenant_id}&select=id&limit=1`);
-        const configPayload = {
-          tenant_id, folder_id: rootFolder.id,
+
+        // Idempotency check: if this tenant already has a folder, return it instead of creating a duplicate.
+        const existingConfig = await sb(`smflow_gdrive_config?tenant_id=eq.${tenant_id}&select=*&limit=1`);
+        if (existingConfig.length && existingConfig[0].folder_id) {
+          const cfg = existingConfig[0];
+          const subFolders = FOLDER_TEMPLATES[cfg.folder_structure] || FOLDER_TEMPLATES.default;
+          return {
+            statusCode: 200, headers: HEADERS,
+            body: JSON.stringify({
+              success:        true,
+              already_exists: true,
+              folder_id:      cfg.folder_id,
+              folder_url:     cfg.folder_url,
+              sub_folders:    subFolders,
+              share_message:  `Your SMflow photo folder:\n\n📁 ${cfg.folder_url}\n\nDrop your photos into the matching folder. There's a READ ME file inside with instructions.`,
+            }),
+          };
+        }
+
+        // Claim the slot BEFORE touching Google Drive, not after. A unique constraint on
+        // smflow_gdrive_config.tenant_id (required — see migration note below) makes this
+        // insert fail for the second of two near-simultaneous requests, so only one request
+        // ever proceeds to create a real Drive folder. The earlier "create folder then check
+        // again" order had a window where two concurrent requests could both pass the read
+        // check above and both create orphaned Drive folders before either write landed.
+        const claimRow = {
+          tenant_id,
+          folder_id:        'pending',
           folder_name:      `SMflow — ${tenant_name}`,
-          folder_url:       folderUrl,
+          folder_url:       null,
           folder_structure: industry_code || 'default',
-          connected_by:     'aitechnic_admin',
-          sync_enabled:     true,
+          connected_by:     connected_by || 'aitechnic_admin',
+          sync_enabled:     false,
+          created_at:       new Date().toISOString(),
           updated_at:       new Date().toISOString(),
         };
-        if (existing.length) {
-          await sb(`smflow_gdrive_config?tenant_id=eq.${tenant_id}`, { method:'PATCH', prefer:'return=minimal', body: configPayload });
-        } else {
-          await sb('smflow_gdrive_config', { method:'POST', prefer:'return=minimal', body: { ...configPayload, created_at: new Date().toISOString() } });
+        try {
+          await sb('smflow_gdrive_config', { method: 'POST', prefer: 'return=minimal', body: claimRow });
+        } catch (claimErr) {
+          // Insert failed — most likely a concurrent request just won the race and claimed the
+          // row first (unique constraint violation), or another genuine DB error. Either way,
+          // re-read and return whatever now exists rather than risk creating a second folder.
+          const recheck = await sb(`smflow_gdrive_config?tenant_id=eq.${tenant_id}&select=*&limit=1`);
+          if (recheck.length && recheck[0].folder_id && recheck[0].folder_id !== 'pending') {
+            const cfg = recheck[0];
+            const subFolders = FOLDER_TEMPLATES[cfg.folder_structure] || FOLDER_TEMPLATES.default;
+            return { statusCode: 200, headers: HEADERS, body: JSON.stringify({ success: true, already_exists: true, folder_id: cfg.folder_id, folder_url: cfg.folder_url, sub_folders: subFolders, share_message: `Your SMflow photo folder:\n\n📁 ${cfg.folder_url}\n\nDrop your photos into the matching folder.` }) };
+          }
+          throw new Error(`Could not claim folder creation slot: ${claimErr.message}`);
         }
-        return {
-          statusCode: 200, headers: HEADERS,
-          body: JSON.stringify({
-            success:       true,
-            folder_id:     rootFolder.id,
-            folder_url:    folderUrl,
-            sub_folders:   subFolders,
-            share_message: `Hi! Your SMflow photo folder is ready.\n\n📁 ${folderUrl}\n\nYou'll find ${subFolders.length} folders inside. Drop your photos into the right folder. There's a READ ME file with full instructions.\n\nOnce done, let us know and we'll sync everything into SMflow for you.`,
-          }),
-        };
+
+        // From here on, Drive API calls can fail partway through. If they do, clear the
+        // 'pending' claim so a retry can actually proceed instead of being permanently stuck
+        // behind a row that claims a folder exists but doesn't.
+        try {
+          // Folders are created under the CLIENT's own Google Drive (via their OAuth
+          // connection), not the AITECHNIC service account — service accounts have no
+          // storage quota and can't create files outside a Workspace Shared Drive, which
+          // personal Gmail accounts can't have. See getClientDriveClient() for details.
+          const drive      = await getClientDriveClient(tenant_id);
+          const subFolders = FOLDER_TEMPLATES[industry_code] || FOLDER_TEMPLATES.default;
+          const rootFolder = await driveCreateFolder(drive, `SMflow — ${tenant_name}`, null);
+          for (const f of subFolders) await driveCreateFolder(drive, f, rootFolder.id);
+          await driveCreateReadme(drive, rootFolder.id, subFolders);
+          // No driveShareFolder() call here — the client already owns this folder outright
+          // (it's in their own Drive), so there's no one else to share it with at creation
+          // time. They can share it themselves later if they want a teammate to drop photos in.
+          const folderUrl = `https://drive.google.com/drive/folders/${rootFolder.id}`;
+
+          await sb(`smflow_gdrive_config?tenant_id=eq.${tenant_id}`, {
+            method: 'PATCH', prefer: 'return=minimal',
+            body: { folder_id: rootFolder.id, folder_url: folderUrl, sync_enabled: true, updated_at: new Date().toISOString() },
+          });
+
+          return {
+            statusCode: 200, headers: HEADERS,
+            body: JSON.stringify({
+              success:       true,
+              already_exists: false,
+              folder_id:     rootFolder.id,
+              folder_url:    folderUrl,
+              sub_folders:   subFolders,
+              share_message: `Hi! Your SMflow photo folder is ready.\n\n📁 ${folderUrl}\n\nYou'll find ${subFolders.length} folders inside. Drop your photos into the right folder. There's a READ ME file with full instructions.\n\nOnce done, let us know and we'll sync everything into SMflow for you.`,
+            }),
+          };
+        } catch (driveErr) {
+          // Drive creation failed partway through (e.g. root folder created but a sub-folder
+          // call failed). Release the claim so the client can retry cleanly instead of being
+          // stuck behind a permanent 'pending' row that never resolves.
+          await sb(`smflow_gdrive_config?tenant_id=eq.${tenant_id}`, {
+            method: 'DELETE', prefer: 'return=minimal',
+          }).catch(() => {}); // best-effort cleanup; surfacing the original error matters more
+          throw new Error(`Drive folder creation failed: ${driveErr.message}. Please try again.`);
+        }
       }
 
       if (action === 'gdrive_sync') {
