@@ -100,6 +100,7 @@ exports.handler = async function(event) {
           p_tenant_id:  tenant_id,
           p_venue_id:   venue.id,
           p_venue_type: venue_type || 'restaurant',
+          p_industry:   body.industry_code || null,
         }),
       });
     } catch(seedErr) {
