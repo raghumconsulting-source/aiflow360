@@ -37,10 +37,8 @@ body{font-family:'Geist',sans-serif;font-size:14px;color:var(--text);line-height
   border-radius:16px;padding:48px 40px;text-align:center;
   max-width:360px;width:90%;
 }
-.auth-logo{width:40px;height:40px;border-radius:10px;
-  background:var(--text);display:flex;align-items:center;
-  justify-content:center;font-size:14px;font-weight:500;
-  color:#fff;margin:0 auto 20px}
+.auth-logo{width:48px;height:48px;border-radius:10px;
+  object-fit:cover;display:block;margin:0 auto 20px}
 .auth-title{font-size:22px;font-weight:500;margin-bottom:6px;letter-spacing:-.02em}
 .auth-sub{font-size:13px;color:var(--muted);margin-bottom:28px}
 .auth-btn{
@@ -64,9 +62,8 @@ body{font-family:'Geist',sans-serif;font-size:14px;color:var(--text);line-height
 }
 .tl{display:flex;align-items:center;gap:10px}
 .logo{
-  width:28px;height:28px;border-radius:7px;background:var(--violet);
-  display:flex;align-items:center;justify-content:center;
-  font-size:10px;font-weight:500;color:#fff;flex-shrink:0;
+  width:28px;height:28px;border-radius:7px;
+  object-fit:cover;flex-shrink:0;
 }
 .tl-name{font-size:14px;font-weight:500}
 .tl-badge{
@@ -492,7 +489,7 @@ textarea.sct:focus{border-color:var(--violet)}
 <!-- Auth overlay -->
 <div id="auth-overlay">
   <div class="auth-card">
-    <div class="auth-logo">SM</div>
+    <img src="/assets/logo-smflow.png" alt="SMflow" class="auth-logo">
     <div class="auth-title">SMflow</div>
     <div class="auth-sub">AI social media posting engine<br>Sign in to your AIFlow360 account</div>
     <button class="auth-btn" id="google-btn">
@@ -509,7 +506,7 @@ textarea.sct:focus{border-color:var(--violet)}
   <!-- Top bar -->
   <div class="topbar">
     <div class="tl">
-      <div class="logo">SF</div>
+      <img src="/assets/logo-smflow.png" alt="SMflow" class="logo">
       <span class="tl-name">SMflow</span>
       <span class="tl-venue" id="venue-name" style="font-size:13px;font-weight:500;color:var(--text);margin-left:2px"></span>
       <span class="tl-badge" id="industry-badge" style="font-size:11px"></span>
@@ -1134,7 +1131,7 @@ const PLAT_COLORS = {
 document.getElementById('google-btn').addEventListener('click', async () => {
   await sb.auth.signInWithOAuth({
     provider:'google',
-    options:{redirectTo: window.location.href}
+    options:{redirectTo: window.location.origin + window.location.pathname}
   });
 });
 
