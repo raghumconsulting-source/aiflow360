@@ -499,15 +499,15 @@ body{font-family:'Geist',sans-serif;font-size:15px;line-height:1.6;color:var(--t
         <input class="modal-inp" id="nv-name" placeholder="e.g. Castle Hill Green Cafe — Level 2"/>
       </div>
       <div class="modal-field">
-        <label class="modal-label">Venue type</label>
-        <select class="modal-select" id="nv-type">
-          <option value="restaurant">Restaurant</option>
-          <option value="cafe">Cafe</option>
-          <option value="bar">Bar / Pub</option>
-          <option value="hotel">Hotel / Accommodation</option>
-          <option value="retail">Retail store</option>
-          <option value="health">Health & Beauty</option>
-          <option value="other">Other</option>
+        <label class="modal-label">Industry *</label>
+        <select class="modal-select" id="nv-industry" onchange="onNvIndustryChange()">
+          <option value="">Select industry...</option>
+        </select>
+      </div>
+      <div class="modal-field">
+        <label class="modal-label">Business type *</label>
+        <select class="modal-select" id="nv-biztype">
+          <option value="">Select industry first...</option>
         </select>
       </div>
       <div class="modal-row">
@@ -1487,7 +1487,168 @@ async function api(method, body) {
 }
 
 // ── Add venue modal ────────────────────────────────────
-function openModal()  { document.getElementById('add-venue-modal').classList.add('show'); }
+// ── Industry / business-type data for the Add Venue modal ──
+// Mirrors onboarding.html's INDUSTRIES exactly, so a new venue added here
+// gets the same valid, kpi_definitions-backed codes as one created during
+// signup. Kept in sync manually -- if onboarding.html's list changes, this
+// one should be updated to match.
+const INDUSTRIES = [
+  { code:'accommodation_food', label:'Food & Hospitality', icon:'🍽', types:[
+    {code:'cafe',label:'Cafe'},
+    {code:'restaurant',label:'Restaurant'},
+    {code:'bar',label:'Bar / Pub'},
+    {code:'hotel',label:'Hotel / Motel'},
+    {code:'takeaway',label:'Takeaway / Fast Food'},
+    {code:'catering',label:'Catering Service'},
+  ]},
+  { code:'retail_trade', label:'Retail', icon:'🛍', types:[
+    {code:'clothing_store',label:'Fashion / Clothing'},
+    {code:'grocery_store',label:'Grocery / Supermarket'},
+    {code:'pharmacy_retail',label:'Pharmacy / Chemist'},
+    {code:'furniture_store',label:'Furniture / Homewares'},
+    {code:'gift_shop',label:'Gift / Specialty Shop'},
+    {code:'other_retail',label:'Other Retail'},
+  ]},
+  { code:'healthcare', label:'Healthcare', icon:'🏥', types:[
+    {code:'medical_clinic',label:'GP / Medical Clinic'},
+    {code:'dentist',label:'Dental Practice'},
+    {code:'physiotherapist',label:'Physio / Chiro / Osteo'},
+    {code:'optometry',label:'Optometry'},
+    {code:'psychology',label:'Psychology / Counselling'},
+    {code:'pharmacy',label:'Compounding Pharmacy'},
+    {code:'specialist',label:'Medical Specialist'},
+    {code:'allied_health',label:'Allied Health'},
+    {code:'aged_care',label:'Aged Care'},
+    {code:'childcare',label:'Childcare / Daycare'},
+  ]},
+  { code:'beauty', label:'Beauty & Hair', icon:'💅', types:[
+    {code:'hair_salon',label:'Hair Salon'},
+    {code:'beauty_salon',label:'Beauty Salon'},
+    {code:'nail_salon',label:'Nail Salon'},
+    {code:'barber',label:'Barber Shop'},
+    {code:'tattoo',label:'Tattoo Studio'},
+    {code:'lash_brow',label:'Lash & Brow Studio'},
+  ]},
+  { code:'arts_recreation', label:'Fitness & Wellness', icon:'💪', types:[
+    {code:'gym',label:'Gym / Fitness Centre'},
+    {code:'yoga',label:'Yoga / Pilates Studio'},
+    {code:'spa',label:'Day Spa / Wellness'},
+    {code:'massage',label:'Massage Therapy'},
+    {code:'personal_training',label:'Personal Training'},
+    {code:'martial_arts',label:'Martial Arts'},
+  ]},
+  { code:'professional_technical', label:'Professional Services', icon:'💼', types:[
+    {code:'lawyer',label:'Legal / Law Firm'},
+    {code:'financial_planning',label:'Financial Planning'},
+    {code:'consulting',label:'Business Consulting'},
+    {code:'marketing_agency',label:'Marketing Agency'},
+    {code:'recruitment',label:'Recruitment Agency'},
+    {code:'photographer',label:'Photography'},
+  ]},
+  { code:'construction_trade', label:'Trade & Construction', icon:'🔨', types:[
+    {code:'plumber',label:'Plumbing'},
+    {code:'electrician',label:'Electrical'},
+    {code:'builder',label:'Building / Construction'},
+    {code:'landscaper',label:'Landscaping / Gardening'},
+    {code:'painter',label:'Painting / Decorating'},
+  ]},
+  { code:'admin_support', label:'Cleaning & Home Services', icon:'🧹', types:[
+    {code:'cleaning',label:'Commercial Cleaning'},
+    {code:'home_cleaning',label:'Home / Domestic Cleaning'},
+    {code:'security',label:'Security Service'},
+    {code:'pest_control',label:'Pest Control'},
+    {code:'other_support',label:'Other Support Service'},
+  ]},
+  { code:'personal_services', label:'Personal Services', icon:'🤝', types:[
+    {code:'pet_grooming',label:'Pet Grooming'},
+    {code:'laundry',label:'Laundry / Dry Cleaning'},
+    {code:'events',label:'Event Planning'},
+    {code:'other_personal',label:'Other Personal Service'},
+  ]},
+  { code:'automotive', label:'Automotive', icon:'🚗', types:[
+    {code:'auto_mechanic',label:'Auto Mechanic'},
+    {code:'car_wash',label:'Car Wash / Detailing'},
+    {code:'panel_beating',label:'Panel Beating / Smash'},
+    {code:'tyre_shop',label:'Tyre & Wheel'},
+    {code:'car_dealership',label:'Car Dealership'},
+    {code:'other_auto',label:'Other Automotive'},
+  ]},
+  { code:'transport', label:'Transport & Logistics', icon:'🚛', types:[
+    {code:'courier',label:'Courier / Delivery'},
+    {code:'removalist',label:'Freight / Logistics'},
+    {code:'taxi_rideshare',label:'Taxi / Rideshare'},
+    {code:'storage',label:'Storage / Warehousing'},
+    {code:'other_transport',label:'Other Transport'},
+  ]},
+  { code:'education_training', label:'Education & Training', icon:'📚', types:[
+    {code:'tutoring',label:'Tutoring Centre'},
+    {code:'music_school',label:'Music School'},
+    {code:'dance_school',label:'Dance School'},
+    {code:'driving_school',label:'Driving School'},
+    {code:'training_provider',label:'Vocational / TAFE'},
+    {code:'other_education',label:'Other Education'},
+  ]},
+  { code:'financial_insurance', label:'Financial Services', icon:'💰', types:[
+    {code:'bank',label:'Bank / Credit Union'},
+    {code:'mortgage_broker',label:'Mortgage Broker'},
+    {code:'accountant',label:'Accounting / Tax / Bookkeeping'},
+    {code:'insurance_broker',label:'Insurance Broker'},
+    {code:'financial_planner',label:'Financial Advice'},
+  ]},
+  { code:'real_estate', label:'Real Estate', icon:'🏘', types:[
+    {code:'real_estate_agent',label:'Real Estate Sales / Property Management'},
+    {code:'buyers_agent',label:'Buyers Agent'},
+    {code:'strata',label:'Strata Management'},
+    {code:'conveyancing',label:'Conveyancing'},
+  ]},
+  { code:'information_media', label:'IT & Technology', icon:'💻', types:[
+    {code:'it_services',label:'IT Support / Software / Web / Security'},
+    {code:'telco',label:'Telco / ISP'},
+    {code:'other_it',label:'Other IT / Media'},
+  ]},
+  { code:'tourism', label:'Tourism & Events', icon:'✈️', types:[
+    {code:'tour_operator',label:'Tour Operator'},
+    {code:'holiday_accommodation',label:'Accommodation / B&B'},
+    {code:'travel_agent',label:'Travel Agent'},
+    {code:'event_venue',label:'Event Venue / Function'},
+    {code:'entertainment',label:'Entertainment'},
+  ]},
+  { code:'agriculture', label:'Agriculture', icon:'🌾', types:[
+    {code:'farm',label:'Farm / Produce'},
+    {code:'nursery',label:'Plant Nursery'},
+    {code:'other_agriculture',label:'Other Agriculture'},
+  ]},
+  { code:'manufacturing', label:'Manufacturing', icon:'🏭', types:[
+    {code:'manufacturer',label:'Manufacturing'},
+  ]},
+  { code:'ecommerce', label:'E-commerce', icon:'🛒', types:[
+    {code:'online_store',label:'Online Store'},
+  ]},
+];
+
+function populateNvIndustryDropdown() {
+  const sel = document.getElementById('nv-industry');
+  if (!sel) return;
+  sel.innerHTML = '<option value="">Select industry...</option>'
+    + INDUSTRIES.map(ind => `<option value="${ind.code}">${ind.icon} ${ind.label}</option>`).join('');
+}
+
+function onNvIndustryChange() {
+  const indCode = document.getElementById('nv-industry').value;
+  const bizSel = document.getElementById('nv-biztype');
+  const industry = INDUSTRIES.find(i => i.code === indCode);
+  if (!industry) {
+    bizSel.innerHTML = '<option value="">Select industry first...</option>';
+    return;
+  }
+  bizSel.innerHTML = '<option value="">Select business type...</option>'
+    + industry.types.map(t => `<option value="${t.code}">${t.label}</option>`).join('');
+}
+
+function openModal()  {
+  populateNvIndustryDropdown();
+  document.getElementById('add-venue-modal').classList.add('show');
+}
 function closeModal() { document.getElementById('add-venue-modal').classList.remove('show'); }
 
 async function createVenue() {
@@ -1495,12 +1656,19 @@ async function createVenue() {
   if (!name) { toast('Venue name is required', 'err'); return; }
   if (!TENANT_ID) { toast('Session not loaded yet — please wait and try again', 'err'); return; }
 
+  const industryCode = document.getElementById('nv-industry').value;
+  const bizTypeCode  = document.getElementById('nv-biztype').value;
+  if (!industryCode) { toast('Industry is required', 'err'); return; }
+  if (!bizTypeCode)  { toast('Business type is required', 'err'); return; }
+
   const btn = document.getElementById('add-venue-submit');
   btn.disabled = true; btn.textContent = 'Creating...';
 
   try {
     const slug = name.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'');
-    const type = document.getElementById('nv-type').value;
+    const industry = INDUSTRIES.find(i => i.code === industryCode);
+    const bizType = industry?.types.find(t => t.code === bizTypeCode);
+    const venueTypeLabel = bizType?.label || bizTypeCode;
     const suburb = document.getElementById('nv-suburb').value.trim();
     const state2 = document.getElementById('nv-state').value;
     const reviewUrl = document.getElementById('nv-review-url').value.trim();
@@ -1511,7 +1679,8 @@ async function createVenue() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         tenant_id: TENANT_ID,
-        name, slug, venue_type: type,
+        name, slug, venue_type: venueTypeLabel,
+        industry_code: industryCode, business_type_code: bizTypeCode,
         suburb, state: state2,
         google_review_url: reviewUrl || null,
       }),
