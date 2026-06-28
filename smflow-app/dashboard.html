@@ -1709,8 +1709,19 @@ function buildPlatformPreview(post, imageUrl) {
   const aspectMap = {'1:1':'100%','1.91:1':'52.4%','16:9':'56.25%'};
   const paddingTop = aspectMap[cfg.aspect] || '100%';
 
+  const previewId = `prevpan-${(post.post_id || post.id || Math.random().toString(36).slice(2))}`;
   const imgSection = imageUrl
-    ? `<img class="preview-img" src="${imageUrl}" style="width:100%;aspect-ratio:${cfg.aspect.replace(':','/')};object-fit:cover">`
+    ? `<div class="post-img-panwrap" id="panwrap-${previewId}" style="aspect-ratio:${cfg.aspect.replace(':','/')};position:relative">
+        <img src="${imageUrl}" id="panimg-${previewId}" class="preview-img"
+          style="width:100%;height:100%;object-fit:cover;object-position:center"
+          draggable="false">
+      </div>
+      <div class="pan-controls">
+        <button class="pan-btn" onclick="zoomImg('${previewId}',1.1)" title="Zoom in">＋</button>
+        <button class="pan-btn" onclick="zoomImg('${previewId}',0.9)" title="Zoom out">－</button>
+        <button class="pan-btn" onclick="rotateImg('${previewId}',90)" title="Rotate">⟳</button>
+        <button class="pan-btn" onclick="resetImg('${previewId}')" title="Reset">↺</button>
+      </div>`
     : `<div class="preview-img-placeholder" style="padding-top:${paddingTop};position:relative">
         <div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;color:${subCol}">
           <span style="font-size:24px">🖼</span>
@@ -1722,7 +1733,7 @@ function buildPlatformPreview(post, imageUrl) {
     `<span class="preview-action-icon" style="color:${subCol};font-size:${typeof a==='string'&&a.length>2?'11px':'16px'}">${a}</span>`
   ).join('');
 
-  return `
+  const html = `
     <div style="background:${bgCol};border-radius:12px;overflow:hidden;width:100%;font-family:${cfg.font}">
       <div style="background:${cfg.headerBg};padding:8px 10px;display:flex;align-items:center;gap:8px">
         <div style="width:32px;height:32px;border-radius:50%;background:var(--violet-bg);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:var(--violet-t);flex-shrink:0">${initials}</div>
@@ -1736,6 +1747,11 @@ function buildPlatformPreview(post, imageUrl) {
       <div style="padding:8px 10px 4px;font-size:11px;line-height:1.5;color:${txtCol};display:-webkit-box;-webkit-line-clamp:5;-webkit-box-orient:vertical;overflow:hidden">${content}</div>
       ${post.platform !== 'WhatsApp' ? `<div style="padding:6px 10px;display:flex;gap:${isDark?'16':'12'}px;border-top:.5px solid ${isDark?'#2f3336':'#e4e6ea'};margin-top:4px">${actionsHtml}</div>` : ''}
     </div>`;
+  // Deferred so the HTML above is already in the DOM (the caller does a
+  // synchronous innerHTML assignment with this return value) before we try
+  // to attach listeners to panwrap-${previewId}/panimg-${previewId}.
+  if (imageUrl) requestAnimationFrame(() => initPan(`panwrap-${previewId}`, `panimg-${previewId}`));
+  return html;
 }
 
 function renderPostCard(post, flavor, container) {
@@ -2084,6 +2100,7 @@ async function handleImageUpload(input, postId) {
       <div class="pan-controls">
         <button class="pan-btn" onclick="zoomImg('${postId||'tmp'}',1.1)" title="Zoom in">＋</button>
         <button class="pan-btn" onclick="zoomImg('${postId||'tmp'}',0.9)" title="Zoom out">－</button>
+        <button class="pan-btn" onclick="rotateImg('${postId||'tmp'}',90)" title="Rotate">⟳</button>
         <button class="pan-btn" onclick="resetImg('${postId||'tmp'}')" title="Reset">↺</button>
       </div>`;
     // Enable drag-to-pan
@@ -2411,7 +2428,18 @@ function initPan(wrapId, imgId) {
   const wrap = document.getElementById(wrapId);
   const img  = document.getElementById(imgId);
   if (!wrap || !img) return;
-  _panState[imgId] = { x: 0, y: 0, scale: 1, dragging: false, startX: 0, startY: 0 };
+  // Guard against re-binding: buildPlatformPreview's deferred call fires on
+  // every re-render (regenerate, edit, apply a new photo), and each wrap/img
+  // pair gets a fresh DOM node each time innerHTML is reassigned — but if a
+  // caller ever reuses the same node without rebuilding it, this stops a
+  // second full set of mousemove/mouseup listeners from stacking up.
+  if (wrap.dataset.panBound === '1') return;
+  wrap.dataset.panBound = '1';
+  // Preserve existing transform state across re-renders of the SAME imgId
+  // (e.g. a regenerate that keeps the same post_id) rather than snapping
+  // back to centered/unzoomed/unrotated every time.
+  if (!_panState[imgId]) _panState[imgId] = { x: 0, y: 0, scale: 1, rotate: 0, dragging: false, startX: 0, startY: 0 };
+  applyTransform(img, _panState[imgId]);
 
   wrap.addEventListener('mousedown', e => {
     const s = _panState[imgId];
@@ -2446,7 +2474,7 @@ function initPan(wrapId, imgId) {
 }
 
 function applyTransform(img, s) {
-  img.style.transform = `translate(${s.x}px, ${s.y}px) scale(${s.scale})`;
+  img.style.transform = `translate(${s.x}px, ${s.y}px) scale(${s.scale}) rotate(${s.rotate || 0}deg)`;
 }
 
 function zoomImg(postId, factor) {
@@ -2463,7 +2491,16 @@ function resetImg(postId) {
   const img   = document.getElementById(imgId);
   const s     = _panState[imgId];
   if (!img || !s) return;
-  s.x = 0; s.y = 0; s.scale = 1;
+  s.x = 0; s.y = 0; s.scale = 1; s.rotate = 0;
+  applyTransform(img, s);
+}
+
+function rotateImg(postId, degrees) {
+  const imgId = `panimg-${postId}`;
+  const img   = document.getElementById(imgId);
+  const s     = _panState[imgId];
+  if (!img || !s) return;
+  s.rotate = ((s.rotate || 0) + degrees) % 360;
   applyTransform(img, s);
 }
 
