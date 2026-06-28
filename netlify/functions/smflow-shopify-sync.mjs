@@ -118,16 +118,18 @@ async function shopifyGraphQL(shopDomain, accessToken, query, variables) {
 // discovered to be necessary after a real catalog (100+ products in a
 // single collection) caused an actual 504 Inactivity Timeout in
 // production — not a theoretical concern.
-// Netlify's documented Pro-plan synchronous limit is 60 seconds, but a
-// direct, timed test call against the real live deployment measured an
-// actual cutoff close to 30 seconds (confirmed: a real request returned a
-// 504 Inactivity Timeout at ~30.2s elapsed). Rather than trust the
-// documented number, this budget is set against what was actually
-// measured in production, with real margin under THAT — not the
-// platform's nominal limit, which evidently doesn't reflect what this
-// specific site enforces. If this needs further tuning, re-measure with
-// a timed direct fetch() call before changing this constant again.
-const TIME_BUDGET_MS = 18000;
+// Netlify's documented Pro-plan synchronous limit is 60 seconds, but
+// direct, timed test calls against the real live deployment measured an
+// actual cutoff close to 30 seconds, AND a real batch with an 18-second
+// internal budget still took 36.4 seconds wall-clock to return — meaning
+// the gap between "when we stop fetching from Shopify" and "when the
+// response actually leaves this function" is itself substantial (likely
+// from the sequential check-then-write Supabase pattern: every single
+// product does a SELECT followed by an INSERT or PATCH, each a real
+// network round-trip, and those happen AFTER the last timeIsUp() check
+// for that page). Cut hard, to a fraction of the measured real ceiling,
+// rather than trust either the documented limit or the first "fix."
+const TIME_BUDGET_MS = 8000;
 
 async function syncCollectionsAndProducts(tenantId, shopDomain, accessToken, resumeCursor) {
   const startedAt = Date.now();
@@ -143,6 +145,19 @@ async function syncCollectionsAndProducts(tenantId, shopDomain, accessToken, res
   let after          = resumeCursor?.collectionsAfter || null;
   let resumeInCollection = resumeCursor?.inProgressCollectionId || null;
   let resumeProductAfter = resumeCursor?.productsAfter || null;
+  // Real bug found and fixed here: this MUST be the set of every
+  // collection ID already fully completed within the CURRENT page, not
+  // just "the one collection we paused inside of." The original code only
+  // skipped a single matching ID, so any batch that paused with
+  // inProgressCollectionId: null (finished collection N, ran out of time
+  // before starting N+1) caused the next call to re-fetch the same page
+  // and restart from collection #1 — an infinite loop that silently
+  // reprocessed the same handful of collections forever while the
+  // products_synced counter kept climbing on pure re-upserts, never
+  // advancing to the rest of the real catalog. Confirmed live: a real
+  // sync reported 500+ "products synced" while the database never grew
+  // past the first 125 rows from the first 4 collections.
+  const completedInThisPage = new Set(resumeCursor?.completedCollectionIds || []);
 
   do {
     const data = await shopifyGraphQL(shopDomain, accessToken, COLLECTIONS_QUERY, { first: 50, after });
@@ -151,13 +166,14 @@ async function syncCollectionsAndProducts(tenantId, shopDomain, accessToken, res
     for (const { node: col } of edges) {
       const shopifyCollectionId = col.id;
 
-      // Skip collections we already fully finished in an earlier call this
-      // same sync run — only relevant when resuming mid-page.
-      if (resumeInCollection && shopifyCollectionId !== resumeInCollection) {
+      // Skip any collection already fully finished earlier in this same
+      // page (whether in this call or a previous one we're resuming
+      // from) — except the one we're explicitly resuming mid-product-page
+      // into, which needs to continue rather than be skipped.
+      if (shopifyCollectionId !== resumeInCollection && completedInThisPage.has(shopifyCollectionId)) {
         continue;
       }
 
-      const existing = await sb(`smflow_shopify_collections?tenant_id=eq.${tenantId}&shopify_collection_id=eq.${encodeURIComponent(shopifyCollectionId)}&select=id&limit=1`);
       const collectionPayload = {
         tenant_id:             tenantId,
         shopify_collection_id: shopifyCollectionId,
@@ -169,14 +185,16 @@ async function syncCollectionsAndProducts(tenantId, shopDomain, accessToken, res
         updated_at:            new Date().toISOString(),
       };
 
-      let collectionRowId;
-      if (existing.length) {
-        collectionRowId = existing[0].id;
-        await sb(`smflow_shopify_collections?id=eq.${collectionRowId}`, { method: 'PATCH', prefer: 'return=minimal', body: collectionPayload });
-      } else {
-        const inserted = await sb('smflow_shopify_collections', { method: 'POST', prefer: 'return=representation', body: { ...collectionPayload, created_at: new Date().toISOString() } });
-        collectionRowId = inserted[0].id;
-      }
+      // True single-call upsert via on_conflict + merge-duplicates, instead
+      // of a SELECT-then-INSERT-or-PATCH. The two-call pattern was a real,
+      // measured contributor to this function blowing past its time
+      // budget on a live catalog — every row was costing two sequential
+      // network round-trips to Supabase instead of one.
+      const upserted = await sb(
+        `smflow_shopify_collections?on_conflict=tenant_id,shopify_collection_id`,
+        { method: 'POST', prefer: 'resolution=merge-duplicates,return=representation', body: { ...collectionPayload, created_at: new Date().toISOString() } }
+      );
+      const collectionRowId = upserted[0].id;
       if (!resumeInCollection) collectionsSynced++; // don't double-count a collection we're resuming into
 
       // Pull every product in this collection, paginated. If we're
@@ -210,12 +228,14 @@ async function syncCollectionsAndProducts(tenantId, shopDomain, accessToken, res
             updated_at:          new Date().toISOString(),
           };
 
-          const existingProduct = await sb(`smflow_shopify_products?tenant_id=eq.${tenantId}&shopify_product_id=eq.${encodeURIComponent(prod.id)}&select=id&limit=1`);
-          if (existingProduct.length) {
-            await sb(`smflow_shopify_products?id=eq.${existingProduct[0].id}`, { method: 'PATCH', prefer: 'return=minimal', body: productPayload });
-          } else {
-            await sb('smflow_shopify_products', { method: 'POST', prefer: 'return=minimal', body: { ...productPayload, created_at: new Date().toISOString() } });
-          }
+          // Single-call upsert, same reasoning as the collection upsert
+          // above — this is the higher-volume of the two (125 products vs
+          // 4 collections in the real catalog this was tested against),
+          // so it's the bigger share of the real, measured time savings.
+          await sb(
+            `smflow_shopify_products?on_conflict=tenant_id,shopify_product_id`,
+            { method: 'POST', prefer: 'resolution=merge-duplicates,return=minimal', body: { ...productPayload, created_at: new Date().toISOString() } }
+          );
           productsSynced++;
         }
 
@@ -231,21 +251,31 @@ async function syncCollectionsAndProducts(tenantId, shopDomain, accessToken, res
         if (productAfter && timeIsUp()) {
           return {
             done: false, collectionsSynced, productsSynced,
-            cursor: { collectionsAfter: after, inProgressCollectionId: shopifyCollectionId, productsAfter: productAfter },
+            cursor: { collectionsAfter: after, inProgressCollectionId: shopifyCollectionId, productsAfter: productAfter, completedCollectionIds: [...completedInThisPage] },
           };
         }
       } while (productAfter);
 
-      collectionsSynced += 0; // (collection itself already counted above; this line intentionally left for clarity of the loop structure)
+      // This collection's entire product list is now done — record it so
+      // a subsequent resume within this same page correctly skips it
+      // instead of reprocessing it. This is the line that was missing
+      // entirely before the fix above.
+      completedInThisPage.add(shopifyCollectionId);
 
       if (timeIsUp()) {
         return {
           done: false, collectionsSynced, productsSynced,
-          cursor: { collectionsAfter: after, inProgressCollectionId: null, productsAfter: null },
+          cursor: { collectionsAfter: after, inProgressCollectionId: null, productsAfter: null, completedCollectionIds: [...completedInThisPage] },
         };
       }
     }
 
+    // The whole page is now fully done — clear the per-page completed-set
+    // before moving to a genuinely new page of collections, since IDs
+    // from a previous page are irrelevant (and Shopify's collection IDs
+    // are globally unique anyway, but this keeps the set from growing
+    // unboundedly across a sync with hundreds of collections).
+    completedInThisPage.clear();
     after = data.collections.pageInfo.hasNextPage ? data.collections.pageInfo.endCursor : null;
   } while (after);
 
