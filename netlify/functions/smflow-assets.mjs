@@ -260,12 +260,23 @@ function getTagsFromFolder(name) {
 
 async function driveCreateFolder(drive, name, parentId) {
   const meta = { name, mimeType: 'application/vnd.google-apps.folder' };
-  // Use provided parentId, or fall back to shared SMflow Clients folder
-  meta.parents = [parentId || SHARED_DRIVE_ID];
+  // Only set parents when explicitly given (i.e. creating a sub-folder inside
+  // a folder we just created). When parentId is null/undefined — the ROOT
+  // folder for this client — omit parents entirely so the Drive API creates
+  // it in the authenticated user's own "My Drive" root, which is what
+  // getClientDriveClient()'s personal-account OAuth token actually has
+  // permission to do. The previous fallback to SHARED_DRIVE_ID was a leftover
+  // from the old service-account implementation this function was ported
+  // from; a drive.file-scoped client token has no access to AITECHNIC's own
+  // Shared Drive, so that fallback produced exactly an "insufficient
+  // authentication scopes" error from Google — the token wasn't actually
+  // missing a scope, it was correctly being denied write access to a Drive
+  // it doesn't own.
+  if (parentId) meta.parents = [parentId];
   const res = await drive.files.create({
     requestBody: meta,
     fields: 'id,name,webViewLink',
-    supportsAllDrives: true,  // required for shared drives
+    supportsAllDrives: true,  // still needed for the sub-folder calls if a Shared Drive parent is ever passed explicitly
   });
   return res.data;
 }
