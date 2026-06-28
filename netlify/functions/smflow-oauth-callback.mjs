@@ -332,6 +332,27 @@ async function handleGoogleDrive(code, tenantId) {
     ? new Date(Date.now() + tokenData.expires_in * 1000).toISOString()
     : null;
 
+  // Read the ACTUAL granted scope from Google's response instead of assuming
+  // the consent screen granted what we asked for. Google can silently return
+  // a reduced scope set — most commonly while a sensitive/restricted scope
+  // is still pending OAuth verification review — and a hardcoded
+  // ['drive.file'] here would mask that completely, leaving a token in the
+  // database that LOOKS like it has Drive access but actually has none,
+  // which is exactly the bug that caused Bakasura's "insufficient
+  // authentication scopes" error to be so confusing to diagnose.
+  const grantedScopes = (tokenData.scope || '').split(' ').filter(Boolean);
+  const hasDriveScope = grantedScopes.some(s => s.includes('drive'));
+  if (!hasDriveScope) {
+    throw new Error(
+      `Google did not grant Drive access for this connection (granted scopes: ` +
+      `${grantedScopes.join(', ') || 'none'}). This usually means the Drive ` +
+      `scope is still pending Google's OAuth verification review, or it was ` +
+      `declined on the consent screen. Folder creation will not work until ` +
+      `Drive access is actually granted — please check verification status ` +
+      `and try reconnecting once approved.`
+    );
+  }
+
   // 2. Get the connected Google account's email/name for display —
   // drive.file scope can't list files, but userinfo is always readable
   const profileRes = await fetch('https://www.googleapis.com/oauth2/v2/userinfo', {
@@ -342,6 +363,8 @@ async function handleGoogleDrive(code, tenantId) {
 
   // 3. Save — platform_account_id uses the Google account id (profile.id)
   // since a single client should only ever connect one Drive account.
+  // token_scopes now stores what Google ACTUALLY granted, not what we asked
+  // for, so this column can be trusted as ground truth going forward.
   await upsertAccount(tenantId, 'google_drive', {
     platform_account_id: profile.id || accountEmail,
     account_name:        accountEmail,
@@ -349,7 +372,7 @@ async function handleGoogleDrive(code, tenantId) {
     access_token:        accessToken,
     refresh_token:       refreshToken,
     token_expires_at:    expiresAt,
-    token_scopes:        ['drive.file'],
+    token_scopes:        grantedScopes,
   });
 
   return `Google Drive (${accountEmail})`;
