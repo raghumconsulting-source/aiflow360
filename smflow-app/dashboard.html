@@ -1019,6 +1019,14 @@ textarea.sct:focus{border-color:var(--violet)}
                 </div>
                 <button class="btn btn-outline btn-sm" id="acc-btn-googledrive" onclick="connectPlatform('GoogleDrive')">Connect</button>
               </div>
+              <div class="social-acc" id="acc-shopify">
+                <div class="social-acc-icon" style="background:var(--surface)">🛍️</div>
+                <div class="social-acc-info">
+                  <div class="social-acc-name">Shopify</div>
+                  <div class="social-acc-status" id="acc-status-shopify">Not connected</div>
+                </div>
+                <button class="btn btn-outline btn-sm" id="acc-btn-shopify" onclick="connectShopify()">Connect</button>
+              </div>
             </div>
           </div>
         </div>
@@ -1063,6 +1071,49 @@ textarea.sct:focus{border-color:var(--violet)}
                 <input type="text" class="sct" id="gdrive-folder-id" placeholder="Google Drive folder ID" style="width:160px">
               </div>
               <button class="btn btn-outline btn-sm" style="margin-top:8px;width:100%" onclick="connectGDrive()">Connect Google Drive</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Shopify catalog sync -->
+        <div class="card">
+          <div class="card-hdr">
+            <div><div class="card-title">Shopify</div><div class="card-sub" id="shopify-status-sub">Product catalog sync</div></div>
+            <button class="btn btn-outline btn-sm" id="shopify-sync-btn" onclick="syncShopify()" style="display:none">↻ Sync catalog</button>
+          </div>
+          <div class="card-body" id="shopify-card-body">
+            <div id="shopify-connected-view" style="display:none">
+              <div style="display:flex;align-items:center;gap:8px;padding:10px 12px;background:var(--green-bg);border-radius:var(--r);margin-bottom:12px">
+                <span style="color:var(--green-t);font-size:13px">✓ Connected</span>
+                <span id="shopify-domain-name" style="font-size:12px;color:var(--green-t);font-weight:500"></span>
+              </div>
+              <div id="shopify-empty-hint" style="display:none;padding:10px 12px;background:var(--amber-bg);border:1px solid var(--amber);border-radius:var(--r);margin-bottom:12px;font-size:12px;color:var(--amber-t)">
+                🛍️ Your store is connected but hasn't been synced yet. Hit <strong>Sync catalog</strong> above to pull in your collections and products.
+              </div>
+              <div style="display:flex;gap:16px;flex-wrap:wrap;margin-bottom:14px">
+                <div style="text-align:center">
+                  <div style="font-size:22px;font-weight:500;color:var(--teal)" id="shopify-collection-count">0</div>
+                  <div style="font-size:11px;color:var(--muted)">Collections</div>
+                </div>
+                <div style="text-align:center">
+                  <div style="font-size:22px;font-weight:500;color:var(--teal)" id="shopify-product-count">0</div>
+                  <div style="font-size:11px;color:var(--muted)">Products</div>
+                </div>
+                <div style="text-align:center">
+                  <div style="font-size:22px;font-weight:500;color:var(--muted)" id="shopify-last-sync">—</div>
+                  <div style="font-size:11px;color:var(--muted)">Last sync</div>
+                </div>
+              </div>
+              <div id="shopify-collections-list" style="display:grid;gap:8px">
+                <div class="empty"><p>No collections synced yet</p></div>
+              </div>
+            </div>
+            <div id="shopify-connect-view">
+              <div class="setting-row" style="border:none;padding-top:0">
+                <div><div class="setting-lbl">Store domain</div><div class="setting-sub">Enter your store name, e.g. "my-store" or the full myshopify.com address</div></div>
+                <input type="text" class="sct" id="shopify-domain-input" placeholder="my-store.myshopify.com" style="width:200px">
+              </div>
+              <button class="btn btn-outline btn-sm" style="margin-top:8px;width:100%" onclick="connectShopify()">Connect Shopify</button>
             </div>
           </div>
         </div>
@@ -2802,6 +2853,7 @@ async function askAgent(msg) {
 async function loadSocialAccounts() {
   if (!TENANT) return;
   loadGDriveStatus();
+  loadShopifyStatus();
   try {
     // Route through Netlify function — uses service key server-side, bypasses RLS anon restriction
     const res      = await fetch(`${API_BASE}/smflow-config?tenant_id=${TENANT.id}&include=social_accounts`);
@@ -2972,6 +3024,90 @@ async function syncGDrive() {
     }
   } catch(e) { toast('Sync failed: ' + e.message); }
   btn.textContent = '↻ Sync photos'; btn.disabled = false;
+}
+
+function connectShopify() {
+  if (!TENANT) return toast('Not logged in');
+  const domainInput = document.getElementById('shopify-domain-input');
+  const domain = domainInput ? domainInput.value.trim() : '';
+  if (!domain) return toast('Enter your store domain first');
+  const redirectBack = window.location.href.split('?')[0];
+  const oauthUrl = `/.netlify/functions/smflow-shopify-oauth?tenant_id=${TENANT.id}&shop_domain=${encodeURIComponent(domain)}&redirect_back=${encodeURIComponent(redirectBack)}`;
+  window.location.href = oauthUrl;
+}
+
+async function loadShopifyStatus() {
+  if (!TENANT) return;
+  try {
+    const res = await fetch(`${API_BASE}/smflow-shopify-sync?tenant_id=${TENANT.id}`);
+    const d   = await res.json();
+    if (d.connected) {
+      document.getElementById('shopify-connected-view').style.display = 'block';
+      document.getElementById('shopify-connect-view').style.display   = 'none';
+      document.getElementById('shopify-sync-btn').style.display       = 'inline-flex';
+      document.getElementById('shopify-domain-name').textContent      = d.shop_domain || '';
+      document.getElementById('shopify-collection-count').textContent = d.collections_synced || 0;
+      document.getElementById('shopify-product-count').textContent    = d.products_synced || 0;
+      const emptyHint = document.getElementById('shopify-empty-hint');
+      if (emptyHint) emptyHint.style.display = (d.products_synced || 0) === 0 ? 'block' : 'none';
+      if (d.last_synced_at) {
+        const dt = new Date(d.last_synced_at);
+        document.getElementById('shopify-last-sync').textContent =
+          dt.toLocaleDateString('en-AU',{day:'numeric',month:'short'}) + ' ' +
+          dt.toLocaleTimeString('en-AU',{hour:'2-digit',minute:'2-digit'});
+      }
+      loadShopifyCollections();
+    } else {
+      document.getElementById('shopify-connected-view').style.display = 'none';
+      document.getElementById('shopify-connect-view').style.display   = 'block';
+      document.getElementById('shopify-sync-btn').style.display       = 'none';
+    }
+  } catch(e) { console.warn('shopify status:', e.message); }
+}
+
+async function syncShopify() {
+  if (!TENANT) return;
+  const btn = document.getElementById('shopify-sync-btn');
+  btn.textContent = '⏳ Syncing...'; btn.disabled = true;
+  try {
+    const res = await fetch(`${API_BASE}/smflow-shopify-sync`, {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ action:'sync', tenant_id: TENANT.id }),
+    });
+    const d = await res.json();
+    if (d.success) {
+      toast(`✓ ${d.collections_synced} collections, ${d.products_synced} products synced`);
+      loadShopifyStatus();
+    } else {
+      toast('Sync error: ' + d.error);
+    }
+  } catch(e) { toast('Sync failed: ' + e.message); }
+  btn.textContent = '↻ Sync catalog'; btn.disabled = false;
+}
+
+async function loadShopifyCollections() {
+  if (!TENANT) return;
+  try {
+    const res = await fetch(`${API_BASE}/smflow-shopify-sync?tenant_id=${TENANT.id}&action=collections`);
+    const d   = await res.json();
+    const list = document.getElementById('shopify-collections-list');
+    if (!list) return;
+    if (!d.collections?.length) {
+      list.innerHTML = '<div class="empty"><p>No collections synced yet</p></div>';
+      return;
+    }
+    list.innerHTML = d.collections.map(c => `
+      <div class="setting-row" style="border:1px solid var(--border);border-radius:var(--r);padding:10px 12px;align-items:center">
+        <div style="display:flex;align-items:center;gap:10px;flex:1">
+          ${c.image_url ? `<img src="${c.image_url}" style="width:36px;height:36px;border-radius:6px;object-fit:cover" alt="">` : `<div style="width:36px;height:36px;border-radius:6px;background:var(--surface);display:flex;align-items:center;justify-content:center;font-size:16px">🛍️</div>`}
+          <div>
+            <div style="font-size:13px;font-weight:500">${c.title}</div>
+            <div style="font-size:11px;color:var(--muted)">${c.product_count} product${c.product_count === 1 ? '' : 's'}</div>
+          </div>
+        </div>
+      </div>
+    `).join('');
+  } catch(e) { console.warn('shopify collections:', e.message); }
 }
 
 async function loadAssets() {
