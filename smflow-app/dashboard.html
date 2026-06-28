@@ -3068,18 +3068,32 @@ async function loadShopifyStatus() {
 async function syncShopify() {
   if (!TENANT) return;
   const btn = document.getElementById('shopify-sync-btn');
-  btn.textContent = '⏳ Syncing...'; btn.disabled = true;
+  btn.disabled = true;
+  let cursor = null;
+  // Large catalogs can't always be synced in a single request — the
+  // backend processes a time-bounded batch per call and returns done:false
+  // with a cursor when there's more to do. This loops until done:true,
+  // updating the button text with live progress along the way, rather
+  // than a single call that risked a 504 timeout on a real catalog (this
+  // was a genuine production bug, not a hypothetical edge case).
   try {
-    const res = await fetch(`${API_BASE}/smflow-shopify-sync`, {
-      method:'POST', headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({ action:'sync', tenant_id: TENANT.id }),
-    });
-    const d = await res.json();
-    if (d.success) {
-      toast(`✓ ${d.collections_synced} collections, ${d.products_synced} products synced`);
-      loadShopifyStatus();
-    } else {
-      toast('Sync error: ' + d.error);
+    while (true) {
+      const res = await fetch(`${API_BASE}/smflow-shopify-sync`, {
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({ action:'sync', tenant_id: TENANT.id, cursor }),
+      });
+      const d = await res.json();
+      if (!d.success) {
+        toast('Sync error: ' + d.error);
+        break;
+      }
+      btn.textContent = `⏳ Syncing... (${d.products_synced} products so far)`;
+      if (d.done) {
+        toast(`✓ ${d.collections_synced} collections, ${d.products_synced} products synced`);
+        loadShopifyStatus();
+        break;
+      }
+      cursor = d.cursor;
     }
   } catch(e) { toast('Sync failed: ' + e.message); }
   btn.textContent = '↻ Sync catalog'; btn.disabled = false;

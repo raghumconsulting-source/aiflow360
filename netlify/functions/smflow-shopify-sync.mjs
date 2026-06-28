@@ -107,10 +107,33 @@ async function shopifyGraphQL(shopDomain, accessToken, query, variables) {
   return data.data;
 }
 
-async function syncCollectionsAndProducts(tenantId, shopDomain, accessToken) {
+// Netlify's synchronous function limit is 60 seconds. Rather than convert
+// this to a Background Function (which changes the response contract —
+// background functions return an empty 202 immediately and the actual
+// result has to be delivered somewhere else, which is a bigger redesign),
+// this stays a normal synchronous function but processes work in
+// time-bounded batches. Each call does as much as it safely can within
+// TIME_BUDGET_MS, then returns a resume cursor — the caller (the Settings
+// UI) loops, calling again with that cursor, until done:true. This was
+// discovered to be necessary after a real catalog (100+ products in a
+// single collection) caused an actual 504 Inactivity Timeout in
+// production — not a theoretical concern.
+const TIME_BUDGET_MS = 45000; // leave real margin under the 60s hard limit
+
+async function syncCollectionsAndProducts(tenantId, shopDomain, accessToken, resumeCursor) {
+  const startedAt = Date.now();
+  const timeIsUp = () => (Date.now() - startedAt) > TIME_BUDGET_MS;
+
   let collectionsSynced = 0;
   let productsSynced    = 0;
-  let after = null;
+
+  // resumeCursor carries us back to exactly where the previous call left
+  // off: which page of collections we were on, and — if we stopped in the
+  // middle of a large collection's product list — which collection and
+  // which product-page cursor to resume from.
+  let after          = resumeCursor?.collectionsAfter || null;
+  let resumeInCollection = resumeCursor?.inProgressCollectionId || null;
+  let resumeProductAfter = resumeCursor?.productsAfter || null;
 
   do {
     const data = await shopifyGraphQL(shopDomain, accessToken, COLLECTIONS_QUERY, { first: 50, after });
@@ -119,7 +142,12 @@ async function syncCollectionsAndProducts(tenantId, shopDomain, accessToken) {
     for (const { node: col } of edges) {
       const shopifyCollectionId = col.id;
 
-      // Upsert the collection itself
+      // Skip collections we already fully finished in an earlier call this
+      // same sync run — only relevant when resuming mid-page.
+      if (resumeInCollection && shopifyCollectionId !== resumeInCollection) {
+        continue;
+      }
+
       const existing = await sb(`smflow_shopify_collections?tenant_id=eq.${tenantId}&shopify_collection_id=eq.${encodeURIComponent(shopifyCollectionId)}&select=id&limit=1`);
       const collectionPayload = {
         tenant_id:             tenantId,
@@ -140,21 +168,21 @@ async function syncCollectionsAndProducts(tenantId, shopDomain, accessToken) {
         const inserted = await sb('smflow_shopify_collections', { method: 'POST', prefer: 'return=representation', body: { ...collectionPayload, created_at: new Date().toISOString() } });
         collectionRowId = inserted[0].id;
       }
-      collectionsSynced++;
+      if (!resumeInCollection) collectionsSynced++; // don't double-count a collection we're resuming into
 
-      // Pull every product in this collection, paginated
-      let productAfter = null;
+      // Pull every product in this collection, paginated. If we're
+      // resuming mid-collection, start from where we left off instead of
+      // page 1 — otherwise this would re-fetch (though not re-insert,
+      // since upserts are idempotent) products we already have.
+      let productAfter = (shopifyCollectionId === resumeInCollection) ? resumeProductAfter : null;
+      resumeInCollection = null; // only the first matched collection resumes mid-page; clear so subsequent collections start fresh
+      resumeProductAfter = null;
+
       do {
         const prodData = await shopifyGraphQL(shopDomain, accessToken, PRODUCTS_QUERY, { id: shopifyCollectionId, first: 50, after: productAfter });
         const prodEdges = prodData.collection?.products?.edges || [];
 
         for (const { node: prod } of prodEdges) {
-          // Real edge case found while validating this query against a
-          // live store: a product can have featuredMedia: null when it
-          // has no image at all. Every downstream consumer of image_url
-          // must already handle null/missing images gracefully (same as
-          // Drive-synced assets can also lack a thumbnail) — this is not
-          // a new failure mode we're introducing.
           const imageUrl = prod.featuredMedia?.preview?.image?.url || null;
           const price    = prod.priceRangeV2?.minVariantPrice?.amount || null;
           const currency = prod.priceRangeV2?.minVariantPrice?.currencyCode || null;
@@ -185,13 +213,34 @@ async function syncCollectionsAndProducts(tenantId, shopDomain, accessToken) {
         productAfter = prodData.collection?.products?.pageInfo?.hasNextPage
           ? prodData.collection.products.pageInfo.endCursor
           : null;
+
+        // Check the time budget after every page of products, not just
+        // between collections — a single 100+ product collection can
+        // itself take multiple pages and multiple round-trips, which is
+        // exactly the scenario that caused the real timeout this batching
+        // exists to fix.
+        if (productAfter && timeIsUp()) {
+          return {
+            done: false, collectionsSynced, productsSynced,
+            cursor: { collectionsAfter: after, inProgressCollectionId: shopifyCollectionId, productsAfter: productAfter },
+          };
+        }
       } while (productAfter);
+
+      collectionsSynced += 0; // (collection itself already counted above; this line intentionally left for clarity of the loop structure)
+
+      if (timeIsUp()) {
+        return {
+          done: false, collectionsSynced, productsSynced,
+          cursor: { collectionsAfter: after, inProgressCollectionId: null, productsAfter: null },
+        };
+      }
     }
 
     after = data.collections.pageInfo.hasNextPage ? data.collections.pageInfo.endCursor : null;
   } while (after);
 
-  return { collectionsSynced, productsSynced };
+  return { done: true, collectionsSynced, productsSynced, cursor: null };
 }
 
 const handler = async function (event) {
@@ -247,21 +296,43 @@ const handler = async function (event) {
         }
         const cfg = configs[0];
 
-        const { collectionsSynced, productsSynced } = await syncCollectionsAndProducts(tenant_id, cfg.shop_domain, cfg.access_token);
+        // body.cursor is round-tripped from the previous call's response
+        // when resuming a sync that didn't finish within one invocation's
+        // time budget. Absent on the first call of a fresh sync.
+        const result = await syncCollectionsAndProducts(tenant_id, cfg.shop_domain, cfg.access_token, body.cursor || null);
 
-        await sb(`smflow_shopify_config?tenant_id=eq.${tenant_id}`, {
-          method: 'PATCH', prefer: 'return=minimal',
-          body: {
-            last_synced_at:      new Date().toISOString(),
-            collections_synced:  collectionsSynced,
-            products_synced:     productsSynced,
-            updated_at:          new Date().toISOString(),
-          },
-        });
+        const totalCollections = (body.cursor?.totalCollectionsSoFar || 0) + result.collectionsSynced;
+        const totalProducts    = (body.cursor?.totalProductsSoFar || 0) + result.productsSynced;
+
+        if (result.done) {
+          await sb(`smflow_shopify_config?tenant_id=eq.${tenant_id}`, {
+            method: 'PATCH', prefer: 'return=minimal',
+            body: {
+              last_synced_at:      new Date().toISOString(),
+              collections_synced:  totalCollections,
+              products_synced:     totalProducts,
+              updated_at:          new Date().toISOString(),
+            },
+          });
+        }
 
         return {
           statusCode: 200, headers: HEADERS,
-          body: JSON.stringify({ success: true, collections_synced: collectionsSynced, products_synced: productsSynced }),
+          body: JSON.stringify({
+            success: true,
+            done: result.done,
+            // These two are the CUMULATIVE totals across every batch so
+            // far this sync run, not just this one call's contribution —
+            // the frontend can display this number directly without
+            // needing to track its own running sum across repeated calls.
+            collections_synced: totalCollections,
+            products_synced:    totalProducts,
+            cursor: result.done ? null : {
+              ...result.cursor,
+              totalCollectionsSoFar: totalCollections,
+              totalProductsSoFar:    totalProducts,
+            },
+          }),
         };
       }
 
