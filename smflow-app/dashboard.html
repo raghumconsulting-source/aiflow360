@@ -2200,28 +2200,168 @@ function startPostSplitDrag(e, card, divider) {
 async function loadPhotoReel(cardId, postId, platform) {
   const reel = document.getElementById(`photos-${cardId}`);
   if (!reel || !TENANT) return;
+
+  // Fetch GDrive assets and Shopify status in parallel — neither blocks the other
+  const [driveRes, shopifyRes] = await Promise.allSettled([
+    fetch(`${API_BASE}/smflow-assets?tenant_id=${TENANT.id}&action=list&limit=20`),
+    fetch(`${API_BASE}/smflow-shopify-sync?tenant_id=${TENANT.id}`),
+  ]);
+
+  let driveAssets = [];
+  let shopifyConnected = false;
+  let shopifyProductCount = 0;
+
   try {
-    const res  = await fetch(`${API_BASE}/smflow-assets?tenant_id=${TENANT.id}&action=list&limit=20`);
-    const d    = await res.json();
-    const assets = d.assets || [];
-    if (!assets.length) {
-      reel.innerHTML = '<div class="photo-reel-drop-hint">No photos yet.<br>Sync from Google Drive in Settings.</div>';
-      return;
+    if (driveRes.status === 'fulfilled' && driveRes.value.ok) {
+      const d = await driveRes.value.json();
+      driveAssets = d.assets || [];
     }
-    reel.innerHTML = assets.map(a => {
+  } catch(e) { console.warn('loadPhotoReel drive:', e.message); }
+
+  try {
+    if (shopifyRes.status === 'fulfilled' && shopifyRes.value.ok) {
+      const s = await shopifyRes.value.json();
+      shopifyConnected  = s.connected === true;
+      shopifyProductCount = s.products_synced || 0;
+    }
+  } catch(e) { console.warn('loadPhotoReel shopify:', e.message); }
+
+  const hasDrive   = driveAssets.length > 0;
+  const hasShopify = shopifyConnected && shopifyProductCount > 0;
+
+  // Nothing from either source
+  if (!hasDrive && !hasShopify) {
+    reel.innerHTML = '<div class="photo-reel-drop-hint">No photos yet.<br>Connect Google Drive or Shopify in Settings.</div>';
+    return;
+  }
+
+  let html = '';
+
+  // ── GDrive section ────────────────────────────────────────
+  if (hasDrive) {
+    html += driveAssets.map(a => {
       const url = a.file_url || a.thumbnail_url || '';
       if (!url) return '';
+      const safeUrl  = url.replace(/'/g, '%27');
+      const safeName = (a.file_name || '').replace(/"/g, '');
       return `<div class="photo-reel-item" draggable="true"
-          title="${a.file_name||''}"
-          ondragstart="onReelDragStart(event,'${url}','${a.id}','${cardId}','${postId}')"
+          title="${safeName}"
+          ondragstart="onReelDragStart(event,'${safeUrl}','${a.id}','${cardId}','${postId}')"
           ondragend="this.classList.remove('drag-active')"
-          onclick="applyReelPhoto('${url}','${a.id}','${cardId}','${postId}')">
-          <img src="${url}" alt="${a.alt_text||''}" loading="lazy"
+          onclick="applyReelPhoto('${safeUrl}','${a.id}','${cardId}','${postId}')">
+          <img src="${url}" alt="${a.alt_text || ''}" loading="lazy"
             onerror="this.parentElement.style.display='none'">
         </div>`;
-    }).join('') + '<div class="photo-reel-drop-hint">Click or drag photo to preview →</div>';
+    }).join('');
+    html += '<div class="photo-reel-drop-hint">Click or drag to preview →</div>';
+  }
+
+  // ── Shopify section ───────────────────────────────────────
+  if (hasShopify) {
+    // Section divider — only shown when GDrive photos also exist above
+    if (hasDrive) {
+      html += `<div style="grid-column:1/-1;border-top:.5px solid var(--border);margin:4px 0;padding-top:6px;font-size:10px;font-weight:500;color:var(--muted);letter-spacing:.05em;text-transform:uppercase">🛍️ Shopify catalog</div>`;
+    }
+    // Render collections grid — clicking drills into products for that collection
+    html += `<div id="shopify-reel-${cardId}" style="grid-column:1/-1;display:contents"></div>`;
+  }
+
+  reel.innerHTML = html;
+
+  // Load Shopify collections into the reel asynchronously if needed
+  if (hasShopify) {
+    loadReelShopifyCollections(cardId, postId);
+  }
+}
+
+// Renders Shopify collections as clickable tiles in the post card photo reel.
+// Clicking a collection drills into its products (replaces the collection tiles
+// with product images, with a back link to return to the collection view).
+async function loadReelShopifyCollections(cardId, postId) {
+  const container = document.getElementById(`shopify-reel-${cardId}`);
+  if (!container || !TENANT) return;
+  try {
+    const res = await fetch(`${API_BASE}/smflow-assets?tenant_id=${TENANT.id}&action=shopify_grouped`);
+    const d   = await res.json();
+    const collections = d.collections || [];
+    if (!collections.length) {
+      container.innerHTML = '<div class="photo-reel-drop-hint" style="grid-column:1/-1">No collections synced yet.</div>';
+      return;
+    }
+    container.innerHTML = collections.map(c => {
+      const safeTitle = (c.title || '').replace(/"/g, '').replace(/'/g, '');
+      const imgHtml   = c.image_url
+        ? `<img src="${c.image_url}" alt="${safeTitle}" loading="lazy" style="width:100%;height:100%;object-fit:cover;display:block" onerror="this.style.display='none'">`
+        : `<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:20px;background:var(--surface)">🛍️</div>`;
+      return `<div class="photo-reel-item" title="${safeTitle}"
+          onclick="loadReelShopifyProducts('${c.id}','${cardId}','${postId}','${safeTitle}')">
+          ${imgHtml}
+          <div style="position:absolute;bottom:0;left:0;right:0;padding:3px 5px;background:rgba(0,0,0,.55);color:#fff;font-size:9px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${c.title} (${c.product_count})</div>
+        </div>`;
+    }).join('');
   } catch(e) {
-    reel.innerHTML = '<div class="photo-reel-drop-hint">Could not load photos</div>';
+    if (container) container.innerHTML = '<div class="photo-reel-drop-hint" style="grid-column:1/-1">Could not load Shopify catalog.</div>';
+    console.warn('loadReelShopifyCollections:', e.message);
+  }
+}
+
+// Drills into a single Shopify collection and shows its product images in the reel.
+// A back link returns to the collection grid without a network request.
+async function loadReelShopifyProducts(collectionId, cardId, postId, collectionTitle) {
+  const reel = document.getElementById(`photos-${cardId}`);
+  if (!reel || !TENANT) return;
+
+  // Show back link + loading state immediately so the panel feels responsive
+  const backHtml = `<div style="grid-column:1/-1;display:flex;align-items:center;gap:6px;padding-bottom:4px">
+    <button onclick="loadReelShopifyCollections('${cardId}','${postId}')" style="font-size:10px;color:var(--teal);background:none;border:none;cursor:pointer;padding:0">← Back</button>
+    <span style="font-size:10px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${collectionTitle}</span>
+  </div>`;
+
+  // Restore reel layout structure — inject back link + placeholder into the
+  // Shopify container only, leaving GDrive items above untouched.
+  // If GDrive items exist above, the container is already set; if not, we
+  // need to add a fresh container to replace the collections grid.
+  let shopifyContainer = document.getElementById(`shopify-reel-${cardId}`);
+  if (!shopifyContainer) {
+    // Shopify-only reel — replace the whole reel content
+    reel.innerHTML = backHtml + '<div id="shopify-reel-' + cardId + '" style="display:contents"></div>';
+    shopifyContainer = document.getElementById(`shopify-reel-${cardId}`);
+  } else {
+    shopifyContainer.innerHTML = backHtml + '<div class="photo-reel-drop-hint" style="grid-column:1/-1">Loading products…</div>';
+  }
+
+  try {
+    const res = await fetch(`${API_BASE}/smflow-assets?tenant_id=${TENANT.id}&action=shopify_grouped&collection_id=${encodeURIComponent(collectionId)}`);
+    const d   = await res.json();
+    const products = d.products || [];
+
+    if (!products.length) {
+      shopifyContainer.innerHTML = backHtml + '<div class="photo-reel-drop-hint" style="grid-column:1/-1">No product images in this collection.</div>';
+      return;
+    }
+
+    shopifyContainer.innerHTML = backHtml + products.map(p => {
+      // image_url = Shopify CDN product image; asset.file_url = stored in Supabase (if promoted)
+      const url      = p.image_url || p.asset?.file_url || '';
+      if (!url) return '';
+      const safeUrl  = url.replace(/'/g, '%27');
+      const safeId   = p.asset?.id || p.id || '';
+      const safeTitle = (p.title || '').replace(/"/g, '').replace(/'/g, '');
+      return `<div class="photo-reel-item" draggable="true"
+          title="${safeTitle}"
+          ondragstart="onReelDragStart(event,'${safeUrl}','${safeId}','${cardId}','${postId}')"
+          ondragend="this.classList.remove('drag-active')"
+          onclick="applyReelPhoto('${safeUrl}','${safeId}','${cardId}','${postId}')">
+          <img src="${url}" alt="${safeTitle}" loading="lazy"
+            style="width:100%;height:100%;object-fit:cover;display:block"
+            onerror="this.style.display='none'">
+          <div style="position:absolute;bottom:0;left:0;right:0;padding:3px 5px;background:rgba(0,0,0,.55);color:#fff;font-size:9px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${p.title}</div>
+        </div>`;
+    }).join('') + '<div class="photo-reel-drop-hint" style="grid-column:1/-1">Click or drag to preview →</div>';
+
+  } catch(e) {
+    if (shopifyContainer) shopifyContainer.innerHTML = backHtml + '<div class="photo-reel-drop-hint" style="grid-column:1/-1">Could not load products.</div>';
+    console.warn('loadReelShopifyProducts:', e.message);
   }
 }
 
