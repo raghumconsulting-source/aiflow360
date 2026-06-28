@@ -182,8 +182,11 @@ body{font-family:'Geist',sans-serif;font-size:14px;color:var(--text);line-height
 
 /* ── Post output cards ────────────────────────────── */
 /* Split panel post card */
-.post-split{display:grid;grid-template-columns:1fr 220px 1fr;gap:0;border:.5px solid var(--border);border-radius:var(--radius-lg);overflow:hidden;margin-bottom:12px;min-height:320px}
-.post-split-mid{border-right:.5px solid var(--border);background:var(--surface);display:flex;flex-direction:column;overflow:hidden;min-width:140px;max-width:280px;resize:horizontal}
+.post-split{display:grid;grid-template-columns:1fr 6px 220px 6px 1fr;gap:0;border:.5px solid var(--border);border-radius:var(--radius-lg);overflow:hidden;margin-bottom:12px;min-height:320px}
+.post-split-mid{border-right:.5px solid var(--border);background:var(--surface);display:flex;flex-direction:column;overflow:hidden;min-width:140px}
+.post-split-divider{cursor:col-resize;background:transparent;position:relative;flex-shrink:0;z-index:2}
+.post-split-divider::after{content:'';position:absolute;top:0;bottom:0;left:50%;width:1px;background:var(--border);transform:translateX(-50%);transition:background .15s,width .15s}
+.post-split-divider:hover::after,.post-split-divider.dragging::after{background:var(--violet);width:2px}
 .post-split-mid-hdr{font-size:11px;font-weight:500;color:var(--muted);padding:8px 10px;border-bottom:.5px solid var(--border);text-transform:uppercase;letter-spacing:.05em;flex-shrink:0}
 .img-gen-loading{width:100%;aspect-ratio:1;background:linear-gradient(90deg,var(--surface) 0%,var(--border) 50%,var(--surface) 100%);background-size:200% 100%;animation:shimmer 1.5s infinite;border-radius:8px;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:8px;font-size:12px;color:var(--muted)}
 @keyframes shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}
@@ -201,7 +204,7 @@ body{font-family:'Geist',sans-serif;font-size:14px;color:var(--text);line-height
 .photo-reel-item:hover{border-color:var(--violet)}
 .photo-reel-item.drag-active{opacity:.5;cursor:grabbing}
 .photo-reel-drop-hint{font-size:10px;color:var(--muted);text-align:center;padding:8px 6px;line-height:1.4}
-@media(max-width:900px){.post-split{grid-template-columns:1fr 1fr}.post-split-mid{display:none}}
+@media(max-width:900px){.post-split{grid-template-columns:1fr 1fr}.post-split-mid{display:none}.post-split-divider{display:none}}
 @media(max-width:700px){.post-split{grid-template-columns:1fr}.post-split-right{display:none}}
 .post-split-left{border-right:.5px solid var(--border);display:flex;flex-direction:column;min-height:320px}
 .post-split-left .post-body{flex:1;min-height:200px;overflow-y:auto;white-space:pre-wrap;word-break:break-word}
@@ -1121,7 +1124,7 @@ textarea.sct:focus{border-color:var(--violet)}
         <!-- Asset Library -->
         <div class="card" id="asset-library-card" style="display:none">
           <div class="card-hdr">
-            <div class="card-title">📸 Photo library</div>
+            <div class="card-title">📸 Drive photos</div>
             <div style="display:flex;gap:6px;align-items:center">
               <select class="tbtn" id="asset-flavor-filter" onchange="loadAssets()" style="padding:5px 8px;font-family:'Geist',sans-serif;font-size:11px">
                 <option value="">All flavors</option>
@@ -1140,6 +1143,26 @@ textarea.sct:focus{border-color:var(--violet)}
           <div class="card-body" style="padding:10px">
             <div id="asset-grid" style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px">
               <div class="empty" style="grid-column:1/-1"><p>No photos yet — sync Google Drive first</p></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Shopify Catalog photo library — collection-first, drill-down
+             to individual products. Every product synced from Shopify is
+             auto-promoted here (no separate "add to library" step), per
+             the agreed design. Shown as its own section rather than
+             merged into the Drive grid above, since the two sources have
+             genuinely different shapes (Drive = flat folder of photos,
+             Shopify = structured catalog with real grouping that's worth
+             preserving, not flattening away). -->
+        <div class="card" id="shopify-library-card" style="display:none">
+          <div class="card-hdr">
+            <div class="card-title">🛍️ Shopify catalog</div>
+            <div id="shopify-library-breadcrumb" style="font-size:11px;color:var(--muted)"></div>
+          </div>
+          <div class="card-body" style="padding:10px">
+            <div id="shopify-library-grid" style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px">
+              <div class="empty" style="grid-column:1/-1"><p>No collections synced yet — sync Shopify first</p></div>
             </div>
           </div>
         </div>
@@ -1761,6 +1784,7 @@ function renderPostCard(post, flavor, container) {
         <span class="char-c" style="color:${over?'var(--red)':'var(--muted)'}">${chars}/${max}${over?' ⚠':' ✓'}</span>
       </div>
     </div>
+    <div class="post-split-divider" data-divider="left"></div>
     <!-- MIDDLE: Photo reel from Google Drive -->
     <div class="post-split-mid" id="reel-${cardId}">
       <div class="post-split-mid-hdr">📸 Photo library</div>
@@ -1768,6 +1792,7 @@ function renderPostCard(post, flavor, container) {
         <div class="photo-reel-drop-hint">Loading photos...</div>
       </div>
     </div>
+    <div class="post-split-divider" data-divider="right"></div>
     <!-- RIGHT: Live preview (also a drop target for photos) -->
     <div class="post-split-right" id="preview-${cardId}"
       ondragover="onPreviewDragOver(event)"
@@ -1780,6 +1805,7 @@ function renderPostCard(post, flavor, container) {
   setTimeout(() => loadPhotoReel(cardId, post.post_id || '', post.platform), 100);
 
   container.appendChild(div);
+  initPostSplitResize(div);
 }
 
 // Live update preview when editing
@@ -2108,6 +2134,69 @@ async function removePostImage(btn, postId) {
 }
 
 // ── Photo reel per post card ──────────────────────────────
+// Lets someone drag either divider in a post-split card to resize the
+// three panels (draft, photo library, preview) live — wider for the
+// draft panel while writing, wider for the preview while reviewing, per
+// request. Pure drag-to-resize, not the native CSS `resize:horizontal`
+// handle that used to be on the middle panel only — that gave no control
+// over the left panel at all and used an unfamiliar little corner-grip
+// rather than a real divider someone can find by hovering between panels.
+const MIN_PANEL_PX = 140;
+
+function initPostSplitResize(card) {
+  const dividers = card.querySelectorAll('.post-split-divider');
+  dividers.forEach((divider) => {
+    divider.addEventListener('mousedown', (e) => startPostSplitDrag(e, card, divider));
+  });
+}
+
+function startPostSplitDrag(e, card, divider) {
+  e.preventDefault();
+  divider.classList.add('dragging');
+
+  const left  = card.querySelector('.post-split-left');
+  const mid   = card.querySelector('.post-split-mid');
+  const right = card.querySelector('.post-split-right');
+  const side  = divider.dataset.divider; // 'left' = between draft/library, 'right' = between library/preview
+
+  // Read CURRENT rendered widths (not the 1fr/220px/1fr authored values)
+  // as the starting point, so a drag that happens after a previous resize
+  // continues smoothly from wherever things actually are right now,
+  // rather than snapping back to the original layout first.
+  const startLeftW  = left.getBoundingClientRect().width;
+  const startMidW   = mid.getBoundingClientRect().width;
+  const startRightW = right.getBoundingClientRect().width;
+  const startX      = e.clientX;
+
+  function onMove(moveEvent) {
+    const dx = moveEvent.clientX - startX;
+    let newLeftW = startLeftW, newMidW = startMidW, newRightW = startRightW;
+
+    if (side === 'left') {
+      // Dragging the left divider trades width between the draft panel
+      // and the photo library panel only — the preview panel is
+      // untouched by this divider, matching how a normal split-pane
+      // divider only affects its two immediate neighbors.
+      newLeftW = Math.max(MIN_PANEL_PX, startLeftW + dx);
+      newMidW  = Math.max(MIN_PANEL_PX, startMidW - dx);
+    } else {
+      newMidW   = Math.max(MIN_PANEL_PX, startMidW + dx);
+      newRightW = Math.max(MIN_PANEL_PX, startRightW - dx);
+    }
+
+    card.style.gridTemplateColumns = `${newLeftW}px 6px ${newMidW}px 6px ${newRightW}px`;
+  }
+
+  function onUp() {
+    divider.classList.remove('dragging');
+    document.removeEventListener('mousemove', onMove);
+    document.removeEventListener('mouseup', onUp);
+  }
+
+  document.addEventListener('mousemove', onMove);
+  document.addEventListener('mouseup', onUp);
+}
+
 async function loadPhotoReel(cardId, postId, platform) {
   const reel = document.getElementById(`photos-${cardId}`);
   if (!reel || !TENANT) return;
@@ -3057,10 +3146,15 @@ async function loadShopifyStatus() {
           dt.toLocaleTimeString('en-AU',{hour:'2-digit',minute:'2-digit'});
       }
       loadShopifyCollections();
+      // Library card shows whenever ANY products have synced, independent
+      // of Drive's own connection status — the two sources are unrelated.
+      document.getElementById('shopify-library-card').style.display = (d.products_synced || 0) > 0 ? 'block' : 'none';
+      if ((d.products_synced || 0) > 0) loadShopifyLibrary();
     } else {
       document.getElementById('shopify-connected-view').style.display = 'none';
       document.getElementById('shopify-connect-view').style.display   = 'block';
       document.getElementById('shopify-sync-btn').style.display       = 'none';
+      document.getElementById('shopify-library-card').style.display   = 'none';
     }
   } catch(e) { console.warn('shopify status:', e.message); }
 }
@@ -3137,6 +3231,52 @@ async function loadShopifyCollections() {
       </div>
     `).join('');
   } catch(e) { console.warn('shopify collections:', e.message); }
+}
+
+// Photo Library's Shopify section — collection grid by default, drilling
+// into one collection on click to show its individual product photos.
+// Separate from loadShopifyCollections() above, which feeds the Settings
+// page's connection-status list — this one feeds the actual photo-picking
+// UI used when generating a post.
+async function loadShopifyLibrary(collectionId) {
+  if (!TENANT) return;
+  const grid = document.getElementById('shopify-library-grid');
+  const breadcrumb = document.getElementById('shopify-library-breadcrumb');
+  if (!grid) return;
+
+  try {
+    if (collectionId) {
+      const res = await fetch(`${API_BASE}/smflow-assets?tenant_id=${TENANT.id}&action=shopify_grouped&collection_id=${collectionId}`);
+      const d = await res.json();
+      breadcrumb.innerHTML = `<a href="#" onclick="loadShopifyLibrary();return false" style="color:var(--teal)">← All collections</a>`;
+      if (!d.products?.length) {
+        grid.innerHTML = '<div class="empty" style="grid-column:1/-1"><p>No photos in this collection yet</p></div>';
+        return;
+      }
+      grid.innerHTML = d.products.map(p => {
+        const safeSrc = (p.asset.file_url || '').replace(/'/g, '%27');
+        return `
+        <div class="asset-thumb" onclick="selectAsset('${p.asset.id}','${safeSrc}','${safeSrc}')" title="${p.title}">
+          <img src="${p.image_url || ''}" alt="${p.title}" loading="lazy" style="background:var(--surface)">
+          <div style="position:absolute;bottom:0;left:0;right:0;padding:4px 6px;background:rgba(0,0,0,.55);color:#fff;font-size:10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${p.title}</div>
+        </div>`;
+      }).join('');
+    } else {
+      const res = await fetch(`${API_BASE}/smflow-assets?tenant_id=${TENANT.id}&action=shopify_grouped`);
+      const d = await res.json();
+      breadcrumb.innerHTML = '';
+      if (!d.collections?.length) {
+        grid.innerHTML = '<div class="empty" style="grid-column:1/-1"><p>No collections synced yet — sync Shopify first</p></div>';
+        return;
+      }
+      grid.innerHTML = d.collections.map(c => `
+        <div class="asset-thumb" onclick="loadShopifyLibrary('${c.id}')" title="${c.title}" style="cursor:pointer">
+          ${c.image_url ? `<img src="${c.image_url}" alt="${c.title}" loading="lazy" style="background:var(--surface)">` : `<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;background:var(--surface);font-size:24px">🛍️</div>`}
+          <div style="position:absolute;bottom:0;left:0;right:0;padding:4px 6px;background:rgba(0,0,0,.55);color:#fff;font-size:10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${c.title} (${c.product_count})</div>
+        </div>
+      `).join('');
+    }
+  } catch(e) { console.warn('shopify library:', e.message); }
 }
 
 async function loadAssets() {

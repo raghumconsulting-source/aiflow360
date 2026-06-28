@@ -359,6 +359,32 @@ const handler = async function (event) {
 
   if (event.httpMethod === 'GET') {
     if (!tenantId) return { statusCode: 400, headers: HEADERS, body: JSON.stringify({ error: 'tenant_id required' }) };
+
+    // Collection-grouped Shopify photo library — used by the Photo
+    // Library's "Shopify Catalog" section, which shows collections first
+    // (cover image + product count) and lets the person drill into one to
+    // see its individual product photos, per the agreed design: every
+    // synced product auto-promotes into the library, organized by
+    // collection rather than dumped into one flat grid like Drive assets.
+    if (params.action === 'shopify_grouped') {
+      try {
+        const collections = await sb(`smflow_shopify_collections?tenant_id=eq.${tenantId}&select=id,title,handle,image_url,product_count&order=title.asc`);
+        if (params.collection_id) {
+          // Drill-down: just this one collection's individual product photos
+          const products = await sb(`smflow_shopify_products?tenant_id=eq.${tenantId}&collection_id=eq.${params.collection_id}&is_active=eq.true&select=id,title,image_url,price,currency&order=title.asc`);
+          const assets = await sb(`smflow_assets?tenant_id=eq.${tenantId}&source=eq.shopify&is_active=eq.true&select=id,shopify_product_id,file_url,caption_suggestion`);
+          const assetByProductRowId = new Map(assets.map(a => [a.shopify_product_id, a]));
+          const productsWithAssets = products
+            .map(p => ({ ...p, asset: assetByProductRowId.get(p.id) || null }))
+            .filter(p => p.asset); // a product with no image was never promoted — nothing to show here
+          return { statusCode: 200, headers: HEADERS, body: JSON.stringify({ collection_id: params.collection_id, products: productsWithAssets }) };
+        }
+        return { statusCode: 200, headers: HEADERS, body: JSON.stringify({ collections }) };
+      } catch (err) {
+        return { statusCode: 500, headers: HEADERS, body: JSON.stringify({ error: err.message }) };
+      }
+    }
+
     try {
       const limit  = Math.min(parseInt(params.limit) || 50, 200);
       const offset = parseInt(params.offset) || 0;

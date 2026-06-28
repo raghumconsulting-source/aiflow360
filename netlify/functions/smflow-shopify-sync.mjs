@@ -232,11 +232,48 @@ async function syncCollectionsAndProducts(tenantId, shopDomain, accessToken, res
           // above — this is the higher-volume of the two (125 products vs
           // 4 collections in the real catalog this was tested against),
           // so it's the bigger share of the real, measured time savings.
-          await sb(
+          // return=representation here (not =minimal) because the row's
+          // own id is needed immediately below to link the promoted
+          // smflow_assets row back to it.
+          const upsertedProduct = await sb(
             `smflow_shopify_products?on_conflict=tenant_id,shopify_product_id`,
-            { method: 'POST', prefer: 'resolution=merge-duplicates,return=minimal', body: { ...productPayload, created_at: new Date().toISOString() } }
+            { method: 'POST', prefer: 'resolution=merge-duplicates,return=representation', body: { ...productPayload, created_at: new Date().toISOString() } }
           );
           productsSynced++;
+
+          // Auto-promote every synced product with a real photo into the
+          // shared Photo Library (smflow_assets), per the agreed design:
+          // every synced product appears there automatically, organized
+          // by collection, rather than requiring a separate manual step.
+          // Products with no image at all (a real, confirmed edge case —
+          // see the null-image handling note above) are skipped here,
+          // since smflow_assets.file_url is NOT NULL — there's nothing
+          // meaningful to show in a photo library for a product with no
+          // photo.
+          if (imageUrl) {
+            const productRowId = upsertedProduct[0].id;
+            await sb(
+              `smflow_assets?on_conflict=tenant_id,shopify_product_id`,
+              {
+                method: 'POST', prefer: 'resolution=merge-duplicates,return=minimal',
+                body: {
+                  tenant_id:           tenantId,
+                  source:              'shopify',
+                  shopify_product_id:  productRowId,
+                  file_url:            imageUrl,
+                  file_name:           prod.title,
+                  caption_suggestion:  prod.title,
+                  topic_tags:          [],
+                  flavor_tags:         [],
+                  platform_tags:       [],
+                  is_active:           true,
+                  is_ai_generated:     false,
+                  usage_count:         0,
+                  updated_at:          new Date().toISOString(),
+                },
+              }
+            );
+          }
         }
 
         productAfter = prodData.collection?.products?.pageInfo?.hasNextPage
