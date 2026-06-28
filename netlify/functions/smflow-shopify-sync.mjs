@@ -118,7 +118,16 @@ async function shopifyGraphQL(shopDomain, accessToken, query, variables) {
 // discovered to be necessary after a real catalog (100+ products in a
 // single collection) caused an actual 504 Inactivity Timeout in
 // production — not a theoretical concern.
-const TIME_BUDGET_MS = 45000; // leave real margin under the 60s hard limit
+// Netlify's documented Pro-plan synchronous limit is 60 seconds, but a
+// direct, timed test call against the real live deployment measured an
+// actual cutoff close to 30 seconds (confirmed: a real request returned a
+// 504 Inactivity Timeout at ~30.2s elapsed). Rather than trust the
+// documented number, this budget is set against what was actually
+// measured in production, with real margin under THAT — not the
+// platform's nominal limit, which evidently doesn't reflect what this
+// specific site enforces. If this needs further tuning, re-measure with
+// a timed direct fetch() call before changing this constant again.
+const TIME_BUDGET_MS = 18000;
 
 async function syncCollectionsAndProducts(tenantId, shopDomain, accessToken, resumeCursor) {
   const startedAt = Date.now();
