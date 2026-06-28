@@ -2201,15 +2201,16 @@ async function loadPhotoReel(cardId, postId, platform) {
   const reel = document.getElementById(`photos-${cardId}`);
   if (!reel || !TENANT) return;
 
-  // Fetch GDrive assets and Shopify status in parallel — neither blocks the other
+  // Fetch GDrive assets and Shopify collections in parallel via smflow-assets
+  // (single function, service key, bypasses RLS) — no separate status call needed.
+  // If shopify_grouped returns collections, Shopify is connected. Simple.
   const [driveRes, shopifyRes] = await Promise.allSettled([
     fetch(`${API_BASE}/smflow-assets?tenant_id=${TENANT.id}&action=list&limit=20`),
-    fetch(`${API_BASE}/smflow-shopify-sync?tenant_id=${TENANT.id}`),
+    fetch(`${API_BASE}/smflow-assets?tenant_id=${TENANT.id}&action=shopify_grouped`),
   ]);
 
-  let driveAssets = [];
-  let shopifyConnected = false;
-  let shopifyProductCount = 0;
+  let driveAssets       = [];
+  let shopifyCollections = [];
 
   try {
     if (driveRes.status === 'fulfilled' && driveRes.value.ok) {
@@ -2221,13 +2222,12 @@ async function loadPhotoReel(cardId, postId, platform) {
   try {
     if (shopifyRes.status === 'fulfilled' && shopifyRes.value.ok) {
       const s = await shopifyRes.value.json();
-      shopifyConnected  = s.connected === true;
-      shopifyProductCount = s.products_synced || 0;
+      shopifyCollections = s.collections || [];
     }
   } catch(e) { console.warn('loadPhotoReel shopify:', e.message); }
 
   const hasDrive   = driveAssets.length > 0;
-  const hasShopify = shopifyConnected && shopifyProductCount > 0;
+  const hasShopify = shopifyCollections.length > 0;
 
   // Nothing from either source
   if (!hasDrive && !hasShopify) {
@@ -2268,22 +2268,27 @@ async function loadPhotoReel(cardId, postId, platform) {
 
   reel.innerHTML = html;
 
-  // Load Shopify collections into the reel asynchronously if needed
+  // Render Shopify collections directly — already fetched above, no second call
   if (hasShopify) {
-    loadReelShopifyCollections(cardId, postId);
+    loadReelShopifyCollections(cardId, postId, shopifyCollections);
   }
 }
 
 // Renders Shopify collections as clickable tiles in the post card photo reel.
 // Clicking a collection drills into its products (replaces the collection tiles
 // with product images, with a back link to return to the collection view).
-async function loadReelShopifyCollections(cardId, postId) {
+async function loadReelShopifyCollections(cardId, postId, preloadedCollections) {
   const container = document.getElementById(`shopify-reel-${cardId}`);
   if (!container || !TENANT) return;
   try {
-    const res = await fetch(`${API_BASE}/smflow-assets?tenant_id=${TENANT.id}&action=shopify_grouped`);
-    const d   = await res.json();
-    const collections = d.collections || [];
+    // Use preloaded collections if provided (from loadPhotoReel parallel fetch),
+    // otherwise fetch fresh (called from Back link in drill-down)
+    let collections = preloadedCollections;
+    if (!collections) {
+      const res = await fetch(`${API_BASE}/smflow-assets?tenant_id=${TENANT.id}&action=shopify_grouped`);
+      const d   = await res.json();
+      collections = d.collections || [];
+    }
     if (!collections.length) {
       container.innerHTML = '<div class="photo-reel-drop-hint" style="grid-column:1/-1">No collections synced yet.</div>';
       return;
