@@ -942,7 +942,8 @@ textarea.sct:focus{border-color:var(--violet)}
         </div>
         <div class="card">
           <div class="card-hdr">
-            <div><div class="card-title">Canva</div><div class="card-sub">AI-assisted design — no account connection needed</div></div>
+            <div><div class="card-title">Canva</div><div class="card-sub" id="canva-status-sub">Connect to design with your photos automatically</div></div>
+            <button class="tbtn btn-sm" id="canva-connect-btn" onclick="connectCanva()">Connect</button>
           </div>
           <div class="card-body">
 
@@ -1800,8 +1801,9 @@ function renderPostCard(post, flavor, container) {
           ${post.post_id ? `<button class="post-act" onclick="submitApproval('${post.post_id}')">→ Approve</button>` : ''}
           <button class="post-act violet" onclick="openCanvaWithContent(this)"
             data-content="${(post.content||'').replace(/`/g,"'").replace(/["]/g,'&quot;').slice(0,500)}"
-            data-url="${post.canva_url || 'https://www.canva.com/design/new?type=instagram_post'}"
-            title="Copy post text &amp; open Canva to design">
+            data-post-id="${post.post_id || ''}"
+            data-card="${cardId}"
+            title="Copy post text &amp; open Canva with your photo">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="flex-shrink:0"><circle cx="12" cy="12" r="11" fill="#7B47FF"/><path d="M15.5 8.5c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5c0 .55.3 1.03.74 1.29L11.5 14H9.5l-1-2.5H7l2 5h8l-1.5-8.21c.58-.23 1-.79 1-1.79zM14 7.5c.28 0 .5.22.5.5s-.22.5-.5.5-.5-.22-.5-.5.22-.5.5-.5z" fill="white"/></svg>
           Canva</button>
         </div>
@@ -2522,20 +2524,68 @@ function rotateImg(postId, degrees) {
   applyTransform(img, s);
 }
 
-function openCanvaWithContent(btn) {
-  // Copy post text to clipboard then open Canva
-  // Client pastes into Canva AI prompt — no broken URL params needed
-  const text   = btn.dataset.content || '';
-  const url    = btn.dataset.url || 'https://www.canva.com/design/new?type=instagram_post';
+async function openCanvaWithContent(btn) {
+  const text = btn.dataset.content || '';
+  const postId = btn.dataset.postId || '';
+
+  // Keep the existing text-to-clipboard behavior — useful regardless of
+  // which photo flow follows, since the person still needs the caption.
   if (text) {
-    navigator.clipboard.writeText(text).then(() => {
-      toast('✓ Post text copied — paste it into Canva AI prompt');
-      setTimeout(() => window.open(url, '_blank'), 800);
-    }).catch(() => {
-      window.open(url, '_blank');
+    navigator.clipboard.writeText(text).catch(() => {});
+  }
+
+  if (!TENANT?.id) return toast('Please wait for your account to load');
+
+  // Find the currently-applied preview photo for this card directly from
+  // the live DOM rather than tracking a separate variable — this is always
+  // accurate to whatever's actually showing, including after pan/zoom/
+  // rotate edits or a manual upload replacing the original photo.
+  const card = btn.closest('.post-split');
+  const previewImg = card?.querySelector('.preview-img');
+  const imageUrl = previewImg?.src;
+
+  if (!imageUrl) {
+    // No photo applied yet — fall back to the original generic blank-canvas
+    // flow rather than blocking the person entirely. Text was already
+    // copied above either way.
+    toast('✓ Post text copied — no photo selected yet, opening a blank design');
+    window.open('https://www.canva.com/design/new?type=instagram_post', '_blank');
+    return;
+  }
+
+  if (!postId) {
+    toast('✓ Post text copied — save this draft first to design with your photo');
+    window.open('https://www.canva.com/design/new?type=instagram_post', '_blank');
+    return;
+  }
+
+  btn.disabled = true;
+  const originalHTML = btn.innerHTML;
+  btn.textContent = 'Opening Canva…';
+
+  try {
+    const res = await fetch(`${API_BASE}/smflow-canva-design`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ tenant_id: TENANT.id, post_id: postId, image_url: imageUrl }),
     });
-  } else {
-    window.open(url, '_blank');
+    const d = await res.json();
+    if (!res.ok || !d.edit_url) {
+      if (d.error?.includes('No Canva account connected')) {
+        toast('✓ Post text copied — connect Canva in Settings to design with your photo automatically');
+        window.open('https://www.canva.com/design/new?type=instagram_post', '_blank');
+      } else {
+        toast(`Could not open Canva with your photo: ${d.error || 'unknown error'}`, true);
+      }
+      return;
+    }
+    toast('✓ Post text copied — opening Canva with your photo');
+    window.open(d.edit_url, '_blank');
+  } catch (e) {
+    toast(`Could not open Canva: ${e.message}`, true);
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = originalHTML;
   }
 }
 
@@ -3138,6 +3188,8 @@ async function loadSocialAccounts() {
   if (!TENANT) return;
   loadGDriveStatus();
   loadShopifyStatus();
+  checkCanvaReturnParams();
+  checkCanvaCorrelationReturn();
   try {
     // Route through Netlify function — uses service key server-side, bypasses RLS anon restriction
     const res      = await fetch(`${API_BASE}/smflow-config?tenant_id=${TENANT.id}&include=social_accounts`);
@@ -3298,6 +3350,74 @@ async function connectGDrive() {
   const d = await res.json();
   if (d.success) { toast('✓ Google Drive connected'); loadGDriveStatus(); }
   else toast('Error: ' + d.error);
+}
+
+function connectCanva() {
+  if (!TENANT?.id) return toast('Please wait for your account to load');
+  window.location.href = `${API_BASE}/smflow-canva-oauth?tenant_id=${TENANT.id}`;
+}
+
+// Reflects the result of a just-completed Canva OAuth round trip. The
+// callback function (smflow-canva-callback.mjs) redirects back here with
+// either canva_connected=1 or canva_error=<message> — this just surfaces
+// that result and cleans the URL, rather than needing a separate live
+// status-check call on every page load.
+function checkCanvaReturnParams() {
+  const params = new URLSearchParams(window.location.search);
+  const connected = params.get('canva_connected');
+  const error = params.get('canva_error');
+  if (!connected && !error) return;
+
+  if (connected) {
+    toast('✓ Canva connected');
+    const sub = document.getElementById('canva-status-sub');
+    const btn = document.getElementById('canva-connect-btn');
+    if (sub) sub.textContent = 'Connected — designs open with your photo automatically';
+    if (btn) { btn.textContent = 'Reconnect'; }
+  } else if (error) {
+    toast(`Canva: ${error}`, true);
+  }
+
+  // Clean the URL so a page refresh doesn't re-trigger this toast.
+  params.delete('canva_connected');
+  params.delete('canva_error');
+  const cleanUrl = window.location.pathname + (params.toString() ? `?${params.toString()}` : '');
+  window.history.replaceState({}, '', cleanUrl);
+}
+
+// Handles the actual end of the Canva edit loop: when the person clicks
+// Canva's own "Back to SMflow" button, Canva appends correlation_jwt to
+// this page's URL. This automatically exports the now-edited design and
+// saves it as the post's image — no manual "I'm done" button needed.
+async function checkCanvaCorrelationReturn() {
+  const params = new URLSearchParams(window.location.search);
+  const correlationJwt = params.get('correlation_jwt');
+  if (!correlationJwt || !TENANT?.id) return;
+
+  toast('Finishing up your Canva design…');
+  try {
+    const res = await fetch(`${API_BASE}/smflow-canva-return`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ tenant_id: TENANT.id, correlation_jwt: correlationJwt }),
+    });
+    const d = await res.json();
+    if (!res.ok) {
+      toast(`Could not finish your Canva design: ${d.error || 'unknown error'}`, true);
+    } else {
+      toast('✓ Your Canva design is ready');
+      // Reload so the post card picks up its new image_url from the server.
+      // (No targeted single-card refresh function exists in this codebase
+      // to update just the affected card in place.)
+      setTimeout(() => window.location.reload(), 1200);
+    }
+  } catch (e) {
+    toast(`Could not finish your Canva design: ${e.message}`, true);
+  }
+
+  params.delete('correlation_jwt');
+  const cleanUrl = window.location.pathname + (params.toString() ? `?${params.toString()}` : '');
+  window.history.replaceState({}, '', cleanUrl);
 }
 
 async function loadGDriveStatus() {
