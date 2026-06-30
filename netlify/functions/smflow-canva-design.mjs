@@ -141,7 +141,25 @@ async function uploadAssetFromUrl(accessToken, imageUrl, displayName) {
   throw new Error('Canva asset upload took too long — please try again');
 }
 
-async function createDesignWithAsset(accessToken, assetId, title) {
+// Canva's `preset` design type only supports doc/email/presentation/
+// whiteboard — there is no social-media-post preset at all, confirmed
+// directly against the API's own error response. Social-sized designs use
+// `type: custom` with explicit pixel dimensions instead. These match the
+// same aspect ratios already used for the platform preview in
+// dashboard.html's PLATFORM_PREVIEW config, sized at a sensible resolution
+// for actual export quality (not just the small preview-card size).
+const PLATFORM_DESIGN_DIMENSIONS = {
+  Instagram:  { width: 1080, height: 1080 }, // 1:1
+  Facebook:   { width: 1200, height: 628  }, // 1.91:1
+  LinkedIn:   { width: 1200, height: 628  }, // 1.91:1
+  'Twitter/X': { width: 1200, height: 675 }, // 16:9
+  YouTube:    { width: 1280, height: 720  }, // 16:9
+  WhatsApp:   { width: 1080, height: 1080 }, // 1:1, same as Instagram
+};
+const DEFAULT_DESIGN_DIMENSIONS = { width: 1080, height: 1080 };
+
+async function createDesignWithAsset(accessToken, assetId, title, platform) {
+  const dimensions = PLATFORM_DESIGN_DIMENSIONS[platform] || DEFAULT_DESIGN_DIMENSIONS;
   const res = await fetch('https://api.canva.com/rest/v1/designs', {
     method: 'POST',
     headers: {
@@ -149,7 +167,7 @@ async function createDesignWithAsset(accessToken, assetId, title) {
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
-      design_type: { type: 'preset', name: 'instagram_post' },
+      design_type: { type: 'custom', width: dimensions.width, height: dimensions.height },
       asset_id: assetId,
       title: title.slice(0, 50),
     }),
@@ -174,7 +192,7 @@ const handler = async function (event) {
     return { statusCode: 400, headers: HEADERS, body: JSON.stringify({ error: 'Invalid request body' }) };
   }
 
-  const { tenant_id, post_id, image_url } = body;
+  const { tenant_id, post_id, image_url, platform } = body;
   if (!tenant_id || !post_id || !image_url) {
     return { statusCode: 400, headers: HEADERS, body: JSON.stringify({ error: 'tenant_id, post_id, and image_url are all required' }) };
   }
@@ -196,7 +214,7 @@ const handler = async function (event) {
   let assetId, design;
   try {
     assetId = await uploadAssetFromUrl(accessToken, image_url, `SMflow photo ${post_id}`);
-    design  = await createDesignWithAsset(accessToken, assetId, `SMflow — ${post_id}`);
+    design  = await createDesignWithAsset(accessToken, assetId, `SMflow — ${post_id}`, platform);
   } catch (e) {
     return { statusCode: 500, headers: HEADERS, body: JSON.stringify({ error: e.message }) };
   }
