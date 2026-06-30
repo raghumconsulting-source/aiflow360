@@ -8,6 +8,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 :root{
@@ -1295,7 +1296,14 @@ async function init() {
       const badge = document.getElementById('industry-badge');
       const vname = document.getElementById('venue-name');
       if (vname) vname.textContent = TENANT.display_name || TENANT.name || '';
-      if (badge) badge.textContent = TENANT.industry_code ? TENANT.industry_code.replace(/_/g,' ') : '';
+      // Show the specific business type (e.g. "restaurant") rather than the
+      // broader industry sector code (e.g. "accommodation_food", which
+      // bundles hotels/cafes/bars/restaurants together) — business_type_code
+      // is what onboarding actually captures as the precise classification.
+      // Falls back to industry_code if a tenant has no business_type_code
+      // set, so older/incompletely-onboarded tenants still show something.
+      const badgeSource = TENANT.business_type_code || TENANT.industry_code;
+      if (badge) badge.textContent = badgeSource ? badgeSource.replace(/_/g,' ') : '';
     }
   } catch(e) { console.warn('get-tenant:', e.message); }
   await loadConfig();
@@ -1405,7 +1413,11 @@ async function loadConfig() {
     const venameEl = document.getElementById('venue-name');
     const badgeEl  = document.getElementById('industry-badge');
     if (d.tenant?.display_name && venameEl) venameEl.textContent = d.tenant.display_name;
-    if (d.tenant?.industry_code && badgeEl)  badgeEl.textContent = d.tenant.industry_code.replace(/_/g,' ');
+    // Same business_type_code-over-industry_code preference as init() above —
+    // industryCode itself stays untouched since populateAudienceDropdown
+    // genuinely needs the broader sector code, not the specific business type.
+    const badgeSource = d.tenant?.business_type_code || d.tenant?.industry_code;
+    if (badgeSource && badgeEl) badgeEl.textContent = badgeSource.replace(/_/g,' ');
     populateAudienceDropdown(industryCode, CONFIG?.target_audience || '');
   } catch(e) { console.warn('smflow-config:', e.message); }
 }
@@ -3222,12 +3234,58 @@ async function createGDriveFolder() {
       toast(d.already_exists ? '✓ You already have a photo folder' : '✓ Photo folder created!');
       loadGDriveStatus();
     } else {
-      toast('Error: ' + d.error);
+      await offerFolderStructureDownload(d.error || 'Automatic folder creation failed');
     }
   } catch(e) {
-    toast('Could not create folder: ' + e.message);
+    await offerFolderStructureDownload(e.message);
   }
   btn.textContent = originalText; btn.disabled = false;
+}
+
+// Fallback for when automatic Drive folder creation fails (most commonly:
+// Drive OAuth scope not yet granted while Google's verification review is
+// pending — the connection itself is fine, but Google hasn't approved the
+// Drive permission yet). Builds a ZIP of the correct empty folder structure
+// client-side and lets the person drag it straight into their own Drive,
+// then paste the resulting folder's ID into the "Folder ID" field below —
+// that field already calls the same gdrive_connect endpoint either way.
+async function offerFolderStructureDownload(errorMessage) {
+  toast('Could not create folder automatically — preparing a downloadable version instead...');
+  try {
+    const industryCode = TENANT.industry_code || '_default';
+    const res = await fetch(`${API_BASE}/smflow-assets?action=get_folder_structure&industry_code=${encodeURIComponent(industryCode)}`);
+    if (!res.ok) throw new Error('Could not reach SMflow to prepare the folder structure');
+    const { sub_folders } = await res.json();
+
+    const zip = new JSZip();
+    const tenantName = TENANT.display_name || TENANT.name || 'SMflow';
+    const root = zip.folder(`SMflow — ${tenantName}`);
+    // ZIP entries need at least one byte to register as real folders once
+    // extracted/uploaded — an empty .keep file in each sub-folder does this
+    // without leaving anything visible or meaningful behind.
+    for (const name of sub_folders) {
+      root.folder(name).file('.keep', '');
+    }
+    const blob = await zip.generateAsync({ type: 'blob' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `SMflow-${tenantName.replace(/[^a-z0-9]+/gi, '-').replace(/^-+|-+$/g, '')}-folders.zip`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+
+    showGDriveManualInstructions();
+  } catch (zipErr) {
+    toast(`Could not create folder (${errorMessage}), and the fallback download also failed: ${zipErr.message}. Please contact support.`);
+  }
+}
+
+function showGDriveManualInstructions() {
+  toast('✓ Downloaded! Drag the ZIP into your Google Drive, then paste the new folder\'s ID below.');
+  const folderIdInput = document.getElementById('gdrive-folder-id');
+  if (folderIdInput) folderIdInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
 }
 
 async function connectGDrive() {
