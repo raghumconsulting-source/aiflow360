@@ -1799,7 +1799,7 @@ function renderPostCard(post, flavor, container) {
           <button class="post-act" data-card="${cardId}" onclick="copyPost(this)">Copy</button>
           <button class="post-act" data-card="${cardId}" onclick="editPost(this)">Edit</button>
           ${post.post_id ? `<button class="post-act" onclick="submitApproval('${post.post_id}')">→ Approve</button>` : ''}
-          <button class="post-act violet" onclick="openCanvaWithContent(this)"
+          <button class="post-act violet" onclick="openCanvaWithContent(this,'${post.platform}')"
             data-content="${(post.content||'').replace(/`/g,"'").replace(/["]/g,'&quot;').slice(0,500)}"
             data-post-id="${post.post_id || ''}"
             data-card="${cardId}"
@@ -2524,7 +2524,7 @@ function rotateImg(postId, degrees) {
   applyTransform(img, s);
 }
 
-async function openCanvaWithContent(btn) {
+async function openCanvaWithContent(btn, platform) {
   const text = btn.dataset.content || '';
   const postId = btn.dataset.postId || '';
 
@@ -2567,7 +2567,7 @@ async function openCanvaWithContent(btn) {
     const res = await fetch(`${API_BASE}/smflow-canva-design`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ tenant_id: TENANT.id, post_id: postId, image_url: imageUrl }),
+      body: JSON.stringify({ tenant_id: TENANT.id, post_id: postId, image_url: imageUrl, platform }),
     });
     const d = await res.json();
     if (!res.ok || !d.edit_url) {
@@ -3200,7 +3200,12 @@ async function loadSocialAccounts() {
       const statusEl = document.getElementById(`acc-status-${p}`);
       const btnEl    = document.getElementById(`acc-btn-${p}`);
       if (statusEl) statusEl.textContent = 'Not connected';
-      if (btnEl) { btnEl.textContent = 'Connect'; btnEl.style.color = ''; btnEl.style.borderColor = ''; }
+      if (btnEl) {
+        btnEl.textContent       = 'Connect';
+        btnEl.style.borderColor = 'var(--red)';
+        btnEl.style.color       = 'var(--red-t)';
+        btnEl.style.background  = 'var(--red-bg)';
+      }
     });
 
     // Reset all platforms to disconnected state
@@ -3214,9 +3219,9 @@ async function loadSocialAccounts() {
       if (statusEl) statusEl.innerHTML = 'Not connected';
       if (btnEl) {
         btnEl.textContent        = 'Connect';
-        btnEl.style.borderColor  = '';
-        btnEl.style.color        = '';
-        btnEl.style.background   = '';
+        btnEl.style.borderColor  = 'var(--red)';
+        btnEl.style.color        = 'var(--red-t)';
+        btnEl.style.background   = 'var(--red-bg)';
       }
     });
 
@@ -3238,8 +3243,33 @@ async function loadSocialAccounts() {
       }
     });
 
+    applyCanvaStatus(d.canva);
+
     console.log('Social accounts loaded:', (accounts||[]).length, 'connected');
   } catch(e) { console.warn('loadSocialAccounts error:', e.message); }
+}
+
+// Applies real Canva connection status (from smflow-config's `canva` field,
+// sourced from smflow_canva_config) to the Settings card, using the same
+// red-disconnected/green-connected button pattern as every other platform.
+function applyCanvaStatus(canvaConfig) {
+  const sub = document.getElementById('canva-status-sub');
+  const btn = document.getElementById('canva-connect-btn');
+  if (!sub || !btn) return;
+
+  if (canvaConfig) {
+    sub.textContent = 'Connected — designs open with your photo automatically';
+    btn.textContent = 'Reconnect';
+    btn.style.borderColor = 'var(--green)';
+    btn.style.color       = 'var(--green-t)';
+    btn.style.background  = 'var(--green-bg)';
+  } else {
+    sub.textContent = 'Connect to design with your photos automatically';
+    btn.textContent = 'Connect';
+    btn.style.borderColor = 'var(--red)';
+    btn.style.color       = 'var(--red-t)';
+    btn.style.background  = 'var(--red-bg)';
+  }
 }
 
 function connectPlatform(platform) {
@@ -3370,10 +3400,7 @@ function checkCanvaReturnParams() {
 
   if (connected) {
     toast('✓ Canva connected');
-    const sub = document.getElementById('canva-status-sub');
-    const btn = document.getElementById('canva-connect-btn');
-    if (sub) sub.textContent = 'Connected — designs open with your photo automatically';
-    if (btn) { btn.textContent = 'Reconnect'; }
+    applyCanvaStatus({ connected: true }); // optimistic update; loadSocialAccounts() already re-confirms this from real data on every page load
   } else if (error) {
     toast(`Canva: ${error}`, true);
   }

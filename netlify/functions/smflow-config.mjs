@@ -91,6 +91,19 @@ const handler = async function (event) {
         );
       }
 
+      // Canva lives in its own table (smflow_canva_config), not
+      // smflow_social_accounts, since it was built later with a different
+      // schema shape (per-tenant unique row rather than a generic platform
+      // list). Reuses the same `include` flag for consistency.
+      let canvaConfig;
+      if (params.include === 'social_accounts') {
+        const canvaRows = await sb(
+          `smflow_canva_config?tenant_id=eq.${tenantId}&uninstalled_at=is.null` +
+          `&select=canva_user_id,canva_team_id,updated_at&limit=1`
+        );
+        canvaConfig = canvaRows[0] || null;
+      }
+
       return {
         statusCode: 200,
         headers:    HEADERS,
@@ -98,6 +111,7 @@ const handler = async function (event) {
           config:  rows[0] || null,
           tenant:  tenantRows[0] || null,
           ...(socialAccounts !== undefined && { social_accounts: socialAccounts }),
+          ...(params.include === 'social_accounts' && { canva: canvaConfig }),
         }),
       };
     } catch (err) {
