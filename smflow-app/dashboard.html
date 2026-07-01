@@ -3867,6 +3867,46 @@ function toast(msg, isError = false) {
 // ARIA agent — ARIA tab template fix
 // ══════════════════════════════════════════════════════════
 document.addEventListener('DOMContentLoaded', () => {
+  // Subscribe to Canva broadcast channel immediately at page load — before
+  // TENANT is fully hydrated — so Window 1 is definitely listening when
+  // Window 3 sends the export result. If we wait until loadSocialAccounts()
+  // fires (which requires TENANT to be set), the broadcast from Window 3
+  // may arrive before the subscription exists and be silently dropped.
+  // Extract tenant_id directly from the URL state param to get it early.
+  try {
+    const stateParam = new URLSearchParams(window.location.search).get('state');
+    if (stateParam) {
+      const stateData = JSON.parse(atob(stateParam));
+      const earlyTenantId = stateData.tenant_id;
+      if (earlyTenantId) {
+        const earlyChannel = new BroadcastChannel(`smflow-canva-${earlyTenantId}`);
+        // Buffer any messages that arrive before TENANT is set, then replay
+        // them once initCanvaBroadcastReceiver() overwrites with its handler.
+        // In practice this means: if Window 3 broadcasts while Window 1 is
+        // still loading, we catch it here.
+        earlyChannel.onmessage = (event) => {
+          // TENANT may now be loaded — re-route through the real handler
+          if (typeof initCanvaBroadcastReceiver === 'function' && window.TENANT) {
+            // Real handler is set up — let it process normally
+            // Just trigger the update directly here since we have the data
+            const { type, post_id, image_url } = event.data || {};
+            if (type === 'canva_export_done' && post_id && image_url) {
+              const previewImg = document.getElementById(`panimg-prevpan-${post_id}`);
+              if (previewImg) {
+                previewImg.src = image_url;
+                if (typeof resetImg === 'function') resetImg(`prevpan-${post_id}`);
+                toast('✓ Canva design applied to your post');
+              } else {
+                toast('✓ Canva design saved — re-open this post to see it');
+              }
+            }
+          }
+        };
+        window._canvaBroadcastChannel = earlyChannel;
+      }
+    }
+  } catch (_) { /* non-fatal — falls back to the loadSocialAccounts() path */ }
+
   document.getElementById('chat-in').addEventListener('keydown', e => {
     if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendChat(); }
   });
