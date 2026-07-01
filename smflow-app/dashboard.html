@@ -3190,6 +3190,7 @@ async function loadSocialAccounts() {
   loadShopifyStatus();
   checkCanvaReturnParams();
   checkCanvaCorrelationReturn();
+  initCanvaBroadcastReceiver();
   try {
     // Route through Netlify function — uses service key server-side, bypasses RLS anon restriction
     const res      = await fetch(`${API_BASE}/smflow-config?tenant_id=${TENANT.id}&include=social_accounts`);
@@ -3416,10 +3417,26 @@ function checkCanvaReturnParams() {
 // Canva's own "Back to SMflow" button, Canva appends correlation_jwt to
 // this page's URL. This automatically exports the now-edited design and
 // saves it as the post's image — no manual "I'm done" button needed.
+// ── Canva return: runs in the NEW TAB Canva opens (Window 3) ──────────────
+// Canva's "Return to SMflow" always opens a new tab pointing at our return
+// URL with a correlation_jwt param. This function:
+//   1. Detects that param on page load
+//   2. Calls smflow-canva-return to verify the JWT, export the design,
+//      and save the exported image_url to the post record
+//   3. Broadcasts the result to the ORIGINAL tab (Window 1) via
+//      BroadcastChannel — so that tab can update the post card in place
+//      without reloading and losing any unsaved AI-generated draft text
+//   4. Closes this new tab (Window 3) so the user is returned to
+//      Window 1 naturally
 async function checkCanvaCorrelationReturn() {
   const params = new URLSearchParams(window.location.search);
   const correlationJwt = params.get('correlation_jwt');
   if (!correlationJwt || !TENANT?.id) return;
+
+  // Clean the URL immediately so a refresh doesn't re-trigger this
+  params.delete('correlation_jwt');
+  const cleanUrl = window.location.pathname + (params.toString() ? `?${params.toString()}` : '');
+  window.history.replaceState({}, '', cleanUrl);
 
   toast('Finishing up your Canva design…');
   try {
@@ -3431,20 +3448,56 @@ async function checkCanvaCorrelationReturn() {
     const d = await res.json();
     if (!res.ok) {
       toast(`Could not finish your Canva design: ${d.error || 'unknown error'}`, true);
-    } else {
-      toast('✓ Your Canva design is ready');
-      // Reload so the post card picks up its new image_url from the server.
-      // (No targeted single-card refresh function exists in this codebase
-      // to update just the affected card in place.)
-      setTimeout(() => window.location.reload(), 1200);
+      return;
     }
+
+    // Broadcast the exported image to the original tab (Window 1).
+    // The channel name is scoped to the tenant so other tenants' tabs
+    // on the same browser don't receive each other's messages.
+    const channel = new BroadcastChannel(`smflow-canva-${TENANT.id}`);
+    channel.postMessage({ type: 'canva_export_done', post_id: d.post_id, image_url: d.image_url });
+    channel.close();
+
+    toast('✓ Your Canva design is ready — returning to SMflow');
+
+    // Close this return tab (Window 3) after a brief delay so the
+    // toast is visible, bringing the user back to Window 1 naturally.
+    setTimeout(() => window.close(), 1400);
+
   } catch (e) {
     toast(`Could not finish your Canva design: ${e.message}`, true);
   }
+}
 
-  params.delete('correlation_jwt');
-  const cleanUrl = window.location.pathname + (params.toString() ? `?${params.toString()}` : '');
-  window.history.replaceState({}, '', cleanUrl);
+// ── Canva result receiver: runs in the ORIGINAL tab (Window 1) ────────────
+// Listens for broadcast messages from Window 3, then updates the specific
+// post card's preview image in place — no page reload, no lost draft text.
+function initCanvaBroadcastReceiver() {
+  if (!TENANT?.id) return;
+  const channel = new BroadcastChannel(`smflow-canva-${TENANT.id}`);
+  channel.onmessage = (event) => {
+    const { type, post_id, image_url } = event.data || {};
+    if (type !== 'canva_export_done' || !post_id || !image_url) return;
+    // Update the preview image on the matching post card in place.
+    // previewId follows the pattern set in buildPlatformPreview():
+    // `prevpan-${post.post_id}` — so the img element id is panimg-prevpan-${post_id}
+    const previewImg = document.getElementById(`panimg-prevpan-${post_id}`);
+    if (previewImg) {
+      previewImg.src = image_url;
+      // Reset any pan/zoom/rotate state so the new Canva-designed image
+      // starts centered and unzoomed rather than inheriting the old photo's
+      // transform state
+      if (typeof resetImg === 'function') resetImg(`prevpan-${post_id}`);
+      toast('✓ Canva design applied to your post');
+    } else {
+      // Post card isn't currently rendered (e.g. user switched away from
+      // Generate tab) — the saved image_url is in the DB so it will appear
+      // correctly next time this post renders
+      toast('✓ Canva design saved — re-open this post to see it');
+    }
+  };
+  // Keep the channel alive for the lifetime of this tab
+  window._canvaBroadcastChannel = channel;
 }
 
 async function loadGDriveStatus() {
