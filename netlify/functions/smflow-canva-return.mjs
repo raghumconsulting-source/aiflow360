@@ -1,6 +1,6 @@
 import { withLambda } from '@netlify/aws-lambda-compat';
 import { createClient } from '@supabase/supabase-js';
-import * as jose from 'jose';
+import crypto from 'node:crypto';
 
 // netlify/functions/smflow-canva-return.mjs
 // Called by the frontend right after the person clicks Canva's "Back to
@@ -27,15 +27,52 @@ function getSupabase() {
   );
 }
 
-// jose.createRemoteJWKSet caches the JWKS internally and re-fetches only on
-// a kid miss, matching Canva's own guidance to avoid re-downloading the
-// file on every request.
-const JWKS = jose.createRemoteJWKSet(new URL(CANVA_KEYS_URL));
-
+// Verifies the correlation_jwt using Canva's JWKS endpoint and Node's native
+// crypto module. Replaces the original jose-based implementation which failed
+// because jose was never added to package.json, causing the deployed Lambda
+// to crash on import before writing any response (manifested as a 502).
+// Canva uses Ed25519/OKP keys (confirmed from their JWKS endpoint during
+// the integration design phase), which Node's crypto.verify() handles
+// natively since Node 15+ without any external library.
 async function verifyCorrelationJwt(token) {
-  const { payload } = await jose.jwtVerify(token, JWKS, {
-    audience: CANVA_CLIENT_ID,
-  });
+  const parts = token.split('.');
+  if (parts.length !== 3) throw new Error('Malformed JWT');
+
+  // 1. Parse the header to get the key ID (kid) we need to verify with
+  const header = JSON.parse(Buffer.from(parts[0], 'base64url').toString());
+
+  // 2. Fetch Canva's public keys and find the matching one by kid
+  const jwksRes = await fetch(CANVA_KEYS_URL);
+  if (!jwksRes.ok) throw new Error(`Could not fetch Canva public keys (${jwksRes.status})`);
+  const jwks = await jwksRes.json();
+  const jwk = jwks.keys?.find(k => k.kid === header.kid);
+  if (!jwk) throw new Error(`No matching key found for kid: ${header.kid}`);
+
+  // 3. Import the JWK as a native CryptoKey and verify the signature
+  const key = await crypto.subtle.importKey(
+    'jwk',
+    jwk,
+    { name: 'Ed25519' },
+    false,
+    ['verify']
+  );
+  const signatureInput = Buffer.from(`${parts[0]}.${parts[1]}`);
+  const signature = Buffer.from(parts[2], 'base64url');
+  const valid = await crypto.subtle.verify('Ed25519', key, signature, signatureInput);
+  if (!valid) throw new Error('JWT signature verification failed — token may be forged or tampered');
+
+  // 4. Parse and validate the payload
+  const payload = JSON.parse(Buffer.from(parts[1], 'base64url').toString());
+
+  // Expiry check
+  if (payload.exp && Date.now() / 1000 > payload.exp) {
+    throw new Error('JWT has expired');
+  }
+  // Audience check — must match our integration's client_id
+  if (payload.aud !== CANVA_CLIENT_ID) {
+    throw new Error(`JWT audience mismatch: expected ${CANVA_CLIENT_ID}, got ${payload.aud}`);
+  }
+  // Type check — must be a return-navigation token specifically
   if (payload.type !== 'rti') {
     throw new Error('Token is not a valid return-navigation token');
   }
